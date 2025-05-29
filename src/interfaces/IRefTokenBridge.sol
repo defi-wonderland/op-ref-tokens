@@ -13,11 +13,8 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be bridged
    * @param _recipient The recipient of the bridged token
    * @param _destinationChainId The destination chain ID
-   * @param _data The data to be executed on the destination chain
    */
-  event MessageSent(
-    address indexed _token, uint256 _amount, address indexed _recipient, uint256 _destinationChainId, bytes _data
-  );
+  event MessageSent(address indexed _token, uint256 _amount, address indexed _recipient, uint256 _destinationChainId);
 
   /**
    * @notice Event emitted when a message is relayed
@@ -25,10 +22,9 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be bridged
    * @param _recipient The recipient of the bridged token
    * @param _destinationChainId The destination chain ID
-   * @param _data The data to be executed on the destination chain
    */
   event MessageRelayed(
-    address indexed _token, uint256 _amount, address indexed _recipient, uint256 _destinationChainId, bytes _data
+    address indexed _token, uint256 _amount, address indexed _recipient, uint256 _destinationChainId
   );
 
   /**
