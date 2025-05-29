@@ -14,6 +14,7 @@
     "build:optimized": "FOUNDRY_PROFILE=optimized forge build",
     "coverage": "forge coverage --report summary --report lcov --match-path 'test/unit/*'",
     "deploy:optimism": "bash -c 'source .env && forge script Deploy --rpc-url $OPTIMISM_RPC --account $OPTIMISM_DEPLOYER_NAME --broadcast --verify --chain optimism -vvvvv'",
+    "deploy:optimism-sepolia": "bash -c 'source .env && forge script Deploy --rpc-url $OPTIMISM_SEPOLIA_RPC --account $OPTIMISM_DEPLOYER_NAME --broadcast --verify --chain optimism-sepolia -vvvvv'",
     "lint:bulloak": "find test -name '*.tree' | xargs bulloak check --fix",
     "lint:check": "yarn lint:sol && forge fmt --check",
     "lint:fix": "sort-package-json && forge fmt && yarn lint:sol --fix",
@@ -33,8 +34,8 @@
     "package.json": "sort-package-json"
   },
   "dependencies": {
-    "@eth-optimism/contracts-bedrock": "^0.17.3",
-    "@uniswap/v4-core": "^1.0.2"
+    "@eth-optimism/contracts-bedrock": "0.17.3",
+    "@uniswap/v4-core": "1.0.2"
   },
   "devDependencies": {
     "@commitlint/cli": "19.3.0",
