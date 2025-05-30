@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {IL2ToL2CrossDomainMessenger} from 'optimism/L2/IL2ToL2CrossDomainMessenger.sol';
+
 /**
  * @title IRefTokenBridge
  * @notice Interface for the RefTokenBridge
@@ -45,7 +47,7 @@ interface IRefTokenBridge {
    * @notice Get the L2 to L2 cross domain messenger address
    * @return _l2ToL2CDM The L2 to L2 cross domain messenger address
    */
-  function L2_To_L2_CDM() external view returns (address _l2ToL2CDM);
+  function L2_To_L2_CDM() external view returns (IL2ToL2CrossDomainMessenger _l2ToL2CDM);
 
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
+import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
 
 contract RefTokenBridge is IRefTokenBridge {
   /// @inheritdoc IRefTokenBridge
-  address public immutable L2_To_L2_CDM;
+  IL2ToL2CrossDomainMessenger public immutable L2_To_L2_CDM;
 
-  constructor(address _l2ToL2CDM) {
+  constructor(IL2ToL2CrossDomainMessenger _l2ToL2CDM) {
     L2_To_L2_CDM = _l2ToL2CDM;
   }
 
