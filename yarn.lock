@@ -181,7 +181,7 @@
     "@types/conventional-commits-parser" "^5.0.0"
     chalk "^5.3.0"
 
-"@eth-optimism/contracts-bedrock@^0.17.3":
+"@eth-optimism/contracts-bedrock@0.17.3":
   version "0.17.3"
   resolved "https://registry.yarnpkg.com/@eth-optimism/contracts-bedrock/-/contracts-bedrock-0.17.3.tgz#ab3085e90d50e66ddbf07512ca1d666b5bab625b"
   integrity sha512-cHPO7ntWeOBDLO7ZFFSZGI1D7CDqf4loRbRVJrFIsqLEz+hysWIqA0e3dv2GnrjVeuYePBfI2NTBEG4uwz9bQQ==
@@ -226,7 +226,7 @@
   dependencies:
     undici-types "~5.26.4"
 
-"@uniswap/v4-core@^1.0.2":
+"@uniswap/v4-core@1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@uniswap/v4-core/-/v4-core-1.0.2.tgz#5b5701267eea25e84221f7697d971fb4f66169f6"
   integrity sha512-X15Tm2wWd+USAzEExMbo+g9naA6QN6mPgWm0MzDwRNlOfaNlepfUpSyt9RSrUfEODspwbyWbcLg6t5nwc/e7lg==
