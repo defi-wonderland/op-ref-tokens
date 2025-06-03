@@ -45,9 +45,12 @@ interface IRefTokenBridge {
 
   /**
    * @notice Get the L2 to L2 cross domain messenger address
-   * @return _l2ToL2CDM The L2 to L2 cross domain messenger address
+   * @return _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
    */
-  function L2_To_L2_CDM() external view returns (IL2ToL2CrossDomainMessenger _l2ToL2CDM);
+  function L2_TO_L2_CROSS_DOMAIN_MESSENGER()
+    external
+    view
+    returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
 
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor

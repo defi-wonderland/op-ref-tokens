@@ -5,10 +5,14 @@ import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTo
 
 contract RefTokenBridge is IRefTokenBridge {
   /// @inheritdoc IRefTokenBridge
-  IL2ToL2CrossDomainMessenger public immutable L2_To_L2_CDM;
+  IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
-  constructor(IL2ToL2CrossDomainMessenger _l2ToL2CDM) {
-    L2_To_L2_CDM = _l2ToL2CDM;
+  /**
+   * @notice Constructor
+   * @param _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
+   */
+  constructor(IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger) {
+    L2_TO_L2_CROSS_DOMAIN_MESSENGER = _l2ToL2CrossDomainMessenger;
   }
 
   /// @inheritdoc IRefTokenBridge
