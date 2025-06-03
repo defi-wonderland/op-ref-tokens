@@ -1,4 +1,5 @@
 @openzeppelin/uniswap-hooks/=lib/uniswap-hooks/src/
+optimism/=node_modules/@eth-optimism/contracts-bedrock/src/
 forge-std/=node_modules/forge-std/src
 halmos-cheatcodes=node_modules/halmos-cheatcodes
 
