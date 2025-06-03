@@ -77,4 +77,12 @@ interface IRefTokenBridge {
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    */
   function relay(RefTokenBridgeData calldata _refTokenBridgeData) external;
+
+  // TODO: Define
+  /**
+   * @notice Unlocks the token on the origin chain
+   * @param _recipient The recipient of the unlocked token
+   * @param _amount The amount of token to be unlocked
+   */
+  function unlock(address _recipient, uint256 _amount) external;
 }

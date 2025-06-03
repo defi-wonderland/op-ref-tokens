@@ -28,6 +28,13 @@ contract RefTokenBridge is IRefTokenBridge {
   function relay(RefTokenBridgeData calldata _refTokenBridgeData) external {}
 
   /**
+   * @notice Unlocks the token on the origin chain
+   * @param _recipient The recipient of the unlocked token
+   * @param _amount The amount of token to be unlocked
+   */
+  function unlock(address _recipient, uint256 _amount) external {}
+
+  /**
    * @notice Internal function to lock the token
    * @dev This function is used to lock the token on the source chain
    * @param _token The token to be locked
