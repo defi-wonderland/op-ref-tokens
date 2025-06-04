@@ -1,0 +1,26 @@
+RefTokenBridgeUnit::constructor
+└── When constructor is set
+    └── It should initialize the L2 to L2 cross domain messenger
+
+RefTokenBridgeUnit::send
+├── When token is zero
+│   └── It should revert
+├── When amount is zero
+│   └── It should revert
+├── When recipient is zero
+│   └── It should revert
+├── When destination chain id is zero
+│   └── It should revert
+├── When called with a native token first time
+│   ├── It should emit TokensLocked
+│   ├── It should emit MessageSent
+│   ├── It should create the ref token
+│   └── It should send the message to the L2 messenger
+├── When called with a native token following successions
+│   ├── It should emit TokensLocked
+│   ├── It should emit MessageSent
+│   └── It should send the message to the L2 messenger
+└── When called with a ref token
+    ├── It should emit TokensBurned
+    ├── It should emit MessageSent
+    └── It should send the message to the L2 messenger
