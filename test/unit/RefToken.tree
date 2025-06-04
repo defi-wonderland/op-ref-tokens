@@ -1,0 +1,31 @@
+UnitRefTokenTest::constructor
+│   └── When deployed
+│       └── It constructs the RefToken contract
+
+UnitRefTokenTest::mint
+│   ├── When caller is not authorized
+│   │   └── It reverts
+│   └── When caller is authorized
+│       └── It mints the specified amount of RefToken to the recipient
+
+UnitRefTokenTest::burn
+│   ├── When caller is not authorized
+│   │   └── It reverts
+│   └── When caller is authorized
+│       └── It burns the specified amount of RefToken from the caller
+
+UnitRefTokenTest::name
+│   └── When called
+│       └── It returns the name of the RefToken
+
+UnitRefTokenTest::symbol
+│   └── When called
+│       └── It returns the symbol of the RefToken
+
+UnitRefTokenTest::_mint
+│   ├── When caller is not the SuperchainTokenBridge
+│   │   └── It calls super._mint
+│   ├── When chainid is not the native asset one
+│   │   └── It calls super._mint
+│   └── When caller is authorized and chainid is the native asset one
+│       └── It calls RefTokenBridge.unlock
