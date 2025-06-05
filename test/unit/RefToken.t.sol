@@ -10,13 +10,13 @@ import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
 contract UnitRefTokenTest is Test {
-  RefToken refToken;
-  address user = makeAddr('user');
-  address refTokenBridge = makeAddr('RefTokenBridge');
-  uint256 nativeAssetChainId = 2;
-  string nativeAssetName = 'Native Asset';
-  string nativeAssetSymbol = 'NA';
-  uint8 nativeAssetDecimals = 18;
+  RefToken public refToken;
+  address public user = makeAddr('user');
+  address public refTokenBridge = makeAddr('RefTokenBridge');
+  uint256 public nativeAssetChainId = 2;
+  string public nativeAssetName = 'Native Asset';
+  string public nativeAssetSymbol = 'NA';
+  uint8 public nativeAssetDecimals = 18;
 
   function setUp() external {
     refToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
