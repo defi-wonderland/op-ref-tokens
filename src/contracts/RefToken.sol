@@ -81,21 +81,24 @@ contract RefToken is SuperchainERC20 {
   }
 
   /**
-   * @return _name The name of the RefToken, composed by a predefined string and the native asset name
+   * @notice The name of the RefToken, composed by a predefined string and the native asset name
+   * @return _name The RefToken name
    */
   function name() public view override returns (string memory _name) {
     _name = string.concat('RefToken (', nativeAssetName, ')');
   }
 
   /**
-   * @return _symbol The symbol of the RefToken, composed by a predefined string and the native asset symbol
+   * @notice The symbol of the RefToken, composed by a predefined string and the native asset symbol
+   * @return _symbol The RefToken symbol
    */
   function symbol() public view override returns (string memory _symbol) {
     _symbol = string.concat('REF-', nativeAssetSymbol);
   }
 
   /**
-   * @return _decimals The decimals of the RefToken, matching the native asset decimals
+   * @notice The decimals of the RefToken, matching the native asset decimals
+   * @return _decimals The RefToken decimals
    */
   function decimals() public view override returns (uint8 _decimals) {
     _decimals = _NATIVE_ASSET_DECIMALS;
