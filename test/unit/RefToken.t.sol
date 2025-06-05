@@ -54,7 +54,7 @@ contract UnitRefTokenTest is Test {
   }
 
   function test_MintWhenCallerIsAuthorized(address _user, uint256 _amount) external {
-    uint256 initialBalance = refToken.balanceOf(_user);
+    uint256 _initialBalance = refToken.balanceOf(_user);
     vm.prank(refTokenBridge);
 
     vm.expectEmit(true, true, true, true, address(refToken));
@@ -63,7 +63,7 @@ contract UnitRefTokenTest is Test {
     // It mints the specified amount of RefToken to the recipient
     refToken.mint(_user, _amount);
 
-    assertEq(refToken.balanceOf(_user), initialBalance + _amount);
+    assertEq(refToken.balanceOf(_user), _initialBalance + _amount);
   }
 
   function test_BurnWhenCallerIsNotAuthorized(address _caller) external {
@@ -83,12 +83,10 @@ contract UnitRefTokenTest is Test {
     vm.expectEmit(true, true, true, true, address(refToken));
     emit Transfer(_user, address(0), _burnAmount);
 
-    uint256 initialBalance = refToken.balanceOf(_user);
-    vm.prank(refTokenBridge);
-
     // It burns the specified amount of RefToken from the caller
+    vm.prank(refTokenBridge);
     refToken.burn(_user, _burnAmount);
-    assertEq(refToken.balanceOf(_user), initialBalance - _burnAmount);
+    assertEq(refToken.balanceOf(_user), _initialBalance - _burnAmount);
   }
 
   function test_NameWhenCalled() external view {
