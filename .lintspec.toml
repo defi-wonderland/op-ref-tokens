@@ -10,6 +10,9 @@ json = false
 compact = false
 sort = false
 
+[default]
+constructor = true
+
 [constructor]
 notice = "ignored"
 dev = "ignored"
