@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
-import {Test} from 'forge-std/Test.sol';
-
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
+
+import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
+import {Test} from 'forge-std/Test.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
 contract UnitRefTokenTest is Test {
-  event Transfer(address indexed from, address indexed to, uint256 amount);
-  event Approval(address indexed owner, address indexed spender, uint256 amount);
-
   RefToken refToken;
   address user = makeAddr('user');
   address refTokenBridge = makeAddr('RefTokenBridge');
@@ -58,7 +56,7 @@ contract UnitRefTokenTest is Test {
     vm.prank(refTokenBridge);
 
     vm.expectEmit(true, true, true, true, address(refToken));
-    emit Transfer(address(0), _user, _amount);
+    emit IERC20.Transfer(address(0), _user, _amount);
 
     // It mints the specified amount of RefToken to the recipient
     refToken.mint(_user, _amount);
@@ -81,7 +79,7 @@ contract UnitRefTokenTest is Test {
     refToken.mint(_user, _initialBalance);
 
     vm.expectEmit(true, true, true, true, address(refToken));
-    emit Transfer(_user, address(0), _burnAmount);
+    emit IERC20.Transfer(_user, address(0), _burnAmount);
 
     // It burns the specified amount of RefToken from the caller
     vm.prank(refTokenBridge);
