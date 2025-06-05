@@ -3,6 +3,9 @@ pragma solidity 0.8.25;
 
 import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
 import {Test} from 'forge-std/Test.sol';
+
+import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
 contract UnitRefTokenTest is Test {
@@ -109,10 +112,15 @@ contract UnitRefTokenTest is Test {
     assertEq(refToken.balanceOf(_to), _initialBalance + _amount);
   }
 
-  function test__mintWhenCallerIsAuthorizedAndChainidIsTheNativeAssetOne(address _to, uint256 _amount) external {
+  function test_CrosschainMintWhenCallerIsAuthorizedAndChainIdIsTheNativeAssetOne(
+    address _to,
+    uint256 _amount
+  ) external {
+    vm.chainId(nativeAssetChainId);
+
     // It calls RefTokenBridge.unlock
-    _mockAndExpect(address(refToken), abi.encodeWithSelector(RefToken.mint.selector, _to, _amount), '');
-    vm.prank(refTokenBridge);
-    refToken.mint(_to, _amount);
+    _mockAndExpect(address(refTokenBridge), abi.encodeWithSelector(IRefTokenBridge.unlock.selector, _to, _amount), '');
+    vm.prank(PredeployAddresses.SUPERCHAIN_TOKEN_BRIDGE);
+    refToken.crosschainMint(_to, _amount);
   }
 }

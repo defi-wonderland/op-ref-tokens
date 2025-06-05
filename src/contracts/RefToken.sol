@@ -33,8 +33,6 @@ contract RefToken is SuperchainERC20 {
    */
   string public NATIVE_ASSET_SYMBOL;
 
-  // TODO: Native asset address and decimals as metadata? No needed in the logic.
-
   /**
    * @notice Constructs the RefToken contract
    * @param _refTokenBridge The address of the RefTokenBridge contract
@@ -90,7 +88,7 @@ contract RefToken is SuperchainERC20 {
 
   /**
    * @notice Mints RefToken's to the specified address or unlocks the native asset if the caller is the
-   *  SuperchainTokenBridge and the chain id is the native asset one
+   *         SuperchainTokenBridge and the chain id is the native asset one
    * @param _to The address to mint the RefToken to
    * @param _amount The amount of RefToken to mint
    */

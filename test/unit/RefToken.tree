@@ -25,7 +25,9 @@ UnitRefTokenTest::symbol
 UnitRefTokenTest::_mint
 │   ├── When caller is not the SuperchainTokenBridge
 │   │   └── It calls super._mint
-│   ├── When chainid is not the native asset one
-│   │   └── It calls super._mint
-│   └── When caller is authorized and chainid is the native asset one
+│   └── When chain id is not the native asset one
+│       └── It calls super._mint
+
+UnitRefTokenTest::crosschainMint
+│   └── When caller is authorized and chain id is the native asset one
 │       └── It calls RefTokenBridge.unlock
