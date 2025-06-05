@@ -24,19 +24,19 @@ contract RefToken is SuperchainERC20 {
   uint256 public immutable NATIVE_ASSET_CHAIN_ID;
 
   /**
+   * @notice The decimals of the native asset
+   */
+  uint8 internal immutable _NATIVE_ASSET_DECIMALS;
+
+  /**
    * @notice The name of the native asset
    */
-  string public NATIVE_ASSET_NAME;
+  string public nativeAssetName;
 
   /**
    * @notice The symbol of the native asset
    */
-  string public NATIVE_ASSET_SYMBOL;
-
-  /**
-   * @notice The decimals of the native asset
-   */
-  uint8 internal immutable _NATIVE_ASSET_DECIMALS;
+  string public nativeAssetSymbol;
 
   /**
    * @notice Constructs the RefToken contract
@@ -55,8 +55,8 @@ contract RefToken is SuperchainERC20 {
   ) {
     REF_TOKEN_BRIDGE = IRefTokenBridge(_refTokenBridge);
     NATIVE_ASSET_CHAIN_ID = _nativeAssetChainId;
-    NATIVE_ASSET_NAME = _nativeAssetName;
-    NATIVE_ASSET_SYMBOL = _nativeAssetSymbol;
+    nativeAssetName = _nativeAssetName;
+    nativeAssetSymbol = _nativeAssetSymbol;
     _NATIVE_ASSET_DECIMALS = _nativeAssetDecimals;
   }
 
@@ -81,24 +81,24 @@ contract RefToken is SuperchainERC20 {
   }
 
   /**
-   * @notice The name of the RefToken, composed by a predefined string and the native asset name
+   * @return _name The name of the RefToken, composed by a predefined string and the native asset name
    */
-  function name() public view override returns (string memory) {
-    return string.concat('RefToken (', NATIVE_ASSET_NAME, ')');
+  function name() public view override returns (string memory _name) {
+    _name = string.concat('RefToken (', nativeAssetName, ')');
   }
 
   /**
-   * @notice The symbol of the RefToken, composed by a predefined string and the native asset symbol
+   * @return _symbol The symbol of the RefToken, composed by a predefined string and the native asset symbol
    */
-  function symbol() public view override returns (string memory) {
-    return string.concat('REF-', NATIVE_ASSET_SYMBOL);
+  function symbol() public view override returns (string memory _symbol) {
+    _symbol = string.concat('REF-', nativeAssetSymbol);
   }
 
   /**
-   * @notice The decimals of the RefToken, matching the native asset decimals
+   * @return _decimals The decimals of the RefToken, matching the native asset decimals
    */
-  function decimals() public view override returns (uint8) {
-    return _NATIVE_ASSET_DECIMALS;
+  function decimals() public view override returns (uint8 _decimals) {
+    _decimals = _NATIVE_ASSET_DECIMALS;
   }
 
   /**

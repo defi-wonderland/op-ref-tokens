@@ -1,31 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-interface IRefToken {
-  /**
-   * @notice The address of the RefTokenBridge contract
-   */
-  function REF_TOKEN_BRIDGE() external view returns (address);
+import {ISuperchainERC20} from '@interop-lib/src/interfaces/ISuperchainERC20.sol';
 
-  /**
-   * @notice The chain id where the native asset is locked
-   */
-  function NATIVE_ASSET_CHAIN_ID() external view returns (uint256);
-
-  /**
-   * @notice The name of the native asset
-   */
-  function NATIVE_ASSET_NAME() external view returns (string memory);
-
-  /**
-   * @notice The symbol of the native asset
-   */
-  function NATIVE_ASSET_SYMBOL() external view returns (string memory);
-
-  /**
-   * @notice The decimals of the native asset
-   */
-  function NATIVE_ASSET_DECIMALS() external view returns (uint8);
+interface IRefToken is ISuperchainERC20 {
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Mints RefToken's to the specified address
@@ -41,18 +22,47 @@ interface IRefToken {
    */
   function burn(address _from, uint256 _amount) external;
 
-  /**
-   * @notice The name of the RefToken, composed by a predefined string and the native asset name
-   */
-  function name() external view returns (string memory);
+  /*///////////////////////////////////////////////////////////////
+                            VIEWS
+  //////////////////////////////////////////////////////////////*/
 
   /**
-   * @notice The symbol of the RefToken, composed by a predefined string and the native asset symbol
+   * @notice The address of the RefTokenBridge contract
    */
-  function symbol() external view returns (string memory);
+  function REF_TOKEN_BRIDGE() external view returns (address);
 
   /**
-   * @notice The decimals of the RefToken, matching the native asset decimals
+   * @notice The chain id where the native asset is locked
    */
-  function decimals() external view returns (uint8);
+  function NATIVE_ASSET_CHAIN_ID() external view returns (uint256);
+
+  /**
+   * @notice The decimals of the native asset
+   */
+  function NATIVE_ASSET_DECIMALS() external view returns (uint8);
+
+  /**
+   * @notice The name of the native asset
+   */
+  function nativeAssetName() external view returns (string memory);
+
+  /**
+   * @notice The symbol of the native asset
+   */
+  function nativeAssetSymbol() external view returns (string memory);
+
+  /**
+   * @return _name The name of the RefToken, composed by a predefined string and the native asset name
+   */
+  function name() external view returns (string memory _name);
+
+  /**
+   * @return _symbol The symbol of the RefToken, composed by a predefined string and the native asset symbol
+   */
+  function symbol() external view returns (string memory _symbol);
+
+  /**
+   * @return _decimals The decimals of the RefToken, matching the native asset decimals
+   */
+  function decimals() external view returns (uint8 _decimals);
 }

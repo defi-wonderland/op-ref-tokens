@@ -39,8 +39,8 @@ contract UnitRefTokenTest is Test {
       new RefToken(_refTokenBridge, _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals);
     assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), _refTokenBridge);
     assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), _nativeAssetChainId);
-    assertEq(newRefToken.NATIVE_ASSET_NAME(), _nativeAssetName);
-    assertEq(newRefToken.NATIVE_ASSET_SYMBOL(), _nativeAssetSymbol);
+    assertEq(newRefToken.nativeAssetName(), _nativeAssetName);
+    assertEq(newRefToken.nativeAssetSymbol(), _nativeAssetSymbol);
     assertEq(newRefToken.decimals(), _nativeAssetDecimals);
   }
 
