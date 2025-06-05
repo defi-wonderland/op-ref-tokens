@@ -29,15 +29,21 @@ contract UnitRefTokenTest is Test {
     vm.expectCall(_contract, _data);
   }
 
-  function test_ConstructorWhenDeployed() external {
+  function test_ConstructorWhenDeployed(
+    address _refTokenBridge,
+    uint256 _nativeAssetChainId,
+    string memory _nativeAssetName,
+    string memory _nativeAssetSymbol,
+    uint8 _nativeAssetDecimals
+  ) external {
     // It constructs the RefToken contract
     RefToken newRefToken =
-      new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
-    assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), refTokenBridge);
-    assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), nativeAssetChainId);
-    assertEq(newRefToken.NATIVE_ASSET_NAME(), nativeAssetName);
-    assertEq(newRefToken.NATIVE_ASSET_SYMBOL(), nativeAssetSymbol);
-    assertEq(newRefToken.decimals(), nativeAssetDecimals);
+      new RefToken(_refTokenBridge, _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals);
+    assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), _refTokenBridge);
+    assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), _nativeAssetChainId);
+    assertEq(newRefToken.NATIVE_ASSET_NAME(), _nativeAssetName);
+    assertEq(newRefToken.NATIVE_ASSET_SYMBOL(), _nativeAssetSymbol);
+    assertEq(newRefToken.decimals(), _nativeAssetDecimals);
   }
 
   function test_MintWhenCallerIsNotAuthorized(address _caller) external {
