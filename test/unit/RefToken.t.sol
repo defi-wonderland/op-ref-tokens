@@ -13,7 +13,7 @@ contract UnitRefTokenTest is Test {
   event Approval(address indexed owner, address indexed spender, uint256 amount);
 
   RefToken refToken;
-  address user;
+  address user = makeAddr('user');
   address refTokenBridge = makeAddr('RefTokenBridge');
   uint256 nativeAssetChainId = 2;
   string nativeAssetName = 'Native Asset';
