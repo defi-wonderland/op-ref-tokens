@@ -148,4 +148,11 @@ interface IRefTokenBridge {
    * @param _data The data to be executed
    */
   function relayAndExecute(RefTokenBridgeData calldata _refTokenBridgeData, bytes memory _data) external;
+
+  /**
+   * @notice Unlocks the token on the origin chain
+   * @param _recipient The recipient of the unlocked token
+   * @param _amount The amount of token to be unlocked
+   */
+  function unlock(address _recipient, uint256 _amount) external;
 }
