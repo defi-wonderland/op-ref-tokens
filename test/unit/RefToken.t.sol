@@ -18,9 +18,10 @@ contract UnitRefTokenTest is Test {
   uint256 nativeAssetChainId = 2;
   string nativeAssetName = 'Native Asset';
   string nativeAssetSymbol = 'NA';
+  uint8 nativeAssetDecimals = 18;
 
   function setUp() external {
-    refToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol);
+    refToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
   }
 
   function _mockAndExpect(address _contract, bytes memory _data, bytes memory _returnData) internal {
@@ -30,11 +31,13 @@ contract UnitRefTokenTest is Test {
 
   function test_ConstructorWhenDeployed() external {
     // It constructs the RefToken contract
-    RefToken newRefToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol);
+    RefToken newRefToken =
+      new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
     assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), refTokenBridge);
     assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), nativeAssetChainId);
     assertEq(newRefToken.NATIVE_ASSET_NAME(), nativeAssetName);
     assertEq(newRefToken.NATIVE_ASSET_SYMBOL(), nativeAssetSymbol);
+    assertEq(newRefToken.decimals(), nativeAssetDecimals);
   }
 
   function test_MintWhenCallerIsNotAuthorized(address _caller) external {
@@ -92,6 +95,11 @@ contract UnitRefTokenTest is Test {
     assertEq(refToken.symbol(), string.concat('REF-', nativeAssetSymbol));
   }
 
+  function test_DecimalsWhenCalled() external view {
+    // It returns the decimals of the RefToken
+    assertEq(refToken.decimals(), nativeAssetDecimals);
+  }
+
   function test__mintWhenCallerIsNotTheSuperchainTokenBridge(address _to, uint256 _amount) external {
     uint256 _initialBalance = refToken.balanceOf(_to);
 
@@ -102,7 +110,7 @@ contract UnitRefTokenTest is Test {
     assertEq(refToken.balanceOf(_to), _initialBalance + _amount);
   }
 
-  function test__mintWhenChainidIsNotTheNativeAssetOne(address _to, uint256 _amount) external {
+  function test__mintWhenChainIdDiffersFromTheNativeAssetChainId(address _to, uint256 _amount) external {
     uint256 _initialBalance = refToken.balanceOf(_to);
 
     // It calls super._mint

@@ -34,22 +34,30 @@ contract RefToken is SuperchainERC20 {
   string public NATIVE_ASSET_SYMBOL;
 
   /**
+   * @notice The decimals of the native asset
+   */
+  uint8 internal immutable _NATIVE_ASSET_DECIMALS;
+
+  /**
    * @notice Constructs the RefToken contract
    * @param _refTokenBridge The address of the RefTokenBridge contract
    * @param _nativeAssetChainId The chain id where the native asset is locked
    * @param _nativeAssetName The name of the native asset
    * @param _nativeAssetSymbol The symbol of the native asset
+   * @param _nativeAssetDecimals The decimals of the native asset
    */
   constructor(
     address _refTokenBridge,
     uint256 _nativeAssetChainId,
     string memory _nativeAssetName,
-    string memory _nativeAssetSymbol
+    string memory _nativeAssetSymbol,
+    uint8 _nativeAssetDecimals
   ) {
     REF_TOKEN_BRIDGE = IRefTokenBridge(_refTokenBridge);
     NATIVE_ASSET_CHAIN_ID = _nativeAssetChainId;
     NATIVE_ASSET_NAME = _nativeAssetName;
     NATIVE_ASSET_SYMBOL = _nativeAssetSymbol;
+    _NATIVE_ASSET_DECIMALS = _nativeAssetDecimals;
   }
 
   /**
@@ -84,6 +92,13 @@ contract RefToken is SuperchainERC20 {
    */
   function symbol() public view override returns (string memory) {
     return string.concat('REF-', NATIVE_ASSET_SYMBOL);
+  }
+
+  /**
+   * @notice The decimals of the RefToken, matching the native asset decimals
+   */
+  function decimals() public view override returns (uint8) {
+    return _NATIVE_ASSET_DECIMALS;
   }
 
   /**

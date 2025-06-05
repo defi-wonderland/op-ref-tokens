@@ -22,10 +22,14 @@ UnitRefTokenTest::symbol
 │   └── When called
 │       └── It returns the symbol of the RefToken
 
+UnitRefTokenTest::decimals
+│   └── When called
+│       └── It returns the decimals of the RefToken
+
 UnitRefTokenTest::_mint
 │   ├── When caller is not the SuperchainTokenBridge
 │   │   └── It calls super._mint
-│   └── When chain id is not the native asset one
+│   └── When chain id differs from the native asset chain id
 │       └── It calls super._mint
 
 UnitRefTokenTest::crosschainMint

@@ -23,6 +23,11 @@ interface IRefToken {
   function NATIVE_ASSET_SYMBOL() external view returns (string memory);
 
   /**
+   * @notice The decimals of the native asset
+   */
+  function NATIVE_ASSET_DECIMALS() external view returns (uint8);
+
+  /**
    * @notice Mints RefToken's to the specified address
    * @param _to The address to mint the RefToken to
    * @param _amount The amount of RefToken to mint
@@ -45,4 +50,9 @@ interface IRefToken {
    * @notice The symbol of the RefToken, composed by a predefined string and the native asset symbol
    */
   function symbol() external view returns (string memory);
+
+  /**
+   * @notice The decimals of the RefToken, matching the native asset decimals
+   */
+  function decimals() external view returns (uint8);
 }
