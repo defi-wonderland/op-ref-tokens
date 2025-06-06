@@ -135,8 +135,9 @@ contract Helpers is Test {
     address _refTokenBridge,
     address _nativeAsset,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
-  ) internal returns (address _refTokenAddress) {
-    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+  ) internal returns (address _refTokenAddress, bytes32 _salt, bytes32 _initCodeHash) {
+    _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+
     bytes memory _initCode = bytes.concat(
       type(RefToken).creationCode,
       abi.encode(
@@ -148,7 +149,8 @@ contract Helpers is Test {
       )
     );
 
-    _refTokenAddress = _precalculateCreate2Address(_salt, keccak256(_initCode), _refTokenBridge);
+    _initCodeHash = keccak256(_initCode);
+    _refTokenAddress = _precalculateCreate2Address(_salt, _initCodeHash, _refTokenBridge);
   }
 
   /**
@@ -162,7 +164,7 @@ contract Helpers is Test {
     bytes32 _salt,
     bytes32 _initCodeHash,
     address _deployer
-  ) internal returns (address _precalculatedAddress) {
+  ) internal pure returns (address _precalculatedAddress) {
     assembly ("memory-safe") {
       let _ptr := mload(0x40)
       mstore(add(_ptr, 0x40), _initCodeHash)
