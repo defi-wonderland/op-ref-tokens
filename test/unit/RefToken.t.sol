@@ -12,16 +12,15 @@ import {RefToken} from 'src/contracts/RefToken.sol';
 
 contract UnitRefTokenTest is Helpers {
   RefToken public refToken;
-  IRefTokenBridge public refTokenBridge;
+  address public refTokenBridge = makeAddr('RefTokenBridge');
 
   function setUp() public override {
     super.setUp();
-    refTokenBridge = IRefTokenBridge(makeAddr('RefTokenBridge'));
     refToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
   }
 
   function test_ConstructorWhenDeployed(
-    IRefTokenBridge _refTokenBridge,
+    address _refTokenBridge,
     uint256 _nativeAssetChainId,
     string memory _nativeAssetName,
     string memory _nativeAssetSymbol,
@@ -38,7 +37,7 @@ contract UnitRefTokenTest is Helpers {
   }
 
   function test_MintWhenCallerIsNotAuthorized(address _caller, address _user, uint256 _amount) external {
-    vm.assume(_caller != address(refTokenBridge));
+    vm.assume(_caller != refTokenBridge);
     _amount = bound(_amount, 1, type(uint256).max);
 
     // It reverts
@@ -48,7 +47,7 @@ contract UnitRefTokenTest is Helpers {
 
   function test_MintWhenCallerIsAuthorized(address _user, uint256 _amount) external {
     uint256 _initialBalance = refToken.balanceOf(_user);
-    vm.prank(address(refTokenBridge));
+    vm.prank(refTokenBridge);
 
     vm.expectEmit();
     emit IERC20.Transfer(address(0), _user, _amount);
@@ -60,7 +59,7 @@ contract UnitRefTokenTest is Helpers {
   }
 
   function test_BurnWhenCallerIsNotAuthorized(address _caller, address _user, uint256 _amount) external {
-    vm.assume(_caller != address(refTokenBridge));
+    vm.assume(_caller != refTokenBridge);
     _amount = bound(_amount, 1, type(uint256).max);
 
     // It reverts
@@ -72,14 +71,14 @@ contract UnitRefTokenTest is Helpers {
     _initialBalance = bound(_initialBalance, 1, type(uint256).max);
     _burnAmount = bound(_burnAmount, 1, _initialBalance);
 
-    vm.prank(address(refTokenBridge));
+    vm.prank(refTokenBridge);
     refToken.mint(_user, _initialBalance);
 
     vm.expectEmit();
     emit IERC20.Transfer(_user, address(0), _burnAmount);
 
     // It burns the specified amount of RefToken from the caller
-    vm.prank(address(refTokenBridge));
+    vm.prank(refTokenBridge);
     refToken.burn(_user, _burnAmount);
     assertEq(refToken.balanceOf(_user), _initialBalance - _burnAmount);
   }
@@ -103,7 +102,7 @@ contract UnitRefTokenTest is Helpers {
     uint256 _initialBalance = refToken.balanceOf(_to);
 
     // It calls super._mint
-    vm.prank(address(refTokenBridge));
+    vm.prank(refTokenBridge);
     refToken.mint(_to, _amount);
 
     assertEq(refToken.balanceOf(_to), _initialBalance + _amount);
@@ -113,7 +112,7 @@ contract UnitRefTokenTest is Helpers {
     uint256 _initialBalance = refToken.balanceOf(_to);
 
     // It calls super._mint
-    vm.prank(address(refTokenBridge));
+    vm.prank(refTokenBridge);
     refToken.mint(_to, _amount);
 
     assertEq(refToken.balanceOf(_to), _initialBalance + _amount);
@@ -127,9 +126,7 @@ contract UnitRefTokenTest is Helpers {
 
     // It calls RefTokenBridge.unlock
     _mockAndExpect(
-      address(refTokenBridge),
-      abi.encodeWithSelector(IRefTokenBridge.unlock.selector, address(refToken), _to, _amount),
-      ''
+      refTokenBridge, abi.encodeWithSelector(IRefTokenBridge.unlock.selector, address(refToken), _to, _amount), ''
     );
     vm.prank(PredeployAddresses.SUPERCHAIN_TOKEN_BRIDGE);
     refToken.crosschainMint(_to, _amount);
