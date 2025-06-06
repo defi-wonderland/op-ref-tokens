@@ -49,6 +49,14 @@ interface IRefTokenBridge {
   event TokensBurned(address indexed _token, uint256 _amount);
 
   /**
+   * @notice Event emitted when tokens are unlocked
+   * @param _token The token to be unlocked
+   * @param _to The address to unlock the token to
+   * @param _amount The amount of tokens to be unlocked
+   */
+  event TokensUnlocked(address indexed _token, address indexed _to, uint256 _amount);
+
+  /**
    * @notice Event emitted when a message is sent
    * @dev If data is empty, just send token to the destination chain
    * @param _token The token to be bridged
@@ -95,6 +103,11 @@ interface IRefTokenBridge {
    * @notice Error emitted when the message is invalid
    */
   error RefTokenBridge_InvalidMessage();
+
+  /**
+   * @notice Error emitted when the sender is invalid
+   */
+  error RefTokenBridge_InvalidSender();
 
   /**
    * @notice Get the L2 to L2 cross domain messenger address
@@ -151,8 +164,9 @@ interface IRefTokenBridge {
 
   /**
    * @notice Unlocks the token on the origin chain
-   * @param _recipient The recipient of the unlocked token
+   * @param _token The token to be unlocked
+   * @param _to The address to unlock the token to
    * @param _amount The amount of token to be unlocked
    */
-  function unlock(address _recipient, uint256 _amount) external;
+  function unlock(address _token, address _to, uint256 _amount) external;
 }

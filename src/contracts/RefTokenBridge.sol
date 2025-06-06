@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {IRefToken} from '../interfaces/IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
-import {IERC20Metadata, IRefToken} from '../interfaces/external/IRefToken.sol';
-import {SafeERC20} from 'openzeppelin/token/ERC20/utils/SafeERC20.sol';
 
 contract RefTokenBridge is IRefTokenBridge {
-  using SafeERC20 for IRefToken;
-
   /**
    * @notice The L2 to L2 cross domain messenger address
    */
@@ -65,7 +62,8 @@ contract RefTokenBridge is IRefTokenBridge {
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
-    bytes memory _message = abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _data);
+    bytes memory _message =
+      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
 
     _sendMessage(_refTokenBridgeData, _refToken, _destinationChainId, _message);
   }
@@ -75,7 +73,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    */
   function relay(RefTokenBridgeData calldata _refTokenBridgeData) external {
-    if (tx.origin != address(this) || msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
+    if (tx.origin != address(this) && msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
       revert RefTokenBridge_InvalidMessage();
     }
   }
@@ -86,7 +84,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _data The data to be executed on the destination chain
    */
   function relayAndExecute(RefTokenBridgeData calldata _refTokenBridgeData, bytes memory _data) external {
-    if (tx.origin != address(this) || msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
+    if (tx.origin != address(this) && msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
       revert RefTokenBridge_InvalidMessage();
     }
   }
@@ -98,7 +96,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _amount The amount of token to be locked
    */
   function _lock(address _token, uint256 _amount) internal {
-    IRefToken(_token).safeTransferFrom(msg.sender, address(this), _amount);
+    IRefToken(_token).transferFrom(msg.sender, address(this), _amount);
 
     emit TokensLocked(_token, _amount);
   }
@@ -107,10 +105,17 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Internal function to unlock the token
    * @dev This function is used to unlock the token on the source chain
    * @param _token The token to be unlocked
+   * @param _to The address to unlock the token to
    * @param _amount The amount of token to be unlocked
    */
-  function unlock(address _token, uint256 _amount) public {
-    //
+  function unlock(address _token, address _to, uint256 _amount) public {
+    if (msg.sender != address(this) && msg.sender != _token) {
+      revert RefTokenBridge_InvalidSender();
+    }
+
+    IRefToken(_token).transfer(_to, _amount);
+
+    emit TokensUnlocked(_token, _to, _amount);
   }
 
   /**
@@ -128,7 +133,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _amount The amount of token to be burned
    */
   function _burn(address _token, uint256 _amount) internal {
-    IRefToken(_token).burn(_amount);
+    IRefToken(_token).burn(msg.sender, _amount);
 
     emit TokensBurned(_token, _amount);
   }
@@ -158,8 +163,8 @@ contract RefTokenBridge is IRefTokenBridge {
     } else {
       _refTokenMetadata = RefTokenMetadata({
         nativeAssetChainId: block.chainid,
-        nativeAssetName: IERC20Metadata(_token).name(),
-        nativeAssetSymbol: IERC20Metadata(_token).symbol()
+        nativeAssetName: IRefToken(_token).name(),
+        nativeAssetSymbol: IRefToken(_token).symbol()
       });
 
       // TODO: Change it to the actual RefToken address when the RefToken is deployed

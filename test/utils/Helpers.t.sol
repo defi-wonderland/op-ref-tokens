@@ -12,6 +12,12 @@ contract Helpers is Test {
   address public caller;
   address public recipient;
 
+  /// Variables
+  uint256 public nativeAssetChainId = 2;
+  string public nativeAssetName = 'Native Asset';
+  string public nativeAssetSymbol = 'NA';
+  uint8 public nativeAssetDecimals = 18;
+
   /**
    * @notice Sets up the contract state
    */
