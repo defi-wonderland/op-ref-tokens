@@ -197,6 +197,8 @@ contract RefTokenBridge is IRefTokenBridge {
         _refTokenMetadata.nativeAssetDecimals
       )
     );
+
+    emit RefTokenDeployed(_refToken, _nativeAsset);
   }
 
   /**

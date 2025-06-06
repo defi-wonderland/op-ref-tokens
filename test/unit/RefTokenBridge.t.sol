@@ -145,7 +145,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
     vm.expectEmit();
@@ -156,6 +156,10 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenBridgeData.destinationExecutor,
       _destinationChainId
     );
+
+    // TODO: Due to a Foundry issue, this expect fails even though the event matches the emitted one
+    // vm.expectEmit(address(refTokenBridge));
+    // emit IRefTokenBridge.RefTokenDeployed(_precalculatedRefToken, _refTokenBridgeData.token);
 
     vm.prank(caller);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
@@ -211,7 +215,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
     vm.expectEmit();
@@ -412,7 +416,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
     vm.expectEmit();
@@ -423,6 +427,10 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenBridgeData.destinationExecutor,
       _destinationChainId
     );
+
+    // TODO: Due to a Foundry issue, this expect fails even though the event matches the emitted one
+    // vm.expectEmit(address(refTokenBridge));
+    // emit IRefTokenBridge.RefTokenDeployed(_precalculatedRefToken, _refTokenBridgeData.token);
 
     vm.prank(caller);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
@@ -479,7 +487,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
     vm.expectEmit();
@@ -617,6 +625,10 @@ contract RefTokenBridgeUnit is Helpers {
     (address _refTokenPrecalculated, bytes32 _salt, bytes32 _initCodeHash) =
       _precalculateRefTokenAddress(_refTokenBridge, _nativeAsset, _refTokenMetadata);
     refTokenDeployed[_salt][_initCodeHash] = true;
+
+    // Emits
+    vm.expectEmit(true, true, true, true, _refTokenBridge);
+    emit IRefTokenBridge.RefTokenDeployed(_refTokenPrecalculated, _nativeAsset);
 
     address _refToken = RefTokenBridgeForTest(_refTokenBridge).deployRefToken(_nativeAsset, _refTokenMetadata);
 

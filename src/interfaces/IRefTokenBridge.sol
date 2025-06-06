@@ -59,6 +59,13 @@ interface IRefTokenBridge {
   event TokensUnlocked(address indexed _token, address indexed _to, uint256 _amount);
 
   /**
+   * @notice Event emitted when a RefToken is deployed
+   * @param _refToken The RefToken address
+   * @param _nativeAsset The native asset address
+   */
+  event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
+
+  /**
    * @notice Event emitted when a message is sent
    * @dev If data is empty, just send token to the destination chain
    * @param _token The token to be bridged
