@@ -39,7 +39,7 @@ RefTokenBridgeUnit::sendAndExecute
 ├── When called with a native token first time
 │   ├── It should emit TokensLocked
 │   ├── It should emit MessageSent
-│   ├── It should create the ref token
+│   ├── It should deploy the ref token
 │   └── It should send the message to the L2 messenger
 ├── When called with a native token following successions
 │   ├── It should emit TokensLocked

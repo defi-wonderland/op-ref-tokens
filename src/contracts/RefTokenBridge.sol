@@ -169,12 +169,7 @@ contract RefTokenBridge is IRefTokenBridge {
       });
 
       // Deploy the RefToken
-      _refToken = _deployRefToken(
-        _refTokenMetadata.nativeAssetChainId,
-        _refTokenMetadata.nativeAssetName,
-        _refTokenMetadata.nativeAssetSymbol,
-        _refTokenMetadata.nativeAssetDecimals
-      );
+      _refToken = _deployRefToken(_token, _refTokenMetadata);
 
       // Store the RefToken metadata and address
       refTokenMetadata[_refToken] = _refTokenMetadata;
@@ -184,21 +179,22 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Deploys the RefToken
-   * @param _nativeAssetChainId The chain ID of the native asset
-   * @param _nativeAssetName The name of the native asset
-   * @param _nativeAssetSymbol The symbol of the native asset
-   * @param _nativeAssetDecimals The decimals of the native asset
+   * @param _nativeAsset The address of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
+   * @return _refToken The address of the RefToken
    */
   function _deployRefToken(
-    uint256 _nativeAssetChainId,
-    string memory _nativeAssetName,
-    string memory _nativeAssetSymbol,
-    uint8 _nativeAssetDecimals
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
   ) internal returns (address _refToken) {
-    bytes32 _salt = keccak256(abi.encode(_nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol));
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
     _refToken = address(
       new RefToken{salt: _salt}(
-        address(this), _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals
+        address(this),
+        _refTokenMetadata.nativeAssetChainId,
+        _refTokenMetadata.nativeAssetName,
+        _refTokenMetadata.nativeAssetSymbol,
+        _refTokenMetadata.nativeAssetDecimals
       )
     );
   }

@@ -15,12 +15,25 @@ contract RefTokenBridgeUnit is Helpers {
   RefTokenBridgeForTest public refTokenBridge;
 
   /// Variables
-  address public refToken = address(0x1234567890123456789012345678901234567890); //TODO: remove this when the ref token is deployed
+  address public nativeAsset = makeAddr('NativeAsset');
+  address public refToken;
+  IRefTokenBridge.RefTokenMetadata public refTokenMetadata;
+  string public refTokenName = 'RefToken';
+  string public refTokenSymbol = 'REF';
+  uint8 public refTokenDecimals = 18;
 
   function setUp() public override {
     super.setUp();
     l2ToL2CrossDomainMessenger = IL2ToL2CrossDomainMessenger(makeAddr('L2ToL2CrossDomainMessenger'));
     refTokenBridge = new RefTokenBridgeForTest(l2ToL2CrossDomainMessenger);
+
+    refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetChainId: block.chainid,
+      nativeAssetName: refTokenName,
+      nativeAssetSymbol: refTokenSymbol,
+      nativeAssetDecimals: refTokenDecimals
+    });
+    refToken = _precalculateRefTokenAddress(address(refTokenBridge), nativeAsset, refTokenMetadata);
   }
 
   /// Functions
@@ -81,31 +94,24 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
-      nativeAssetChainId: block.chainid,
-      nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF',
-      nativeAssetDecimals: 18
-    });
-
     bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
+      abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, refTokenMetadata);
 
     // Mocks and Expects
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.name.selector),
-      abi.encode(_refTokenMetadata.nativeAssetName)
+      abi.encode(refTokenMetadata.nativeAssetName)
     );
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.symbol.selector),
-      abi.encode(_refTokenMetadata.nativeAssetSymbol)
+      abi.encode(refTokenMetadata.nativeAssetSymbol)
     );
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-      abi.encode(_refTokenMetadata.nativeAssetDecimals)
+      abi.encode(refTokenMetadata.nativeAssetDecimals)
     );
 
     _mockAndExpect(
@@ -167,18 +173,11 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
-      nativeAssetChainId: block.chainid,
-      nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF',
-      nativeAssetDecimals: 18
-    });
-
     refTokenBridge.setRefTokenAddress(_refTokenBridgeData.token, refToken);
-    refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
+    refTokenBridge.setRefTokenMetadata(refToken, refTokenMetadata);
 
     bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
+      abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, refTokenMetadata);
 
     // Mocks and Expects
     _mockAndExpect(
@@ -362,31 +361,24 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
-      nativeAssetChainId: block.chainid,
-      nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF',
-      nativeAssetDecimals: 18
-    });
-
     bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
+      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, refTokenMetadata, _data);
 
     // Mocks and Expects
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.name.selector),
-      abi.encode(_refTokenMetadata.nativeAssetName)
+      abi.encode(refTokenMetadata.nativeAssetName)
     );
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.symbol.selector),
-      abi.encode(_refTokenMetadata.nativeAssetSymbol)
+      abi.encode(refTokenMetadata.nativeAssetSymbol)
     );
     _mockAndExpect(
       _refTokenBridgeData.token,
       abi.encodeWithSelector(IERC20Metadata.decimals.selector),
-      abi.encode(_refTokenMetadata.nativeAssetDecimals)
+      abi.encode(refTokenMetadata.nativeAssetDecimals)
     );
 
     _mockAndExpect(
@@ -430,11 +422,11 @@ contract RefTokenBridgeUnit is Helpers {
       uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
-    assertEq(_nativeAssetChainId, block.chainid);
-    assertEq(_nativeAssetName, 'RefToken');
-    assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(_nativeAssetDecimals, 18);
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(_nativeAssetChainId, block.chainid, '1');
+    assertEq(_nativeAssetName, 'RefToken', '2');
+    assertEq(_nativeAssetSymbol, 'REF', '3');
+    assertEq(_nativeAssetDecimals, 18, '4');
+    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken, '5');
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFollowingSuccessions(
@@ -449,18 +441,11 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
-      nativeAssetChainId: block.chainid,
-      nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF',
-      nativeAssetDecimals: 18
-    });
-
     refTokenBridge.setRefTokenAddress(_refTokenBridgeData.token, refToken);
-    refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
+    refTokenBridge.setRefTokenMetadata(refToken, refTokenMetadata);
 
     bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
+      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, refTokenMetadata, _data);
 
     // Mocks and Expects
     _mockAndExpect(
@@ -610,6 +595,25 @@ contract RefTokenBridgeUnit is Helpers {
     vm.prank(_token);
     refTokenBridge.unlock(_token, _to, _amount);
   }
+
+  // Unit test for the deployRefToken function
+  function test_DeployRefToken(
+    address _refTokenBridge,
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) external {
+    _assumeFuzzable(_refTokenBridge);
+
+    // Etch the ref token bridge code to the fuzzed address to fuzz also the deployer address
+    vm.etch(_refTokenBridge, address(refTokenBridge).code);
+
+    // Precalculate the ref token address
+    address _refTokenPrecalculated = _precalculateRefTokenAddress(_refTokenBridge, _nativeAsset, _refTokenMetadata);
+
+    address _refToken = RefTokenBridgeForTest(_refTokenBridge).deployRefToken(_nativeAsset, _refTokenMetadata);
+
+    assertEq(_refToken, _refTokenPrecalculated);
+  }
 }
 
 contract RefTokenBridgeForTest is RefTokenBridge {
@@ -621,5 +625,12 @@ contract RefTokenBridgeForTest is RefTokenBridge {
 
   function setRefTokenMetadata(address _refToken, IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata) external {
     refTokenMetadata[_refToken] = _refTokenMetadata;
+  }
+
+  function deployRefToken(
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) external returns (address) {
+    return _deployRefToken(_nativeAsset, _refTokenMetadata);
   }
 }
