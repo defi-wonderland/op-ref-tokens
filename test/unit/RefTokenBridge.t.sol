@@ -82,6 +82,7 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
@@ -136,9 +137,14 @@ contract RefTokenBridgeUnit is Helpers {
     vm.prank(caller);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
 
-    (uint256 _nativeAssetChainId, string memory _nativeAssetName, string memory _nativeAssetSymbol) =
-      refTokenBridge.refTokenMetadata(refToken);
+    (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol
+    ) = refTokenBridge.refTokenMetadata(refToken);
 
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
@@ -157,6 +163,7 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
@@ -203,9 +210,14 @@ contract RefTokenBridgeUnit is Helpers {
     vm.prank(caller);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
 
-    (uint256 _nativeAssetChainId, string memory _nativeAssetName, string memory _nativeAssetSymbol) =
-      refTokenBridge.refTokenMetadata(refToken);
+    (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol
+    ) = refTokenBridge.refTokenMetadata(refToken);
 
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
@@ -230,6 +242,7 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.token = refToken;
 
     _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenMetadata.nativeAssetAddress,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
@@ -262,7 +275,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     // Emits
     vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, _refTokenBridgeData.amount);
+    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
 
     vm.expectEmit();
     emit IRefTokenBridge.MessageSent(
@@ -345,13 +358,15 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
     });
 
-    bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
+    bytes memory _message = abi.encodeWithSelector(
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+    );
 
     // Mocks and Expects
     _mockAndExpect(
@@ -399,9 +414,14 @@ contract RefTokenBridgeUnit is Helpers {
     vm.prank(caller);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
 
-    (uint256 _nativeAssetChainId, string memory _nativeAssetName, string memory _nativeAssetSymbol) =
-      refTokenBridge.refTokenMetadata(refToken);
+    (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol
+    ) = refTokenBridge.refTokenMetadata(refToken);
 
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
@@ -421,6 +441,7 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
@@ -429,8 +450,9 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.setRefTokenAddress(_refTokenBridgeData.token, refToken);
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
-    bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
+    bytes memory _message = abi.encodeWithSelector(
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+    );
 
     // Mocks and Expects
     _mockAndExpect(
@@ -467,12 +489,18 @@ contract RefTokenBridgeUnit is Helpers {
     vm.prank(caller);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
 
-    (uint256 _nativeAssetChainId, string memory _nativeAssetName, string memory _nativeAssetSymbol) =
-      refTokenBridge.refTokenMetadata(refToken);
+    (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol
+    ) = refTokenBridge.refTokenMetadata(refToken);
 
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
   }
 
@@ -495,6 +523,7 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.token = refToken;
 
     _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+      nativeAssetAddress: _refTokenMetadata.nativeAssetAddress,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
       nativeAssetSymbol: 'REF'
@@ -502,8 +531,9 @@ contract RefTokenBridgeUnit is Helpers {
 
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
-    bytes memory _message =
-      abi.encodeWithSelector(IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _data);
+    bytes memory _message = abi.encodeWithSelector(
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+    );
 
     // Mocks and Expects
     _mockAndExpect(
@@ -527,7 +557,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     // Emits
     vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, _refTokenBridgeData.amount);
+    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
 
     vm.expectEmit();
     emit IRefTokenBridge.MessageSent(
@@ -542,13 +572,132 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
+  function test_RelayRevertWhen_CrossDomainSenderIsNotTheRefTokenBridgeAndIsNotValidCaller(
+    IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) external {
+    _mockAndExpect(
+      address(l2ToL2CrossDomainMessenger),
+      abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+      abi.encode(address(refTokenBridge))
+    );
+
+    vm.prank(address(caller));
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
+  }
+
+  function test_RelayWhenCalledToRelayTheTokensToTheNativeChain(
+    IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) external {
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+
+    // Mocks and Expects
+    _mockAndExpect(
+      address(l2ToL2CrossDomainMessenger),
+      abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+      abi.encode(address(refTokenBridge))
+    );
+
+    _mockAndExpect(
+      _refTokenBridgeData.token,
+      abi.encodeWithSelector(IERC20.transfer.selector, _refTokenBridgeData.recipient, _refTokenBridgeData.amount),
+      abi.encode(true)
+    );
+
+    vm.expectEmit();
+    emit IRefTokenBridge.TokensUnlocked(
+      _refTokenBridgeData.token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount
+    );
+
+    vm.expectEmit();
+    emit IRefTokenBridge.MessageRelayed(
+      _refTokenBridgeData.token,
+      _refTokenBridgeData.amount,
+      _refTokenBridgeData.recipient,
+      _refTokenBridgeData.destinationExecutor,
+      _refTokenMetadata.nativeAssetChainId
+    );
+
+    vm.prank(address(l2ToL2CrossDomainMessenger));
+    refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
+  }
+
+  function test_RelayWhenCalledToRelayWithARefTokenAndIsNotDeployedAndNativeTokenIsSent(
+    IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    uint256 _anotherDestinationChainId
+  ) external {
+    _anotherDestinationChainId = bound(_anotherDestinationChainId, 1, type(uint256).max);
+
+    _refTokenBridgeData.token = _refTokenMetadata.nativeAssetAddress;
+    _refTokenMetadata.nativeAssetAddress = _refTokenBridgeData.token;
+    _refTokenMetadata.nativeAssetName = 'RefToken';
+    _refTokenMetadata.nativeAssetSymbol = 'REF';
+    _refTokenMetadata.nativeAssetChainId = _anotherDestinationChainId;
+
+    // Mocks and Expects
+    _mockAndExpect(
+      address(l2ToL2CrossDomainMessenger),
+      abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
+      abi.encode(address(refTokenBridge))
+    );
+
+    _mockAndExpect(
+      address(refToken),
+      abi.encodeWithSelector(IRefToken.mint.selector, _refTokenBridgeData.recipient, _refTokenBridgeData.amount),
+      abi.encode(true)
+    );
+
+    vm.expectEmit();
+    emit IRefTokenBridge.TokensMinted(refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
+
+    vm.expectEmit();
+    emit IRefTokenBridge.MessageRelayed(
+      _refTokenBridgeData.token,
+      _refTokenBridgeData.amount,
+      _refTokenBridgeData.recipient,
+      _refTokenBridgeData.destinationExecutor,
+      block.chainid
+    );
+
+    vm.prank(address(l2ToL2CrossDomainMessenger));
+    refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
+
+    (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol
+    ) = refTokenBridge.refTokenMetadata(refToken);
+
+    assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
+    assertEq(_nativeAssetChainId, _anotherDestinationChainId);
+    assertEq(_nativeAssetName, 'RefToken');
+    assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+  }
+
+  function test_RelayWhenCalledToRelayWithARefTokenAndIsNotDeployedAndRefTokenIsSent() external {
+    // It emit TokenMinted
+    // It emit MessageRelayed
+    // It should mint the tokens to the user
+  }
+
+  function test_RelayWhenCalledToRelayWithARefTokenAndIsDeployed() external {
+    // It emit TokenMinted
+    // It emit MessageRelayed
+    // It should mint the tokens to the user
+  }
+
   function test_UnlockRevertWhen_CallerIsNotValid(address _token, address _to, uint256 _amount) external {
     vm.prank(caller);
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidSender.selector);
     refTokenBridge.unlock(_token, _to, _amount);
   }
 
-  function test_UnlockWhenCalledRefTokenBridge(address _token, address _to, uint256 _amount) external {
+  function test_UnlockWhenCalledL2ToL2CrossDomainMessenger(address _token, address _to, uint256 _amount) external {
     _assumeFuzzable(_token);
     // Mocks and Expects
     _mockAndExpect(_token, abi.encodeWithSelector(IERC20.transfer.selector, _to, _amount), abi.encode(true));
@@ -557,7 +706,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.expectEmit();
     emit IRefTokenBridge.TokensUnlocked(_token, _to, _amount);
 
-    vm.prank(address(refTokenBridge));
+    vm.prank(address(l2ToL2CrossDomainMessenger));
     refTokenBridge.unlock(_token, _to, _amount);
   }
 
