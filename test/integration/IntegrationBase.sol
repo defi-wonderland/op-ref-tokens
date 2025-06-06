@@ -13,6 +13,9 @@ contract IntegrationBase is Test {
   IERC20 internal _dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
 
   function setUp() public {
+    // Delete when adding integration tests, this is just to avoid the CI failing
+    vm.skip(true);
+
     vm.createSelectFork(vm.rpcUrl('mainnet'), _FORK_BLOCK);
   }
 }
