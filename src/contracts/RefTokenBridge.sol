@@ -22,7 +22,7 @@ contract RefTokenBridge is IRefTokenBridge {
   mapping(address _nativeToken => address _refToken) public refTokenAddress;
 
   /**
-   * @notice Constructor
+   * @notice Constructs the RefTokenBridge contract
    * @param _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
    */
   constructor(IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger) {
@@ -91,8 +91,7 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to lock the token
-   * @dev This function is used to lock the token on the source chain
+   * @notice Locks the native asset token on the origin chain
    * @param _token The token to be locked
    * @param _amount The amount of token to be locked
    */
@@ -103,7 +102,7 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to unlock the token
+   * @notice Unlocks the token
    * @dev This function is used to unlock the token on the source chain
    * @param _token The token to be unlocked
    * @param _to The address to unlock the token to
@@ -120,7 +119,7 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to mint the RefToken
+   * @notice Mints the RefToken
    * @dev This function is used to mint the RefToken on the destination chain
    * @param _token The token to be minted
    * @param _amount The amount of token to be minted
@@ -128,7 +127,7 @@ contract RefTokenBridge is IRefTokenBridge {
   function _mint(address _token, uint256 _amount) internal {}
 
   /**
-   * @notice Internal function to burn the RefToken
+   * @notice Burns the RefToken
    * @dev This function is used to burn the RefToken on the destination chain
    * @param _token The token to be burned
    * @param _amount The amount of token to be burned

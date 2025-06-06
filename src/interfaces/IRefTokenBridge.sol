@@ -126,11 +126,17 @@ interface IRefTokenBridge {
    * @return _nativeAssetChainId The chain ID of the native asset
    * @return _nativeAssetName The name of the native asset
    * @return _nativeAssetSymbol The symbol of the native asset
+   * @return _nativeAssetDecimals The decimals of the native asset
    */
   function refTokenMetadata(address _token)
     external
     view
-    returns (uint256 _nativeAssetChainId, string memory _nativeAssetName, string memory _nativeAssetSymbol);
+    returns (
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
+    );
 
   /**
    * @notice Send token to the destination chain
