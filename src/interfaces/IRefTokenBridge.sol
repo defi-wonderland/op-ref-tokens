@@ -27,11 +27,13 @@ interface IRefTokenBridge {
    * @param nativeAssetChainId The chain ID of the native asset
    * @param nativeAssetName The name of the native asset
    * @param nativeAssetSymbol The symbol of the native asset
+   * @param nativeAssetDecimals The decimals of the native asset
    */
   struct RefTokenMetadata {
     uint256 nativeAssetChainId;
     string nativeAssetName;
     string nativeAssetSymbol;
+    uint8 nativeAssetDecimals;
   }
 
   /**

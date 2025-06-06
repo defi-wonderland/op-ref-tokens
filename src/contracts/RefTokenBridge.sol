@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {IRefToken} from '../interfaces/IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
+import {RefToken} from './RefToken.sol';
 
 contract RefTokenBridge is IRefTokenBridge {
   /**
@@ -139,8 +140,8 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to get the RefToken metadata
-   * @param _token The token to get the metadata from
+   * @notice Gets the RefToken metadata and address
+   * @param _token The token to get the metadata and address from
    * @return _refTokenMetadata The RefToken metadata
    * @return _refToken The RefToken address
    */
@@ -164,19 +165,47 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = RefTokenMetadata({
         nativeAssetChainId: block.chainid,
         nativeAssetName: IRefToken(_token).name(),
-        nativeAssetSymbol: IRefToken(_token).symbol()
+        nativeAssetSymbol: IRefToken(_token).symbol(),
+        nativeAssetDecimals: IRefToken(_token).decimals()
       });
 
-      // TODO: Change it to the actual RefToken address when the RefToken is deployed
-      _refToken = address(0x1234567890123456789012345678901234567890);
+      // Deploy the RefToken
+      _refToken = _deployRefToken(
+        _refTokenMetadata.nativeAssetChainId,
+        _refTokenMetadata.nativeAssetName,
+        _refTokenMetadata.nativeAssetSymbol,
+        _refTokenMetadata.nativeAssetDecimals
+      );
 
+      // Store the RefToken metadata and address
       refTokenMetadata[_refToken] = _refTokenMetadata;
       refTokenAddress[_token] = _refToken;
     }
   }
 
   /**
-   * @notice Internal function to check the data for the send function
+   * @notice Deploys the RefToken
+   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _nativeAssetName The name of the native asset
+   * @param _nativeAssetSymbol The symbol of the native asset
+   * @param _nativeAssetDecimals The decimals of the native asset
+   */
+  function _deployRefToken(
+    uint256 _nativeAssetChainId,
+    string memory _nativeAssetName,
+    string memory _nativeAssetSymbol,
+    uint8 _nativeAssetDecimals
+  ) internal returns (address _refToken) {
+    bytes32 _salt = keccak256(abi.encode(_nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol));
+    _refToken = address(
+      new RefToken{salt: _salt}(
+        address(this), _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals
+      )
+    );
+  }
+
+  /**
+   * @notice Checks the data for the send function
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
    */
@@ -190,7 +219,7 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to send a message
+   * @notice Sends a cross-chain message to the destination chain through the L2 to L2 cross domain messenger
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refToken The RefToken address
    * @param _destinationChainId The destination chain ID
