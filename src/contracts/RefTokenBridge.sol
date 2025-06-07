@@ -122,21 +122,20 @@ contract RefTokenBridge is IRefTokenBridge {
   ) external {
     if (
       L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
-        && msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        || msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
     ) {
       revert RefTokenBridge_InvalidMessage();
     }
 
     address _refToken;
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-      IERC20(_refTokenMetadata.nativeAssetAddress).approve(
-        _refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount
-      );
+      IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
     } else {
       _refToken = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
       if (_refToken == address(0)) {
         _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
       }
+      _mint(_refToken, address(this), _refTokenBridgeData.amount);
       IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
     }
 
@@ -151,8 +150,9 @@ contract RefTokenBridge is IRefTokenBridge {
       );
     } catch {
       if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-        IERC20(_refTokenMetadata.nativeAssetAddress).approve(_refTokenBridgeData.destinationExecutor, 0);
+        IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, 0);
       } else {
+        _burn(_refToken, address(this), _refTokenBridgeData.amount);
         IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, 0);
       }
 
