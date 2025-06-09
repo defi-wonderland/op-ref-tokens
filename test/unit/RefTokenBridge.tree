@@ -50,10 +50,82 @@ RefTokenBridgeUnit::sendAndExecute
     ├── It should emit MessageSent
     └── It should send the message to the L2 messenger
 
+RefTokenBridgeUnit::relay
+├── When cross domain sender is not the ref token bridge and is not valid caller
+│   └── It should revert
+├── When called to relay the tokens to the native chain
+│   ├── It emit TokensUnlocked
+│   ├── It emit MessageRelayed
+│   └── It should unlock the tokens to the user
+├── When called to relay with a ref token and is not deployed and native token is sent
+│   ├── It emit TokensMinted
+│   ├── It emit MessageRelayed
+│   └── It should mint the tokens to the user
+├── When called to relay with a ref token and is not deployed and ref token is sent
+│   ├── It emit TokensMinted
+│   ├── It emit MessageRelayed
+│   └── It should mint the tokens to the user
+└── When called to relay with a ref token and is deployed
+    ├── It emit TokensMinted
+    ├── It emit MessageRelayed
+    └── It should mint the tokens to the user
+
+RefTokenBridgeUnit::relayAndExecute
+├── When cross domain sender is not the ref token bridge and is not valid caller
+│   └── It should revert
+├── When called to relay and execute the tokens to the native chain
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit MessageRelayed
+│   └── It should approve the tokens to the executor
+├── When called to relay and execute with a ref token and is not deployed and native token is sent
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit MessageRelayed
+│   └── It should approve the tokens to the executor
+├── When called to relay and execute with a ref token and is not deployed and ref token is sent
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit MessageRelayed
+│   └── It should approve the tokens to the executor
+├── When called to relay and execute with a ref token and is deployed
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit MessageRelayed
+│   └── It should approve the tokens to the executor
+├── When called to relay and execute the tokens to the native chain and execution failed
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit TokenBurned
+│   ├── It emit Approval
+│   ├── It emit MessageSent
+│   └── It should send message to refund the tokens
+├── When called to relay and execute with a ref token and is not deployed and native token is sent and execution failed
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit TokenBurned
+│   ├── It emit Approval
+│   ├── It emit MessageSent
+│   └── It should send message to refund the tokens
+├── When called to relay and execute with a ref token and is not deployed and ref token is sent and execution failed
+│   ├── It emit Approval
+│   ├── It emit TokenMinted
+│   ├── It emit TokenBurned
+│   ├── It emit Approval
+│   ├── It emit MessageSent
+│   └── It should send message to refund the tokens
+└── When called to relay and execute with a ref token and is deployed and execution failed
+    ├── It emit Approval
+    ├── It emit TokenMinted
+    ├── It emit TokenBurned
+    ├── It emit Approval
+    ├── It emit MessageSent
+    └── It should send message to refund the tokens
+
 RefTokenBridgeUnit::unlock
 ├── When caller is not valid
 │   └── It should revert
-├── When called ref token bridge
+├── When called L2 to L2 Cross Domain Messenger
 │   └── It emit TokenUnlocked
 │   └── It should transfer the tokens to user
 └── When called token

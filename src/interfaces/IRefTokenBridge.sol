@@ -24,12 +24,14 @@ interface IRefTokenBridge {
 
   /**
    * @notice Data structure for the RefToken metadata
+   * @param nativeAssetAddress The address of the native asset
    * @param nativeAssetChainId The chain ID of the native asset
    * @param nativeAssetName The name of the native asset
    * @param nativeAssetSymbol The symbol of the native asset
    * @param nativeAssetDecimals The decimals of the native asset
    */
   struct RefTokenMetadata {
+    address nativeAssetAddress;
     uint256 nativeAssetChainId;
     string nativeAssetName;
     string nativeAssetSymbol;
@@ -46,9 +48,18 @@ interface IRefTokenBridge {
   /**
    * @notice Event emitted when tokens are burned
    * @param _token The token to be burned
+   * @param _to The address to burn the token to
    * @param _amount The amount of tokens to be burned
    */
-  event TokensBurned(address indexed _token, uint256 _amount);
+  event TokensBurned(address indexed _token, address indexed _to, uint256 _amount);
+
+  /**
+   * @notice Event emitted when tokens are minted
+   * @param _token The token to be minted
+   * @param _to The address to mint the token to
+   * @param _amount The amount of tokens to be minted
+   */
+  event TokensMinted(address indexed _token, address indexed _to, uint256 _amount);
 
   /**
    * @notice Event emitted when tokens are unlocked
@@ -130,6 +141,7 @@ interface IRefTokenBridge {
   /**
    * @notice Get the RefToken metadata
    * @param _token The token to get the metadata from
+   * @return _nativeAssetAddress The address of the native asset
    * @return _nativeAssetChainId The chain ID of the native asset
    * @return _nativeAssetName The name of the native asset
    * @return _nativeAssetSymbol The symbol of the native asset
@@ -139,6 +151,7 @@ interface IRefTokenBridge {
     external
     view
     returns (
+      address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
       string memory _nativeAssetSymbol,
@@ -167,15 +180,23 @@ interface IRefTokenBridge {
   /**
    * @notice Relay token from the destination chain
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _refTokenMetadata The metadata of the RefToken
    */
-  function relay(RefTokenBridgeData calldata _refTokenBridgeData) external;
-  // TODO: Check naming, change relay for something better
+  function relay(RefTokenBridgeData calldata _refTokenBridgeData, RefTokenMetadata calldata _refTokenMetadata) external;
+
   /**
    * @notice Relay message from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _refTokenMetadata The metadata of the RefToken
+   * @param _sender The address of the sender
    * @param _data The data to be executed
    */
-  function relayAndExecute(RefTokenBridgeData calldata _refTokenBridgeData, bytes memory _data) external;
+  function relayAndExecute(
+    RefTokenBridgeData calldata _refTokenBridgeData,
+    RefTokenMetadata calldata _refTokenMetadata,
+    address _sender,
+    bytes memory _data
+  ) external;
 
   /**
    * @notice Unlocks the token on the origin chain
