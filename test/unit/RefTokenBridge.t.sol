@@ -1463,7 +1463,7 @@ contract RefTokenBridgeUnit is Helpers {
     address _to,
     uint256 _amount
   ) external {
-    _assumeFuzzable(_notValidCaller);
+    vm.assume(_notValidCaller != address(l2ToL2CrossDomainMessenger) && _notValidCaller != _token);
 
     vm.prank(_notValidCaller);
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidSender.selector);

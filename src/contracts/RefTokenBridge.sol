@@ -321,7 +321,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
    */
-  function _sendDataCheck(RefTokenBridgeData calldata _refTokenBridgeData, uint256 _destinationChainId) internal {
+  function _sendDataCheck(RefTokenBridgeData calldata _refTokenBridgeData, uint256 _destinationChainId) internal view {
     if (_refTokenBridgeData.amount == 0) revert RefTokenBridge_InvalidAmount();
     if (_refTokenBridgeData.recipient == address(0)) revert RefTokenBridge_InvalidRecipient();
     if (_destinationChainId == 0 || _destinationChainId == block.chainid) {
