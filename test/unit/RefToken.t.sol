@@ -11,6 +11,10 @@ import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
 contract UnitRefTokenTest is Helpers {
+  error Permit2AllowanceIsFixedAtInfinity();
+
+  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
 
@@ -133,5 +137,62 @@ contract UnitRefTokenTest is Helpers {
     );
     vm.prank(PredeployAddresses.SUPERCHAIN_TOKEN_BRIDGE);
     refToken.crosschainMint(_to, _amount);
+  }
+
+  function test_AllowanceWhenTheSpenderIsThePermit2Contract(address _owner) external view {
+    // It returns the max uint256 value
+    assertEq(refToken.allowance(_owner, PERMIT2), type(uint256).max);
+  }
+
+  function test_ApproveWhenTheSpenderIsThePermit2ContractAndValueIsNotTheMaxValue(
+    address _caller,
+    uint256 _amount
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max - 1);
+
+    // It reverts
+    vm.startPrank(_caller);
+    vm.expectRevert(Permit2AllowanceIsFixedAtInfinity.selector);
+    refToken.approve(PERMIT2, _amount);
+  }
+
+  function test_PermitWhenTheSpenderIsThePermit2ContractAndValueIsNotTheMaxValue(
+    address _caller,
+    address _owner,
+    uint256 _amount,
+    uint256 _deadline,
+    uint8 _v,
+    bytes32 _r,
+    bytes32 _s
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max - 1);
+
+    // It reverts
+    vm.startPrank(_caller);
+    vm.expectRevert(Permit2AllowanceIsFixedAtInfinity.selector);
+    refToken.permit(_owner, PERMIT2, _amount, _deadline, _v, _r, _s);
+  }
+
+  function test_TransferFromWhenTheCallerIsThePermit2ContractAndFromHasEnoughBalance(
+    address _from,
+    address _to,
+    uint256 _amount
+  ) external {
+    vm.prank(refTokenBridge);
+    refToken.mint(_from, _amount);
+
+    uint256 _fromBalanceBefore = refToken.balanceOf(_from);
+    uint256 _toBalanceBefore = refToken.balanceOf(_to);
+
+    // It transfers the amount
+    vm.prank(PERMIT2);
+    refToken.transferFrom(_from, _to, _amount);
+
+    if (_from == _to) {
+      assertEq(refToken.balanceOf(_from), _fromBalanceBefore);
+    } else {
+      assertEq(refToken.balanceOf(_from), _fromBalanceBefore - _amount);
+      assertEq(refToken.balanceOf(_to), _toBalanceBefore + _amount);
+    }
   }
 }

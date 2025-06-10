@@ -35,3 +35,20 @@ UnitRefTokenTest::_mint
 UnitRefTokenTest::crosschainMint
 └── When caller is authorized and chain id is the native asset one
     └── It calls RefTokenBridge.unlock
+
+UnitRefTokenTest::allowance
+└── When the spender is the Permit2 contract
+    └── It returns the max uint256 value
+
+UnitRefTokenTest::approve
+└── When the spender is the Permit2 contract and value is not the max value
+    └── It reverts
+
+UnitRefTokenTest::permit
+└── When the spender is the Permit2 contract and value is not the max value
+    └── It reverts
+
+UnitRefTokenTest::transferFrom
+└── When the caller is the Permit2 contract and from has enough balance
+    └── It transfers the amount
+
