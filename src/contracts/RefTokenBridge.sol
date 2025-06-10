@@ -56,6 +56,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _destinationChainId The destination chain ID
    * @param _data The data to be executed on the destination chain
    */
+  // TODO: create refundAddress
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     uint256 _destinationChainId,
@@ -124,19 +125,18 @@ contract RefTokenBridge is IRefTokenBridge {
       revert RefTokenBridge_InvalidMessage();
     }
 
-    address _refToken;
-    if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-      IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
-    } else {
-      _refToken = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
-      if (_refToken == address(0)) {
-        _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
-      }
-      _mint(_refToken, address(this), _refTokenBridgeData.amount);
-      IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
-    }
+    address _token;
 
-    // TODO: Set the allowence to 0 after the execution
+    if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
+      _token = _refTokenMetadata.nativeAssetAddress;
+    } else {
+      _token = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
+      if (_token == address(0)) _token = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
+
+      _mint(_token, address(this), _refTokenBridgeData.amount);
+    }
+    IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
+
     // Execute the data on the destination chain executor
     try IExecutor(_refTokenBridgeData.destinationExecutor).execute(_data) {
       emit MessageRelayed(
@@ -146,11 +146,9 @@ contract RefTokenBridge is IRefTokenBridge {
         _refTokenBridgeData.destinationExecutor
       );
     } catch {
-      if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-        IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, 0);
-      } else {
-        _burn(_refToken, address(this), _refTokenBridgeData.amount);
-        IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, 0);
+      // If the token is not the native asset, burn the token
+      if (block.chainid != _refTokenMetadata.nativeAssetChainId) {
+        _burn(_token, address(this), _refTokenBridgeData.amount);
       }
 
       _refTokenBridgeData.recipient = _sender;
@@ -170,6 +168,8 @@ contract RefTokenBridge is IRefTokenBridge {
         _destinationChainId
       );
     }
+
+    IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, 0);
   }
 
   /**
@@ -251,9 +251,11 @@ contract RefTokenBridge is IRefTokenBridge {
 
       // If the RefToken is not deployed, create a new RefToken
     } else {
+      // `token` is the native asset address here because if the input is a RefToken, the RefToken is already deployed
       _refTokenMetadata = RefTokenMetadata({
         nativeAssetAddress: _token,
         nativeAssetChainId: block.chainid,
+        //TODO: Change solady
         nativeAssetName: IRefToken(_token).name(),
         nativeAssetSymbol: IRefToken(_token).symbol()
       });
@@ -262,6 +264,7 @@ contract RefTokenBridge is IRefTokenBridge {
       _refToken = address(0x1234567890123456789012345678901234567890);
 
       refTokenMetadata[_refToken] = _refTokenMetadata;
+      // TODO: Change nativeToRefToken
       refTokenAddress[_token] = _refToken;
     }
   }
