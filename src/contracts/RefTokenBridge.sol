@@ -62,9 +62,7 @@ contract RefTokenBridge is IRefTokenBridge {
     bytes memory _data
   ) external {
     _sendDataCheck(_refTokenBridgeData, _destinationChainId);
-    if (_refTokenBridgeData.destinationExecutor == address(0)) {
-      revert RefTokenBridge_InvalidData();
-    }
+    if (_refTokenBridgeData.destinationExecutor == address(0)) revert RefTokenBridge_InvalidDestinationExecutor();
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
@@ -82,8 +80,8 @@ contract RefTokenBridge is IRefTokenBridge {
    */
   function relay(RefTokenBridgeData calldata _refTokenBridgeData, RefTokenMetadata calldata _refTokenMetadata) external {
     if (
-      L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
-        || msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+      msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
       revert RefTokenBridge_InvalidMessage();
     }
@@ -102,8 +100,7 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
   }
 
@@ -121,8 +118,8 @@ contract RefTokenBridge is IRefTokenBridge {
     bytes memory _data
   ) external {
     if (
-      L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
-        || msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+      msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
+        || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
       revert RefTokenBridge_InvalidMessage();
     }
@@ -139,14 +136,14 @@ contract RefTokenBridge is IRefTokenBridge {
       IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
     }
 
+    // TODO: Set the allowence to 0 after the execution
     // Execute the data on the destination chain executor
     try IExecutor(_refTokenBridgeData.destinationExecutor).execute(_data) {
       emit MessageRelayed(
         _refTokenBridgeData.token,
         _refTokenBridgeData.amount,
         _refTokenBridgeData.recipient,
-        _refTokenBridgeData.destinationExecutor,
-        block.chainid
+        _refTokenBridgeData.destinationExecutor
       );
     } catch {
       if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
@@ -176,18 +173,6 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to lock the token
-   * @dev This function is used to lock the token on the source chain
-   * @param _token The token to be locked
-   * @param _amount The amount of token to be locked
-   */
-  function _lock(address _token, uint256 _amount) internal {
-    IRefToken(_token).transferFrom(msg.sender, address(this), _amount);
-
-    emit TokensLocked(_token, _amount);
-  }
-
-  /**
    * @notice Internal function to unlock the token
    * @dev This function is used to unlock the token on the source chain
    * @param _token The token to be unlocked
@@ -199,9 +184,21 @@ contract RefTokenBridge is IRefTokenBridge {
       revert RefTokenBridge_InvalidSender();
     }
 
-    IRefToken(_token).transfer(_to, _amount);
+    IERC20(_token).transfer(_to, _amount);
 
     emit TokensUnlocked(_token, _to, _amount);
+  }
+
+  /**
+   * @notice Internal function to lock the token
+   * @dev This function is used to lock the token on the source chain
+   * @param _token The token to be locked
+   * @param _amount The amount of token to be locked
+   */
+  function _lock(address _token, uint256 _amount) internal {
+    IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+
+    emit TokensLocked(_token, _amount);
   }
 
   /**
@@ -214,7 +211,7 @@ contract RefTokenBridge is IRefTokenBridge {
   function _mint(address _token, address _to, uint256 _amount) internal {
     IRefToken(_token).mint(_to, _amount);
 
-    emit TokensMinted(_token, _to, _amount);
+    emit RefTokensMinted(_token, _to, _amount);
   }
 
   /**
@@ -227,11 +224,12 @@ contract RefTokenBridge is IRefTokenBridge {
   function _burn(address _token, address _to, uint256 _amount) internal {
     IRefToken(_token).burn(_to, _amount);
 
-    emit TokensBurned(_token, _to, _amount);
+    emit RefTokensBurned(_token, _to, _amount);
   }
 
   /**
    * @notice Internal function to get the RefToken metadata
+   * @dev   If the token is the native asset, it should implement name() and symbol() methods
    * @param _token The token to get the metadata from
    * @return _refTokenMetadata The RefToken metadata
    * @return _refToken The RefToken address
@@ -281,29 +279,10 @@ contract RefTokenBridge is IRefTokenBridge {
     // TODO: DEPLOY REFTOKEN
     _refToken = address(0x1234567890123456789012345678901234567890);
 
-    // If the sent token is the native asset, set the RefToken address to the token
-    if (_token == _refTokenMetadata.nativeAssetAddress) {
-      refTokenAddress[_token] = _refToken;
-      // If the sent token is not the native asset, set the RefToken address to the native asset
-    } else {
-      refTokenAddress[_refTokenMetadata.nativeAssetAddress] = _refToken;
-    }
+    refTokenAddress[_refTokenMetadata.nativeAssetAddress] = _refToken;
+
     // If relay a native token and the RefToken is not deployed, create a new RefToken
     refTokenMetadata[_refToken] = _refTokenMetadata;
-  }
-
-  /**
-   * @notice Internal function to check the data for the send function
-   * @param _refTokenBridgeData The data structure for the RefTokenBridge
-   * @param _destinationChainId The destination chain ID
-   */
-  function _sendDataCheck(RefTokenBridgeData calldata _refTokenBridgeData, uint256 _destinationChainId) internal pure {
-    if (
-      _refTokenBridgeData.token == address(0) || _refTokenBridgeData.amount == 0
-        || _refTokenBridgeData.recipient == address(0) || _destinationChainId == 0
-    ) {
-      revert RefTokenBridge_InvalidData();
-    }
   }
 
   /**
@@ -335,5 +314,18 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenBridgeData.destinationExecutor,
       _destinationChainId
     );
+  }
+
+  /**
+   * @notice Internal function to check the data for the send function
+   * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _destinationChainId The destination chain ID
+   */
+  function _sendDataCheck(RefTokenBridgeData calldata _refTokenBridgeData, uint256 _destinationChainId) internal {
+    if (_refTokenBridgeData.amount == 0) revert RefTokenBridge_InvalidAmount();
+    if (_refTokenBridgeData.recipient == address(0)) revert RefTokenBridge_InvalidRecipient();
+    if (_destinationChainId == 0 || _destinationChainId == block.chainid) {
+      revert RefTokenBridge_InvalidDestinationChainId();
+    }
   }
 }

@@ -30,13 +30,16 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(address(refTokenBridge.L2_TO_L2_CROSS_DOMAIN_MESSENGER()), address(_l2ToL2CrossDomainMessenger));
   }
 
-  function test_SendRevertWhen_TokenIsZero(
+  function test_SendRevertWhen_DestinationIdIsTheBlockChainId(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId
   ) external {
-    _refTokenBridgeData.token = address(0);
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.recipient != address(0));
+    _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
+    _destinationChainId = block.chainid;
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
   }
 
@@ -44,9 +47,12 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId
   ) external {
+    _assumeFuzzable(_refTokenBridgeData.token);
+    _assumeFuzzable(_refTokenBridgeData.recipient);
     _refTokenBridgeData.amount = 0;
+    _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
   }
 
@@ -54,9 +60,11 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId
   ) external {
+    _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
+    _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
     _refTokenBridgeData.recipient = address(0);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
   }
 
@@ -64,9 +72,12 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId
   ) external {
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.recipient != address(0));
+    _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = 0;
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
   }
 
@@ -122,10 +133,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
@@ -151,7 +162,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
   }
 
-  function test_SendWhenCalledWithANativeTokenFollowingSuccessions(
+  function test_SendWhenCallingWithTheNativeTokenAnyTimeAfterTheCreationOfTheRefToken(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId
   ) external {
@@ -195,10 +206,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
@@ -274,10 +285,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       refToken,
       _refTokenBridgeData.amount,
@@ -290,14 +301,19 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
   }
 
-  function test_SendAndExecuteRevertWhen_TokenIsZero(
+  function test_SendAndExecuteRevertWhen_DestinationIdIsTheBlockChainId(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
     bytes memory _data
   ) external {
-    _refTokenBridgeData.token = address(0);
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.amount != 0);
+    vm.assume(_refTokenBridgeData.recipient != address(0));
+    _refTokenBridgeData.destinationExecutor = address(0);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    _destinationChainId = block.chainid;
+
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
@@ -308,7 +324,7 @@ contract RefTokenBridgeUnit is Helpers {
   ) external {
     _refTokenBridgeData.amount = 0;
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
@@ -317,9 +333,12 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _destinationChainId,
     bytes memory _data
   ) external {
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.amount != 0);
+    _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
     _refTokenBridgeData.recipient = address(0);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
@@ -329,8 +348,12 @@ contract RefTokenBridgeUnit is Helpers {
     bytes memory _data
   ) external {
     _destinationChainId = 0;
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.amount != 0);
+    vm.assume(_refTokenBridgeData.recipient != address(0));
+    _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
@@ -340,8 +363,13 @@ contract RefTokenBridgeUnit is Helpers {
     bytes memory _data
   ) external {
     _refTokenBridgeData.destinationExecutor = address(0);
+    vm.assume(_refTokenBridgeData.token != address(0));
+    vm.assume(_refTokenBridgeData.amount != 0);
+    vm.assume(_refTokenBridgeData.recipient != address(0));
+    _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
+    _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidData.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationExecutor.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
   }
 
@@ -399,10 +427,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
@@ -474,10 +502,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensLocked(_refTokenBridgeData.token, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
@@ -556,10 +584,10 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     // Emits
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_refTokenBridgeData.token, caller, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       refToken,
       _refTokenBridgeData.amount,
@@ -576,13 +604,22 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
   ) external {
+    vm.prank(address(caller));
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
+  }
+
+  function test_RelayRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(
+    IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) external {
     _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
-      abi.encode(address(refTokenBridge))
+      abi.encode(address(caller))
     );
 
-    vm.prank(address(caller));
+    vm.prank(address(l2ToL2CrossDomainMessenger));
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
     refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
   }
@@ -607,18 +644,17 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensUnlocked(
       _refTokenBridgeData.token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount
     );
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      _refTokenMetadata.nativeAssetChainId
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -651,16 +687,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -705,16 +740,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -765,16 +799,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(_deployedRefToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_deployedRefToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -799,13 +832,23 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
     bytes memory _data
   ) external {
+    vm.prank(address(caller));
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+  }
+
+  function test_RelayAndExecuteRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(
+    IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    bytes memory _data
+  ) external {
     _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(IL2ToL2CrossDomainMessenger.crossDomainMessageSender.selector),
-      abi.encode(address(refTokenBridge))
+      abi.encode(address(caller))
     );
 
-    vm.prank(address(caller));
+    vm.prank(address(l2ToL2CrossDomainMessenger));
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
     refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
   }
@@ -841,13 +884,12 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      _refTokenMetadata.nativeAssetChainId
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -897,16 +939,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -967,16 +1008,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -1043,16 +1083,15 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageRelayed(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
-      _refTokenBridgeData.destinationExecutor,
-      block.chainid
+      _refTokenBridgeData.destinationExecutor
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -1119,7 +1158,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _newRefTokenBridgeData.token,
       _newRefTokenBridgeData.amount,
@@ -1197,13 +1236,13 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _newRefTokenBridgeData.token,
       _newRefTokenBridgeData.amount,
@@ -1285,13 +1324,13 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(refToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _newRefTokenBridgeData.token,
       _newRefTokenBridgeData.amount,
@@ -1373,6 +1412,12 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     _mockAndExpect(
+      _deployedRefToken,
+      abi.encodeWithSelector(IRefToken.burn.selector, address(refTokenBridge), _refTokenBridgeData.amount),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(
         IL2ToL2CrossDomainMessenger.sendMessage.selector, _destinationChainId, address(refTokenBridge), _message
@@ -1380,13 +1425,13 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensMinted(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
-    emit IRefTokenBridge.TokensBurned(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_deployedRefToken, address(refTokenBridge), _refTokenBridgeData.amount);
 
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.MessageSent(
       _newRefTokenBridgeData.token,
       _newRefTokenBridgeData.amount,
@@ -1412,8 +1457,15 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
-  function test_UnlockRevertWhen_CallerIsNotValid(address _token, address _to, uint256 _amount) external {
-    vm.prank(caller);
+  function test_UnlockRevertWhen_CallerIsNotValid(
+    address _notValidCaller,
+    address _token,
+    address _to,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_notValidCaller);
+
+    vm.prank(_notValidCaller);
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidSender.selector);
     refTokenBridge.unlock(_token, _to, _amount);
   }
@@ -1424,7 +1476,7 @@ contract RefTokenBridgeUnit is Helpers {
     _mockAndExpect(_token, abi.encodeWithSelector(IERC20.transfer.selector, _to, _amount), abi.encode(true));
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensUnlocked(_token, _to, _amount);
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
@@ -1437,7 +1489,7 @@ contract RefTokenBridgeUnit is Helpers {
     _mockAndExpect(_token, abi.encodeWithSelector(IERC20.transfer.selector, _to, _amount), abi.encode(true));
 
     // Emits
-    vm.expectEmit();
+    vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.TokensUnlocked(_token, _to, _amount);
 
     vm.prank(_token);
