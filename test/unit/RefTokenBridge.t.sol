@@ -159,7 +159,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_SendWhenCallingWithTheNativeTokenAnyTimeAfterTheCreationOfTheRefToken(
@@ -232,7 +232,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_SendWhenCalledWithARefToken(
@@ -304,6 +304,7 @@ contract RefTokenBridgeUnit is Helpers {
   function test_SendAndExecuteRevertWhen_DestinationIdIsTheBlockChainId(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     vm.assume(_refTokenBridgeData.token != address(0));
@@ -314,23 +315,25 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = block.chainid;
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_AmountIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _refTokenBridgeData.amount = 0;
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_RecipientIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     vm.assume(_refTokenBridgeData.token != address(0));
@@ -339,12 +342,13 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.recipient = address(0);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_DestinationChainIdIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _destinationChainId = 0;
@@ -354,12 +358,13 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_DestinationExecutorIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _refTokenBridgeData.destinationExecutor = address(0);
@@ -370,12 +375,13 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationExecutor.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
@@ -393,7 +399,7 @@ contract RefTokenBridgeUnit is Helpers {
     });
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
     );
 
     // Mocks and Expects
@@ -440,7 +446,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
 
     (
       address _nativeAssetAddress,
@@ -453,12 +459,13 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFollowingSuccessions(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
@@ -479,7 +486,7 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
     );
 
     // Mocks and Expects
@@ -515,7 +522,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
 
     (
       address _nativeAssetAddress,
@@ -529,7 +536,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_SendAndExecuteWhenCalledWithARefToken(
@@ -537,6 +544,7 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
     uint256 _destinationChainId,
     uint256 _anotherDestinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
@@ -560,7 +568,7 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, caller, _data
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
     );
 
     // Mocks and Expects
@@ -597,7 +605,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
   }
 
   function test_RelayRevertWhen_CrossDomainSenderIsNotTheRefTokenBridgeAndIsNotValidCaller(
@@ -712,7 +720,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_RelayWhenCalledToRelayWithARefTokenAndIsNotDeployedAndRefTokenIsSent(
@@ -765,7 +773,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
   function test_RelayWhenCalledToRelayWithARefTokenAndIsDeployed(
@@ -824,7 +832,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
   function test_RelayAndExecuteRevertWhen_CrossDomainSenderIsNotTheRefTokenBridgeAndIsNotValidCaller(
@@ -860,6 +868,7 @@ contract RefTokenBridgeUnit is Helpers {
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
     _assumeFuzzable(_refTokenBridgeData.destinationExecutor);
+    _assumeFuzzable(_refTokenMetadata.nativeAssetAddress);
 
     _refTokenMetadata.nativeAssetChainId = block.chainid;
 
@@ -871,11 +880,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     _mockAndExpect(
-      _refTokenBridgeData.token,
-      abi.encodeWithSelector(
-        IERC20.approve.selector, _refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount
-      ),
-      abi.encode(true)
+      _refTokenMetadata.nativeAssetAddress, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true)
     );
 
     _mockAndExpect(
@@ -925,13 +930,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    _mockAndExpect(
-      address(refToken),
-      abi.encodeWithSelector(
-        IERC20.approve.selector, _refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount
-      ),
-      abi.encode(true)
-    );
+    _mockAndExpect(address(refToken), abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
@@ -964,7 +963,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsNotDeployedAndRefTokenIsSent(
@@ -994,13 +993,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    _mockAndExpect(
-      address(refToken),
-      abi.encodeWithSelector(
-        IERC20.approve.selector, _refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount
-      ),
-      abi.encode(true)
-    );
+    _mockAndExpect(address(refToken), abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
@@ -1033,7 +1026,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsDeployed(
@@ -1069,13 +1062,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
 
-    _mockAndExpect(
-      _deployedRefToken,
-      abi.encodeWithSelector(
-        IERC20.approve.selector, _refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount
-      ),
-      abi.encode(true)
-    );
+    _mockAndExpect(_deployedRefToken, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
@@ -1108,7 +1095,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteTheTokensToTheNativeChainAndExecutionFailed(
@@ -1119,6 +1106,7 @@ contract RefTokenBridgeUnit is Helpers {
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
     _assumeFuzzable(_refTokenBridgeData.destinationExecutor);
+    _assumeFuzzable(_refTokenMetadata.nativeAssetAddress);
 
     _refTokenMetadata.nativeAssetChainId = block.chainid;
 
@@ -1136,7 +1124,9 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(address(refTokenBridge))
     );
 
-    _mockAndExpect(_refTokenBridgeData.token, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
+    _mockAndExpect(
+      _refTokenMetadata.nativeAssetAddress, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true)
+    );
 
     vm.mockCallRevert(
       _refTokenBridgeData.destinationExecutor,
@@ -1265,7 +1255,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenBridgeData.token), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsNotDeployedAndRefTokenIsSentAndExecutionFailed(
@@ -1353,7 +1343,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), refToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsDeployedAndExecutionFailed(
@@ -1454,7 +1444,7 @@ contract RefTokenBridgeUnit is Helpers {
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
-    assertEq(refTokenBridge.refTokenAddress(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
+    assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
   function test_UnlockRevertWhen_CallerIsNotValid(
@@ -1501,7 +1491,7 @@ contract RefTokenBridgeForTest is RefTokenBridge {
   constructor(IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger) RefTokenBridge(_l2ToL2CrossDomainMessenger) {}
 
   function setRefTokenAddress(address _nativeToken, address _refToken) external {
-    refTokenAddress[_nativeToken] = _refToken;
+    nativeToRefToken[_nativeToken] = _refToken;
   }
 
   function setRefTokenMetadata(address _refToken, IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata) external {

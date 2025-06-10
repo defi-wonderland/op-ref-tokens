@@ -152,6 +152,13 @@ interface IRefTokenBridge {
     );
 
   /**
+   * @notice Get the RefToken address
+   * @param _nativeToken The native token to get the RefToken address from
+   * @return _refToken The RefToken address
+   */
+  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
+
+  /**
    * @notice Send token to the destination chain
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
@@ -162,11 +169,13 @@ interface IRefTokenBridge {
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external;
 

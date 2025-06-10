@@ -3,6 +3,8 @@ pragma solidity 0.8.26;
 
 import {IRefToken} from '../interfaces/IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
+
+import {IERC20Metadata} from '../interfaces/external/IERC20Metadata.sol';
 import {IExecutor} from '../interfaces/external/IExecutor.sol';
 import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
 
@@ -24,7 +26,7 @@ contract RefTokenBridge is IRefTokenBridge {
   /**
    * @notice The RefToken address
    */
-  mapping(address _nativeToken => address _refToken) public refTokenAddress;
+  mapping(address _nativeToken => address _refToken) public nativeToRefToken;
 
   /**
    * @notice Constructor
@@ -56,10 +58,10 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _destinationChainId The destination chain ID
    * @param _data The data to be executed on the destination chain
    */
-  // TODO: create refundAddress
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _sendDataCheck(_refTokenBridgeData, _destinationChainId);
@@ -68,7 +70,7 @@ contract RefTokenBridge is IRefTokenBridge {
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, msg.sender, _data
+      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
     );
 
     _sendMessage(_refTokenBridgeData, _refToken, _destinationChainId, _message);
@@ -90,7 +92,7 @@ contract RefTokenBridge is IRefTokenBridge {
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       unlock(_refTokenBridgeData.token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
     } else {
-      address _refToken = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
+      address _refToken = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
       if (_refToken == address(0)) {
         _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
       }
@@ -130,7 +132,7 @@ contract RefTokenBridge is IRefTokenBridge {
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       _token = _refTokenMetadata.nativeAssetAddress;
     } else {
-      _token = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
+      _token = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
       if (_token == address(0)) _token = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
 
       _mint(_token, address(this), _refTokenBridgeData.amount);
@@ -239,7 +241,7 @@ contract RefTokenBridge is IRefTokenBridge {
     returns (RefTokenMetadata memory _refTokenMetadata, address _refToken)
   {
     // If the RefToken is already deployed, and the native token is passed as token, return the RefToken metadata and address
-    _refToken = refTokenAddress[_token];
+    _refToken = nativeToRefToken[_token];
     if (_refToken != address(0)) {
       return (refTokenMetadata[_refToken], _refToken);
     }
@@ -255,17 +257,15 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = RefTokenMetadata({
         nativeAssetAddress: _token,
         nativeAssetChainId: block.chainid,
-        //TODO: Change solady
-        nativeAssetName: IRefToken(_token).name(),
-        nativeAssetSymbol: IRefToken(_token).symbol()
+        nativeAssetName: IERC20Metadata(_token).name(),
+        nativeAssetSymbol: IERC20Metadata(_token).symbol()
       });
 
       // TODO: Change it to the actual RefToken address when the RefToken is deployed
       _refToken = address(0x1234567890123456789012345678901234567890);
 
       refTokenMetadata[_refToken] = _refTokenMetadata;
-      // TODO: Change nativeToRefToken
-      refTokenAddress[_token] = _refToken;
+      nativeToRefToken[_token] = _refToken;
     }
   }
 
@@ -282,7 +282,7 @@ contract RefTokenBridge is IRefTokenBridge {
     // TODO: DEPLOY REFTOKEN
     _refToken = address(0x1234567890123456789012345678901234567890);
 
-    refTokenAddress[_refTokenMetadata.nativeAssetAddress] = _refToken;
+    nativeToRefToken[_refTokenMetadata.nativeAssetAddress] = _refToken;
 
     // If relay a native token and the RefToken is not deployed, create a new RefToken
     refTokenMetadata[_refToken] = _refTokenMetadata;
