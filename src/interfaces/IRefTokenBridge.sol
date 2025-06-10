@@ -46,22 +46,6 @@ interface IRefTokenBridge {
   event TokensLocked(address indexed _token, uint256 _amount);
 
   /**
-   * @notice Event emitted when tokens are burned
-   * @param _token The token to be burned
-   * @param _to The address to burn the token to
-   * @param _amount The amount of tokens to be burned
-   */
-  event TokensBurned(address indexed _token, address indexed _to, uint256 _amount);
-
-  /**
-   * @notice Event emitted when tokens are minted
-   * @param _token The token to be minted
-   * @param _to The address to mint the token to
-   * @param _amount The amount of tokens to be minted
-   */
-  event TokensMinted(address indexed _token, address indexed _to, uint256 _amount);
-
-  /**
    * @notice Event emitted when tokens are unlocked
    * @param _token The token to be unlocked
    * @param _to The address to unlock the token to
@@ -75,6 +59,22 @@ interface IRefTokenBridge {
    * @param _nativeAsset The native asset address
    */
   event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
+
+  /**
+   * @notice Event emitted when tokens are burned
+   * @param _token The token to be burned
+   * @param _to The address to burn the token to
+   * @param _amount The amount of tokens to be burned
+   */
+  event RefTokensBurned(address indexed _token, address indexed _to, uint256 _amount);
+
+  /**
+   * @notice Event emitted when tokens are minted
+   * @param _token The token to be minted
+   * @param _to The address to mint the token to
+   * @param _amount The amount of tokens to be minted
+   */
+  event RefTokensMinted(address indexed _token, address indexed _to, uint256 _amount);
 
   /**
    * @notice Event emitted when a message is sent
@@ -99,25 +99,30 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be bridged
    * @param _recipient The recipient of the bridged token
    * @param _destinationExecutor The destination executor
-   * @param _destinationChainId The destination chain ID
    */
   event MessageRelayed(
-    address indexed _token,
-    uint256 _amount,
-    address indexed _recipient,
-    address indexed _destinationExecutor,
-    uint256 _destinationChainId
+    address indexed _token, uint256 _amount, address indexed _recipient, address indexed _destinationExecutor
   );
-
-  /**
-   * @notice Error emitted when the RefTokenBridgeData is invalid
-   */
-  error RefTokenBridge_InvalidData();
 
   /**
    * @notice Error emitted when the amount is invalid
    */
   error RefTokenBridge_InvalidAmount();
+
+  /**
+   * @notice Error emitted when the recipient is invalid
+   */
+  error RefTokenBridge_InvalidRecipient();
+
+  /**
+   * @notice Error emitted when the destination chain id is invalid
+   */
+  error RefTokenBridge_InvalidDestinationChainId();
+
+  /**
+   * @notice Error emitted when the destination executor is invalid
+   */
+  error RefTokenBridge_InvalidDestinationExecutor();
 
   /**
    * @notice Error emitted when the message is invalid
@@ -159,6 +164,13 @@ interface IRefTokenBridge {
     );
 
   /**
+   * @notice Get the RefToken address
+   * @param _nativeToken The native token to get the RefToken address from
+   * @return _refToken The RefToken address
+   */
+  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
+
+  /**
    * @notice Send token to the destination chain
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
@@ -169,11 +181,13 @@ interface IRefTokenBridge {
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external;
 
