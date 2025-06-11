@@ -639,7 +639,7 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
   ) external {
     vm.prank(address(caller));
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessenger.selector);
     refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
   }
 
@@ -654,7 +654,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessenger.selector);
     refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
   }
 
@@ -868,7 +868,7 @@ contract RefTokenBridgeUnit is Helpers {
     bytes memory _data
   ) external {
     vm.prank(address(caller));
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessenger.selector);
     refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 
@@ -885,7 +885,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessenger.selector);
     refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 

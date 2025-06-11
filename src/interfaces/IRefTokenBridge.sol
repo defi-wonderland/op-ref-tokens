@@ -120,9 +120,9 @@ interface IRefTokenBridge {
   error RefTokenBridge_InvalidDestinationExecutor();
 
   /**
-   * @notice Error emitted when the message is invalid
+   * @notice Error emitted when the messenger is invalid
    */
-  error RefTokenBridge_InvalidMessage();
+  error RefTokenBridge_InvalidMessenger();
 
   /**
    * @notice Error emitted when the sender is invalid

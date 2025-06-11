@@ -55,7 +55,9 @@ contract RefTokenBridge is IRefTokenBridge {
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _executionChainId The execution chain ID
    * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
@@ -93,7 +95,7 @@ contract RefTokenBridge is IRefTokenBridge {
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
-      revert RefTokenBridge_InvalidMessage();
+      revert RefTokenBridge_InvalidMessenger();
     }
 
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
@@ -118,6 +120,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Relay token from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refTokenMetadata The metadata of the RefToken
+   * @param _destinationChainId The destination chain ID
    * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
@@ -132,7 +135,7 @@ contract RefTokenBridge is IRefTokenBridge {
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
-      revert RefTokenBridge_InvalidMessage();
+      revert RefTokenBridge_InvalidMessenger();
     }
 
     address _token;
@@ -226,7 +229,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to burn the RefToken
-   * @dev This function is used to burn the RefToken on the destination chain
+   * @dev    This function is used to burn the RefToken on the destination chain
    * @param _token The token to be burned
    * @param _to The address to burn the token to
    * @param _amount The amount of token to be burned
@@ -239,7 +242,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to get the RefToken metadata
-   * @dev   If the token is the native asset, it should implement name() and symbol() methods
+   * @dev    If the token is the native asset, it should implement name() and symbol() methods
    * @param _token The token to get the metadata from
    * @return _refTokenMetadata The RefToken metadata
    * @return _refToken The RefToken address
