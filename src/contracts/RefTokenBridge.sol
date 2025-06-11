@@ -75,13 +75,9 @@ contract RefTokenBridge is IRefTokenBridge {
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
-    bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector,
-      _refTokenBridgeData,
-      _refTokenMetadata,
-      _destinationChainId,
-      _refundAddress,
-      _data
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (_refTokenBridgeData, _refTokenMetadata, _destinationChainId, _refundAddress, _data)
     );
 
     _sendMessage(_refTokenBridgeData, _refToken, _executionChainId, _message);
@@ -141,7 +137,6 @@ contract RefTokenBridge is IRefTokenBridge {
     }
 
     address _token;
-
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       _token = _refTokenMetadata.nativeAssetAddress;
     } else {
@@ -168,19 +163,17 @@ contract RefTokenBridge is IRefTokenBridge {
 
       _refTokenBridgeData.recipient = _refundAddress;
 
-      bytes memory _message =
-        abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
+      bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_refTokenBridgeData, _refTokenMetadata));
 
-      _destinationChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
+      // TODO: Just use `send()`?
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(
+        L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource(), address(this), _message
+      );
 
-      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
-
+      // Destination executor and execution chain id are empty since we are just sending the tokens back to the
+      // refund address without any execution
       emit MessageSent(
-        _refTokenBridgeData.token,
-        _refTokenBridgeData.amount,
-        _refTokenBridgeData.recipient,
-        _refTokenBridgeData.destinationExecutor,
-        _destinationChainId
+        _refTokenBridgeData.token, _refTokenBridgeData.amount, _refTokenBridgeData.recipient, address(0), 0
       );
     }
 

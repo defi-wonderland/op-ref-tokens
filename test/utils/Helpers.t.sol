@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {RefToken} from '../../src/contracts/RefToken.sol';
+import {IRefTokenBridge} from '../../src/interfaces/IRefTokenBridge.sol';
 import {Test} from 'forge-std/Test.sol';
 
 /**
@@ -9,22 +11,15 @@ import {Test} from 'forge-std/Test.sol';
  */
 contract Helpers is Test {
   /// EOAs
-  address public caller;
-  address public recipient;
+  address public caller = makeAddr('caller');
+  address public recipient = makeAddr('recipient');
 
   /// Variables
   uint256 public nativeAssetChainId = 2;
   string public nativeAssetName = 'Native Asset';
   string public nativeAssetSymbol = 'NA';
   uint8 public nativeAssetDecimals = 18;
-
-  /**
-   * @notice Sets up the contract state
-   */
-  function setUp() public virtual {
-    caller = makeAddr('caller');
-    recipient = makeAddr('recipient');
-  }
+  address public nativeAsset = makeAddr('NativeAsset');
 
   /**
    * @notice Ensures that a fuzzed address can be used for deployment and calls
@@ -120,5 +115,57 @@ contract Helpers is Test {
     vm.label(_address1, 'random address');
 
     return _address1;
+  }
+
+  /**
+   * @notice Precalculate the address of the RefToken
+   * @param _refTokenBridge The address of the RefTokenBridge contract
+   * @param _nativeAsset The address of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
+   * @return _refTokenAddress The address of the RefToken
+   */
+  function _precalculateRefTokenAddress(
+    address _refTokenBridge,
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) internal pure returns (address _refTokenAddress) {
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+
+    bytes memory _initCode = bytes.concat(
+      type(RefToken).creationCode,
+      abi.encode(
+        _refTokenBridge,
+        _refTokenMetadata.nativeAssetChainId,
+        _refTokenMetadata.nativeAssetName,
+        _refTokenMetadata.nativeAssetSymbol,
+        _refTokenMetadata.nativeAssetDecimals
+      )
+    );
+
+    bytes32 _initCodeHash = keccak256(_initCode);
+    _refTokenAddress = _precalculateCreate2Address(_salt, _initCodeHash, _refTokenBridge);
+  }
+
+  /**
+   * @notice Precalculate and address to be deployed using the `CREATE2` opcode
+   * @param _salt The 32-byte random value used to create the contract address.
+   * @param _initCodeHash The 32-byte bytecode digest of the contract creation bytecode.
+   * @param _deployer The 20-byte _deployer address.
+   * @return _precalculatedAddress The 20-byte address where a contract will be stored.
+   */
+  function _precalculateCreate2Address(
+    bytes32 _salt,
+    bytes32 _initCodeHash,
+    address _deployer
+  ) internal pure returns (address _precalculatedAddress) {
+    assembly ("memory-safe") {
+      let _ptr := mload(0x40)
+      mstore(add(_ptr, 0x40), _initCodeHash)
+      mstore(add(_ptr, 0x20), _salt)
+      mstore(_ptr, _deployer)
+      let _start := add(_ptr, 0x0b)
+      mstore8(_start, 0xff)
+      _precalculatedAddress := and(keccak256(_start, 85), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+    }
   }
 }

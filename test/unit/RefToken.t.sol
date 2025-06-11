@@ -18,8 +18,7 @@ contract UnitRefTokenTest is Helpers {
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
 
-  function setUp() public override {
-    super.setUp();
+  function setUp() public {
     refTokenBridge = IRefTokenBridge(makeAddr('RefTokenBridge'));
     refToken =
       new RefToken(address(refTokenBridge), nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
