@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.26;
 
 import {ISuperchainERC20} from '@interop-lib/src/interfaces/ISuperchainERC20.sol';
 
+/**
+ * @title IRefToken
+ * @notice Interface for the RefToken
+ */
 interface IRefToken is ISuperchainERC20 {
   /*///////////////////////////////////////////////////////////////
                             LOGIC

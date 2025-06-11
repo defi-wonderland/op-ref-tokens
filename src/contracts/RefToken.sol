@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.25;
+pragma solidity 0.8.26;
 
 import {SuperchainERC20} from '@interop-lib/src/SuperchainERC20.sol';
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
@@ -47,13 +47,13 @@ contract RefToken is SuperchainERC20 {
    * @param _nativeAssetDecimals The decimals of the native asset
    */
   constructor(
-    address _refTokenBridge,
+    IRefTokenBridge _refTokenBridge,
     uint256 _nativeAssetChainId,
     string memory _nativeAssetName,
     string memory _nativeAssetSymbol,
     uint8 _nativeAssetDecimals
   ) {
-    REF_TOKEN_BRIDGE = IRefTokenBridge(_refTokenBridge);
+    REF_TOKEN_BRIDGE = _refTokenBridge;
     NATIVE_ASSET_CHAIN_ID = _nativeAssetChainId;
     nativeAssetName = _nativeAssetName;
     nativeAssetSymbol = _nativeAssetSymbol;
@@ -112,7 +112,7 @@ contract RefToken is SuperchainERC20 {
    */
   function _mint(address _to, uint256 _amount) internal override {
     if (msg.sender == PredeployAddresses.SUPERCHAIN_TOKEN_BRIDGE && block.chainid == NATIVE_ASSET_CHAIN_ID) {
-      REF_TOKEN_BRIDGE.unlock(_to, _amount);
+      REF_TOKEN_BRIDGE.unlock(address(this), _to, _amount);
     } else {
       super._mint(_to, _amount);
     }
