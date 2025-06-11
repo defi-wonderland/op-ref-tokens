@@ -84,11 +84,6 @@ RefTokenBridgeUnit::relayAndExecute
 │   ├── It should emit TokenMinted
 │   ├── It should emit MessageRelayed
 │   └── It should approve the tokens to the executor
-├── When called to relay and execute with a ref token and is not deployed and native token is sent
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
-│   ├── It should emit MessageRelayed
-│   └── It should approve the tokens to the executor
 ├── When called to relay and execute with a ref token and is not deployed and ref token is sent
 │   ├── It should emit Approval
 │   ├── It should emit TokenMinted
@@ -100,13 +95,6 @@ RefTokenBridgeUnit::relayAndExecute
 │   ├── It should emit MessageRelayed
 │   └── It should approve the tokens to the executor
 ├── When called to relay and execute the tokens to the native chain and execution failed
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
-│   ├── It should emit TokenBurned
-│   ├── It should emit Approval
-│   ├── It should emit MessageSent
-│   └── It should send message to refund the tokens
-├── When called to relay and execute with a ref token and is not deployed and native token is sent and execution failed
 │   ├── It should emit Approval
 │   ├── It should emit TokenMinted
 │   ├── It should emit TokenBurned

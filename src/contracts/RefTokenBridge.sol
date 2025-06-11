@@ -8,6 +8,8 @@ import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
 import {IExecutor} from 'interfaces/external/IExecutor.sol';
 import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
 
+import {RefToken} from 'contracts/RefToken.sol';
+
 /**
  * @title RefTokenBridge
  * @notice A bridge for bridging locked native assets and ERC-20s across OP-Stack chains.
@@ -73,13 +75,9 @@ contract RefTokenBridge is IRefTokenBridge {
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
-    bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector,
-      _refTokenBridgeData,
-      _refTokenMetadata,
-      _destinationChainId,
-      _refundAddress,
-      _data
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (_refTokenBridgeData, _refTokenMetadata, _destinationChainId, _refundAddress, _data)
     );
 
     _sendMessage(_refTokenBridgeData, _refToken, _executionChainId, _message);
@@ -103,7 +101,7 @@ contract RefTokenBridge is IRefTokenBridge {
     } else {
       address _refToken = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
       if (_refToken == address(0)) {
-        _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
+        _refToken = _setRefTokenMetadata(_refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
       }
       _mint(_refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
     }
@@ -139,12 +137,11 @@ contract RefTokenBridge is IRefTokenBridge {
     }
 
     address _token;
-
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       _token = _refTokenMetadata.nativeAssetAddress;
     } else {
       _token = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
-      if (_token == address(0)) _token = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
+      if (_token == address(0)) _token = _setRefTokenMetadata(_refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
 
       _mint(_token, address(this), _refTokenBridgeData.amount);
     }
@@ -166,19 +163,17 @@ contract RefTokenBridge is IRefTokenBridge {
 
       _refTokenBridgeData.recipient = _refundAddress;
 
-      bytes memory _message =
-        abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
+      bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_refTokenBridgeData, _refTokenMetadata));
 
-      _destinationChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
+      // TODO: Just use `send()`?
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(
+        L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource(), address(this), _message
+      );
 
-      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
-
+      // Destination executor and execution chain id are empty since we are just sending the tokens back to the
+      // refund address without any execution
       emit MessageSent(
-        _refTokenBridgeData.token,
-        _refTokenBridgeData.amount,
-        _refTokenBridgeData.recipient,
-        _refTokenBridgeData.destinationExecutor,
-        _destinationChainId
+        _refTokenBridgeData.token, _refTokenBridgeData.amount, _refTokenBridgeData.recipient, address(0), 0
       );
     }
 
@@ -269,12 +264,12 @@ contract RefTokenBridge is IRefTokenBridge {
         nativeAssetAddress: _token,
         nativeAssetChainId: block.chainid,
         nativeAssetName: IERC20Metadata(_token).name(),
-        nativeAssetSymbol: IERC20Metadata(_token).symbol()
+        nativeAssetSymbol: IERC20Metadata(_token).symbol(),
+        nativeAssetDecimals: IERC20Metadata(_token).decimals()
       });
 
-      // TODO: Change it to the actual RefToken address when the RefToken is deployed
-      _refToken = address(0x1234567890123456789012345678901234567890);
-
+      // Deploy the RefToken and store the RefToken address and metadata
+      _refToken = _deployRefToken(_token, _refTokenMetadata);
       refTokenMetadata[_refToken] = _refTokenMetadata;
       nativeToRefToken[_token] = _refToken;
     }
@@ -282,18 +277,17 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to set the RefToken metadata and deploy the RefToken if it is not deployed
-   * @param _token The token to set the metadata for
+   * @param _nativeAsset The native asset address
    * @param _refTokenMetadata The metadata to set
-   * @return _refToken The RefToken address
+   * @return _refToken The deployed RefToken address
    */
   function _setRefTokenMetadata(
-    address _token,
+    address _nativeAsset,
     RefTokenMetadata calldata _refTokenMetadata
   ) internal returns (address _refToken) {
-    // TODO: DEPLOY REFTOKEN
-    _refToken = address(0x1234567890123456789012345678901234567890);
+    _refToken = _deployRefToken(_nativeAsset, _refTokenMetadata);
 
-    nativeToRefToken[_refTokenMetadata.nativeAssetAddress] = _refToken;
+    nativeToRefToken[_nativeAsset] = _refToken;
 
     // If relay a native token and the RefToken is not deployed, create a new RefToken
     refTokenMetadata[_refToken] = _refTokenMetadata;
@@ -328,6 +322,30 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenBridgeData.destinationExecutor,
       _executionChainId
     );
+  }
+
+  /**
+   * @notice Deploys the RefToken
+   * @param _nativeAsset The address of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
+   * @return _refToken The address of the RefToken
+   */
+  function _deployRefToken(
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) internal returns (address _refToken) {
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+    _refToken = address(
+      new RefToken{salt: _salt}(
+        address(this),
+        _refTokenMetadata.nativeAssetChainId,
+        _refTokenMetadata.nativeAssetName,
+        _refTokenMetadata.nativeAssetSymbol,
+        _refTokenMetadata.nativeAssetDecimals
+      )
+    );
+
+    emit RefTokenDeployed(_refToken, _nativeAsset);
   }
 
   /**

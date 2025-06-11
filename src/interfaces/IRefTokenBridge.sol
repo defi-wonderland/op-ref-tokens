@@ -34,6 +34,7 @@ interface IRefTokenBridge {
     uint256 nativeAssetChainId;
     string nativeAssetName;
     string nativeAssetSymbol;
+    uint8 nativeAssetDecimals;
   }
 
   /**
@@ -95,6 +96,13 @@ interface IRefTokenBridge {
   );
 
   /**
+   * @notice Event emitted when a RefToken is deployed
+   * @param _refToken The RefToken address
+   * @param _nativeAsset The native asset address
+   */
+  event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
+
+  /**
    * @notice Error emitted when the amount is invalid
    */
   error RefTokenBridge_InvalidAmount();
@@ -145,6 +153,7 @@ interface IRefTokenBridge {
    * @return _nativeAssetChainId The chain ID of the native asset
    * @return _nativeAssetName The name of the native asset
    * @return _nativeAssetSymbol The symbol of the native asset
+   * @return _nativeAssetDecimals The decimals of the native asset
    */
   function refTokenMetadata(address _token)
     external
@@ -153,7 +162,8 @@ interface IRefTokenBridge {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     );
 
   /**

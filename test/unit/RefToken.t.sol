@@ -18,10 +18,10 @@ contract UnitRefTokenTest is Helpers {
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
 
-  function setUp() public override {
-    super.setUp();
+  function setUp() public {
     refTokenBridge = IRefTokenBridge(makeAddr('RefTokenBridge'));
-    refToken = new RefToken(refTokenBridge, nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
+    refToken =
+      new RefToken(address(refTokenBridge), nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
   }
 
   function test_ConstructorWhenDeployed(
@@ -32,8 +32,9 @@ contract UnitRefTokenTest is Helpers {
     uint8 _nativeAssetDecimals
   ) external {
     // It constructs the RefToken contract
-    RefToken newRefToken =
-      new RefToken(_refTokenBridge, _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals);
+    RefToken newRefToken = new RefToken(
+      address(_refTokenBridge), _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals
+    );
     assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), address(_refTokenBridge));
     assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), _nativeAssetChainId);
     assertEq(newRefToken.nativeAssetName(), _nativeAssetName);
