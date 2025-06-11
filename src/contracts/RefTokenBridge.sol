@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IRefToken} from '../interfaces/IRefToken.sol';
-import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
-import {IExecutor} from '../interfaces/external/IExecutor.sol';
+import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
+
+import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
+import {IExecutor} from 'interfaces/external/IExecutor.sol';
 import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
+
+import {RefToken} from 'contracts/RefToken.sol';
 
 /**
  * @title RefTokenBridge
@@ -24,7 +28,7 @@ contract RefTokenBridge is IRefTokenBridge {
   /**
    * @notice The RefToken address
    */
-  mapping(address _nativeToken => address _refToken) public refTokenAddress;
+  mapping(address _nativeToken => address _refToken) public nativeToRefToken;
 
   /**
    * @notice Constructor
@@ -53,24 +57,30 @@ contract RefTokenBridge is IRefTokenBridge {
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _executionChainId The execution chain ID
    * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
+    uint256 _executionChainId,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     _sendDataCheck(_refTokenBridgeData, _destinationChainId);
     if (_refTokenBridgeData.destinationExecutor == address(0)) revert RefTokenBridge_InvalidDestinationExecutor();
+    if (_executionChainId == 0 || _executionChainId == block.chainid) revert RefTokenBridge_InvalidExecutionChainId();
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
-    bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, msg.sender, _data
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (_refTokenBridgeData, _refTokenMetadata, _destinationChainId, _refundAddress, _data)
     );
 
-    _sendMessage(_refTokenBridgeData, _refToken, _destinationChainId, _message);
+    _sendMessage(_refTokenBridgeData, _refToken, _executionChainId, _message);
   }
 
   /**
@@ -83,15 +93,15 @@ contract RefTokenBridge is IRefTokenBridge {
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
-      revert RefTokenBridge_InvalidMessage();
+      revert RefTokenBridge_InvalidMessenger();
     }
 
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       unlock(_refTokenBridgeData.token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
     } else {
-      address _refToken = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
+      address _refToken = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
       if (_refToken == address(0)) {
-        _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
+        _refToken = _setRefTokenMetadata(_refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
       }
       _mint(_refToken, _refTokenBridgeData.recipient, _refTokenBridgeData.amount);
     }
@@ -108,35 +118,35 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Relay token from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refTokenMetadata The metadata of the RefToken
-   * @param _sender The address of the sender
+   * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function relayAndExecute(
     RefTokenBridgeData memory _refTokenBridgeData,
     RefTokenMetadata calldata _refTokenMetadata,
-    address _sender,
+    uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     if (
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
-      revert RefTokenBridge_InvalidMessage();
+      revert RefTokenBridge_InvalidMessenger();
     }
 
-    address _refToken;
+    address _token;
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-      IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
+      _token = _refTokenMetadata.nativeAssetAddress;
     } else {
-      _refToken = refTokenAddress[_refTokenMetadata.nativeAssetAddress];
-      if (_refToken == address(0)) {
-        _refToken = _setRefTokenMetadata(_refTokenBridgeData.token, _refTokenMetadata);
-      }
-      _mint(_refToken, address(this), _refTokenBridgeData.amount);
-      IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
-    }
+      _token = nativeToRefToken[_refTokenMetadata.nativeAssetAddress];
+      if (_token == address(0)) _token = _setRefTokenMetadata(_refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
 
-    // TODO: Set the allowence to 0 after the execution
+      _mint(_token, address(this), _refTokenBridgeData.amount);
+    }
+    IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
+
     // Execute the data on the destination chain executor
     try IExecutor(_refTokenBridgeData.destinationExecutor).execute(_data) {
       emit MessageRelayed(
@@ -146,30 +156,28 @@ contract RefTokenBridge is IRefTokenBridge {
         _refTokenBridgeData.destinationExecutor
       );
     } catch {
-      if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
-        IERC20(_refTokenBridgeData.token).approve(_refTokenBridgeData.destinationExecutor, 0);
-      } else {
-        _burn(_refToken, address(this), _refTokenBridgeData.amount);
-        IRefToken(_refToken).approve(_refTokenBridgeData.destinationExecutor, 0);
+      // If the token is not the native asset, burn the token
+      if (block.chainid != _refTokenMetadata.nativeAssetChainId) {
+        _burn(_token, address(this), _refTokenBridgeData.amount);
       }
 
-      _refTokenBridgeData.recipient = _sender;
+      _refTokenBridgeData.recipient = _refundAddress;
 
-      bytes memory _message =
-        abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
+      bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_refTokenBridgeData, _refTokenMetadata));
 
-      uint256 _destinationChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
+      // TODO: Just use `send()`?
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(
+        L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource(), address(this), _message
+      );
 
-      L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
-
+      // Destination executor and execution chain id are empty since we are just sending the tokens back to the
+      // refund address without any execution
       emit MessageSent(
-        _refTokenBridgeData.token,
-        _refTokenBridgeData.amount,
-        _refTokenBridgeData.recipient,
-        _refTokenBridgeData.destinationExecutor,
-        _destinationChainId
+        _refTokenBridgeData.token, _refTokenBridgeData.amount, _refTokenBridgeData.recipient, address(0), 0
       );
     }
+
+    IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, 0);
   }
 
   /**
@@ -216,7 +224,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to burn the RefToken
-   * @dev This function is used to burn the RefToken on the destination chain
+   * @dev    This function is used to burn the RefToken on the destination chain
    * @param _token The token to be burned
    * @param _to The address to burn the token to
    * @param _amount The amount of token to be burned
@@ -229,7 +237,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to get the RefToken metadata
-   * @dev   If the token is the native asset, it should implement name() and symbol() methods
+   * @dev    If the token is the native asset, it should implement name() and symbol() methods
    * @param _token The token to get the metadata from
    * @return _refTokenMetadata The RefToken metadata
    * @return _refToken The RefToken address
@@ -239,7 +247,7 @@ contract RefTokenBridge is IRefTokenBridge {
     returns (RefTokenMetadata memory _refTokenMetadata, address _refToken)
   {
     // If the RefToken is already deployed, and the native token is passed as token, return the RefToken metadata and address
-    _refToken = refTokenAddress[_token];
+    _refToken = nativeToRefToken[_token];
     if (_refToken != address(0)) {
       return (refTokenMetadata[_refToken], _refToken);
     }
@@ -251,35 +259,35 @@ contract RefTokenBridge is IRefTokenBridge {
 
       // If the RefToken is not deployed, create a new RefToken
     } else {
+      // `token` is the native asset address here because if the input is a RefToken, the RefToken is already deployed
       _refTokenMetadata = RefTokenMetadata({
         nativeAssetAddress: _token,
         nativeAssetChainId: block.chainid,
-        nativeAssetName: IRefToken(_token).name(),
-        nativeAssetSymbol: IRefToken(_token).symbol()
+        nativeAssetName: IERC20Metadata(_token).name(),
+        nativeAssetSymbol: IERC20Metadata(_token).symbol(),
+        nativeAssetDecimals: IERC20Metadata(_token).decimals()
       });
 
-      // TODO: Change it to the actual RefToken address when the RefToken is deployed
-      _refToken = address(0x1234567890123456789012345678901234567890);
-
+      // Deploy the RefToken and store the RefToken address and metadata
+      _refToken = _deployRefToken(_token, _refTokenMetadata);
       refTokenMetadata[_refToken] = _refTokenMetadata;
-      refTokenAddress[_token] = _refToken;
+      nativeToRefToken[_token] = _refToken;
     }
   }
 
   /**
    * @notice Internal function to set the RefToken metadata and deploy the RefToken if it is not deployed
-   * @param _token The token to set the metadata for
+   * @param _nativeAsset The native asset address
    * @param _refTokenMetadata The metadata to set
-   * @return _refToken The RefToken address
+   * @return _refToken The deployed RefToken address
    */
   function _setRefTokenMetadata(
-    address _token,
+    address _nativeAsset,
     RefTokenMetadata calldata _refTokenMetadata
   ) internal returns (address _refToken) {
-    // TODO: DEPLOY REFTOKEN
-    _refToken = address(0x1234567890123456789012345678901234567890);
+    _refToken = _deployRefToken(_nativeAsset, _refTokenMetadata);
 
-    refTokenAddress[_refTokenMetadata.nativeAssetAddress] = _refToken;
+    nativeToRefToken[_nativeAsset] = _refToken;
 
     // If relay a native token and the RefToken is not deployed, create a new RefToken
     refTokenMetadata[_refToken] = _refTokenMetadata;
@@ -289,13 +297,13 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Internal function to send a message
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refToken The RefToken address
-   * @param _destinationChainId The destination chain ID
+   * @param _executionChainId The execution chain ID
    * @param _message The message to be sent
    */
   function _sendMessage(
     RefTokenBridgeData calldata _refTokenBridgeData,
     address _refToken,
-    uint256 _destinationChainId,
+    uint256 _executionChainId,
     bytes memory _message
   ) internal {
     // If the token is a RefToken, burn the token, otherwise lock the token
@@ -305,15 +313,39 @@ contract RefTokenBridge is IRefTokenBridge {
       _burn(_refTokenBridgeData.token, msg.sender, _refTokenBridgeData.amount);
     }
 
-    L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
+    L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_executionChainId, address(this), _message);
 
     emit MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
       _refTokenBridgeData.destinationExecutor,
-      _destinationChainId
+      _executionChainId
     );
+  }
+
+  /**
+   * @notice Deploys the RefToken
+   * @param _nativeAsset The address of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
+   * @return _refToken The address of the RefToken
+   */
+  function _deployRefToken(
+    address _nativeAsset,
+    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+  ) internal returns (address _refToken) {
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+    _refToken = address(
+      new RefToken{salt: _salt}(
+        IRefTokenBridge(address(this)),
+        _refTokenMetadata.nativeAssetChainId,
+        _refTokenMetadata.nativeAssetName,
+        _refTokenMetadata.nativeAssetSymbol,
+        _refTokenMetadata.nativeAssetDecimals
+      )
+    );
+
+    emit RefTokenDeployed(_refToken, _nativeAsset);
   }
 
   /**

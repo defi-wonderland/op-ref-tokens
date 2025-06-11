@@ -34,6 +34,7 @@ interface IRefTokenBridge {
     uint256 nativeAssetChainId;
     string nativeAssetName;
     string nativeAssetSymbol;
+    uint8 nativeAssetDecimals;
   }
 
   /**
@@ -73,14 +74,14 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be bridged
    * @param _recipient The recipient of the bridged token
    * @param _destinationExecutor The destination executor
-   * @param _destinationChainId The destination chain ID
+   * @param _executionChainId The execution chain ID
    */
   event MessageSent(
     address indexed _token,
     uint256 _amount,
     address indexed _recipient,
     address indexed _destinationExecutor,
-    uint256 _destinationChainId
+    uint256 _executionChainId
   );
 
   /**
@@ -93,6 +94,13 @@ interface IRefTokenBridge {
   event MessageRelayed(
     address indexed _token, uint256 _amount, address indexed _recipient, address indexed _destinationExecutor
   );
+
+  /**
+   * @notice Event emitted when a RefToken is deployed
+   * @param _refToken The RefToken address
+   * @param _nativeAsset The native asset address
+   */
+  event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
 
   /**
    * @notice Error emitted when the amount is invalid
@@ -110,14 +118,19 @@ interface IRefTokenBridge {
   error RefTokenBridge_InvalidDestinationChainId();
 
   /**
+   * @notice Error emitted when the execution chain id is invalid
+   */
+  error RefTokenBridge_InvalidExecutionChainId();
+
+  /**
    * @notice Error emitted when the destination executor is invalid
    */
   error RefTokenBridge_InvalidDestinationExecutor();
 
   /**
-   * @notice Error emitted when the message is invalid
+   * @notice Error emitted when the messenger is invalid
    */
-  error RefTokenBridge_InvalidMessage();
+  error RefTokenBridge_InvalidMessenger();
 
   /**
    * @notice Error emitted when the sender is invalid
@@ -140,6 +153,7 @@ interface IRefTokenBridge {
    * @return _nativeAssetChainId The chain ID of the native asset
    * @return _nativeAssetName The name of the native asset
    * @return _nativeAssetSymbol The symbol of the native asset
+   * @return _nativeAssetDecimals The decimals of the native asset
    */
   function refTokenMetadata(address _token)
     external
@@ -148,8 +162,16 @@ interface IRefTokenBridge {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     );
+
+  /**
+   * @notice Get the RefToken address
+   * @param _nativeToken The native token to get the RefToken address from
+   * @return _refToken The RefToken address
+   */
+  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
 
   /**
    * @notice Send token to the destination chain
@@ -161,12 +183,16 @@ interface IRefTokenBridge {
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _executionChainId The execution chain ID
    * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
+    uint256 _executionChainId,
     uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external;
 
@@ -181,13 +207,15 @@ interface IRefTokenBridge {
    * @notice Relay message from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refTokenMetadata The metadata of the RefToken
-   * @param _sender The address of the sender
+   * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed
    */
   function relayAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     RefTokenMetadata calldata _refTokenMetadata,
-    address _sender,
+    uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external;
 

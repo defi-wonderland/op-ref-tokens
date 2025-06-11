@@ -117,4 +117,12 @@ contract RefToken is SuperchainERC20 {
       super._mint(_to, _amount);
     }
   }
+
+  /**
+   * @notice Sets Permit2 contract's allowance at infinity.
+   * @return _supportsPermit2 True since this token supports Permit2
+   */
+  function _givePermit2InfiniteAllowance() internal view virtual override returns (bool _supportsPermit2) {
+    _supportsPermit2 = true;
+  }
 }
