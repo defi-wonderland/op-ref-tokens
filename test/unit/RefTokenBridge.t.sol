@@ -34,7 +34,7 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetDecimals: nativeAssetDecimals
     });
 
-    refToken = _precalculateRefTokenAddress(address(refTokenBridge), nativeAsset, refTokenMetadata);
+    refToken = _precalculateRefTokenAddress(address(refTokenBridge), refTokenMetadata);
     vm.label(refToken, 'Setup RefToken');
   }
 
@@ -111,8 +111,7 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenMetadata.nativeAssetAddress = _refTokenBridgeData.token;
     _refTokenMetadata.nativeAssetChainId = block.chainid;
 
-    address _precalculatedRefToken =
-      _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
+    address _precalculatedRefToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
     vm.assume(!refTokenDeployed[_precalculatedRefToken]);
     vm.assume(_precalculatedRefToken.code.length == 0);
     refTokenDeployed[_precalculatedRefToken] = true;
@@ -430,8 +429,7 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenMetadata.nativeAssetAddress = _refTokenBridgeData.token;
     _refTokenMetadata.nativeAssetChainId = block.chainid;
 
-    address _precalculatedRefToken =
-      _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
+    address _precalculatedRefToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
     vm.assume(!refTokenDeployed[_precalculatedRefToken]);
     vm.assume(_precalculatedRefToken.code.length == 0);
     refTokenDeployed[_precalculatedRefToken] = true;
@@ -745,8 +743,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_refTokenMetadata.nativeAssetAddress != _refTokenBridgeData.token);
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) ++_refTokenMetadata.nativeAssetChainId;
 
-    address _precalculatedRefToken =
-      _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
+    address _precalculatedRefToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
     vm.assume(!refTokenDeployed[_precalculatedRefToken]);
     vm.assume(_precalculatedRefToken.code.length == 0);
     refTokenDeployed[_precalculatedRefToken] = true;
@@ -935,8 +932,7 @@ contract RefTokenBridgeUnit is Helpers {
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) ++_refTokenMetadata.nativeAssetChainId;
 
     // Precalculate the ref token address, check and store it
-    address _precalculatedRefToken =
-      _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata.nativeAssetAddress, _refTokenMetadata);
+    address _precalculatedRefToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
     vm.assume(!refTokenDeployed[_precalculatedRefToken]);
     vm.assume(_precalculatedRefToken.code.length == 0);
     refTokenDeployed[_precalculatedRefToken] = true;

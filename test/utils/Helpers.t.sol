@@ -120,16 +120,14 @@ contract Helpers is Test {
   /**
    * @notice Precalculate the address of the RefToken
    * @param _refTokenBridge The address of the RefTokenBridge contract
-   * @param _nativeAsset The address of the native asset
    * @param _refTokenMetadata The metadata of the RefToken
    * @return _refTokenAddress The address of the RefToken
    */
   function _precalculateRefTokenAddress(
     address _refTokenBridge,
-    address _nativeAsset,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
   ) internal pure returns (address _refTokenAddress) {
-    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAssetAddress));
 
     bytes memory _initCode = bytes.concat(
       type(RefToken).creationCode,
