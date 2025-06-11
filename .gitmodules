@@ -4,3 +4,33 @@
 [submodule "lib/interop-lib"]
 	path = lib/interop-lib
 	url = https://github.com/ethereum-optimism/interop-lib
+[submodule "lib/v4-core"]
+	path = lib/v4-core
+	url = https://github.com/uniswap/v4-core
+[submodule "lib/universal-router"]
+	path = lib/universal-router
+	url = https://github.com/Uniswap/universal-router
+[submodule "lib/v4-periphery"]
+	path = lib/v4-periphery
+	url = https://github.com/uniswap/v4-periphery
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/v3-core"]
+	path = lib/v3-core
+	url = https://github.com/uniswap/v3-core
+[submodule "lib/v2-core"]
+	path = lib/v2-core
+	url = https://github.com/uniswap/v2-core
+[submodule "lib/permit2"]
+	path = lib/permit2
+	url = https://github.com/uniswap/permit2
+[submodule "permit2"]
+	path = permit2
+	url = https://github.com/Uniswap/permit2
+[submodule "solmate"]
+	path = solmate
+	url = https://github.com/transmissions11/solmate
+[submodule "universal-router"]
+	path = universal-router
+	url = https://github.com/Uniswap/universal-router

@@ -902,7 +902,13 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        _refTokenMetadata.nativeAssetAddress,
+        _refTokenBridgeData.recipient,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(true)
     );
 
@@ -954,7 +960,9 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector, _precalculatedRefToken, _refTokenBridgeData.recipient, _destinationChainId, _data
+      ),
       abi.encode(true)
     );
 
@@ -1023,7 +1031,9 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector, refToken, _refTokenBridgeData.recipient, _destinationChainId, _data
+      ),
       abi.encode(true)
     );
 
@@ -1097,7 +1107,9 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.mockCallRevert(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector, _refTokenBridgeData.token, _refTokenBridgeData.recipient, _destinationChainId, _data
+      ),
       abi.encode(false)
     );
 
@@ -1178,7 +1190,9 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.mockCallRevert(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector, refToken, _refTokenBridgeData.recipient, _destinationChainId, _data
+      ),
       abi.encode(false)
     );
 

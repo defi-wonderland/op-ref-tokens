@@ -148,7 +148,9 @@ contract RefTokenBridge is IRefTokenBridge {
     IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
 
     // Execute the data on the destination chain executor
-    try IExecutor(_refTokenBridgeData.destinationExecutor).execute(_data) {
+    try IExecutor(_refTokenBridgeData.destinationExecutor).execute(
+      _token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount, _destinationChainId, _data
+    ) {
       emit MessageRelayed(
         _refTokenBridgeData.token,
         _refTokenBridgeData.amount,
