@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {IRefToken} from '../interfaces/IRefToken.sol';
-import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from '../interfaces/IRefTokenBridge.sol';
+import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 
-import {IERC20Metadata} from '../interfaces/external/IERC20Metadata.sol';
-import {IExecutor} from '../interfaces/external/IExecutor.sol';
+import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
+import {IExecutor} from 'interfaces/external/IExecutor.sol';
 import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
 
 /**
@@ -60,20 +60,27 @@ contract RefTokenBridge is IRefTokenBridge {
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
+    uint256 _executionChainId,
     uint256 _destinationChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
     _sendDataCheck(_refTokenBridgeData, _destinationChainId);
     if (_refTokenBridgeData.destinationExecutor == address(0)) revert RefTokenBridge_InvalidDestinationExecutor();
+    if (_executionChainId == 0 || _executionChainId == block.chainid) revert RefTokenBridge_InvalidExecutionChainId();
 
     (RefTokenMetadata memory _refTokenMetadata, address _refToken) = _getRefTokenMetadata(_refTokenBridgeData.token);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
+      IRefTokenBridge.relayAndExecute.selector,
+      _refTokenBridgeData,
+      _refTokenMetadata,
+      _destinationChainId,
+      _refundAddress,
+      _data
     );
 
-    _sendMessage(_refTokenBridgeData, _refToken, _destinationChainId, _message);
+    _sendMessage(_refTokenBridgeData, _refToken, _executionChainId, _message);
   }
 
   /**
@@ -111,13 +118,14 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Relay token from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refTokenMetadata The metadata of the RefToken
-   * @param _sender The address of the sender
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function relayAndExecute(
     RefTokenBridgeData memory _refTokenBridgeData,
     RefTokenMetadata calldata _refTokenMetadata,
-    address _sender,
+    uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external {
     if (
@@ -153,12 +161,12 @@ contract RefTokenBridge is IRefTokenBridge {
         _burn(_token, address(this), _refTokenBridgeData.amount);
       }
 
-      _refTokenBridgeData.recipient = _sender;
+      _refTokenBridgeData.recipient = _refundAddress;
 
       bytes memory _message =
         abi.encodeWithSelector(IRefTokenBridge.relay.selector, _refTokenBridgeData, _refTokenMetadata);
 
-      uint256 _destinationChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
+      _destinationChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
 
       L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
 
@@ -292,13 +300,13 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Internal function to send a message
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refToken The RefToken address
-   * @param _destinationChainId The destination chain ID
+   * @param _executionChainId The execution chain ID
    * @param _message The message to be sent
    */
   function _sendMessage(
     RefTokenBridgeData calldata _refTokenBridgeData,
     address _refToken,
-    uint256 _destinationChainId,
+    uint256 _executionChainId,
     bytes memory _message
   ) internal {
     // If the token is a RefToken, burn the token, otherwise lock the token
@@ -308,14 +316,14 @@ contract RefTokenBridge is IRefTokenBridge {
       _burn(_refTokenBridgeData.token, msg.sender, _refTokenBridgeData.amount);
     }
 
-    L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_destinationChainId, address(this), _message);
+    L2_TO_L2_CROSS_DOMAIN_MESSENGER.sendMessage(_executionChainId, address(this), _message);
 
     emit MessageSent(
       _refTokenBridgeData.token,
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
       _refTokenBridgeData.destinationExecutor,
-      _destinationChainId
+      _executionChainId
     );
   }
 

@@ -73,14 +73,14 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be bridged
    * @param _recipient The recipient of the bridged token
    * @param _destinationExecutor The destination executor
-   * @param _destinationChainId The destination chain ID
+   * @param _executionChainId The execution chain ID
    */
   event MessageSent(
     address indexed _token,
     uint256 _amount,
     address indexed _recipient,
     address indexed _destinationExecutor,
-    uint256 _destinationChainId
+    uint256 _executionChainId
   );
 
   /**
@@ -108,6 +108,11 @@ interface IRefTokenBridge {
    * @notice Error emitted when the destination chain id is invalid
    */
   error RefTokenBridge_InvalidDestinationChainId();
+
+  /**
+   * @notice Error emitted when the execution chain id is invalid
+   */
+  error RefTokenBridge_InvalidExecutionChainId();
 
   /**
    * @notice Error emitted when the destination executor is invalid
@@ -168,12 +173,14 @@ interface IRefTokenBridge {
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
+   * @param _executionChainId The execution chain ID
    * @param _destinationChainId The destination chain ID
    * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed on the destination chain
    */
   function sendAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
+    uint256 _executionChainId,
     uint256 _destinationChainId,
     address _refundAddress,
     bytes memory _data
@@ -190,13 +197,15 @@ interface IRefTokenBridge {
    * @notice Relay message from the destination chain and execute in the destination chain executor
    * @param _refTokenBridgeData The data structure for the RefTokenBridge
    * @param _refTokenMetadata The metadata of the RefToken
-   * @param _sender The address of the sender
+   * @param _destinationChainId The destination chain ID
+   * @param _refundAddress The address to refund the token to if the execution fails
    * @param _data The data to be executed
    */
   function relayAndExecute(
     RefTokenBridgeData calldata _refTokenBridgeData,
     RefTokenMetadata calldata _refTokenMetadata,
-    address _sender,
+    uint256 _destinationChainId,
+    address _refundAddress,
     bytes memory _data
   ) external;
 

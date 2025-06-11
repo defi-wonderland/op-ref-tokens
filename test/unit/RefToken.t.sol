@@ -178,7 +178,7 @@ contract UnitRefTokenTest is Helpers {
     address _to,
     uint256 _amount
   ) external {
-    vm.prank(refTokenBridge);
+    vm.prank(address(refTokenBridge));
     refToken.mint(_from, _amount);
 
     uint256 _fromBalanceBefore = refToken.balanceOf(_from);

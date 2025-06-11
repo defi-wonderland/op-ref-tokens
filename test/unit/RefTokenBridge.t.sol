@@ -304,6 +304,7 @@ contract RefTokenBridgeUnit is Helpers {
   function test_SendAndExecuteRevertWhen_DestinationIdIsTheBlockChainId(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -315,24 +316,26 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = block.chainid;
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_AmountIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
     _refTokenBridgeData.amount = 0;
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_RecipientIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -342,12 +345,13 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.recipient = address(0);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_DestinationChainIdIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -358,12 +362,13 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteRevertWhen_DestinationExecutorIsZero(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -375,12 +380,13 @@ contract RefTokenBridgeUnit is Helpers {
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationExecutor.selector);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -390,6 +396,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
+    _executionChainId = bound(_executionChainId, 1, type(uint256).max);
 
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
       nativeAssetAddress: _refTokenBridgeData.token,
@@ -399,7 +406,12 @@ contract RefTokenBridgeUnit is Helpers {
     });
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
+      IRefTokenBridge.relayAndExecute.selector,
+      _refTokenBridgeData,
+      _refTokenMetadata,
+      _destinationChainId,
+      _refundAddress,
+      _data
     );
 
     // Mocks and Expects
@@ -427,7 +439,7 @@ contract RefTokenBridgeUnit is Helpers {
     _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(
-        IL2ToL2CrossDomainMessenger.sendMessage.selector, _destinationChainId, address(refTokenBridge), _message
+        IL2ToL2CrossDomainMessenger.sendMessage.selector, _executionChainId, address(refTokenBridge), _message
       ),
       abi.encode(true)
     );
@@ -442,11 +454,11 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
       _refTokenBridgeData.destinationExecutor,
-      _destinationChainId
+      _executionChainId
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
 
     (
       address _nativeAssetAddress,
@@ -465,6 +477,7 @@ contract RefTokenBridgeUnit is Helpers {
   function test_SendAndExecuteWhenCalledWithANativeTokenFollowingSuccessions(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     address _refundAddress,
     bytes memory _data
   ) external {
@@ -472,6 +485,7 @@ contract RefTokenBridgeUnit is Helpers {
     _assumeFuzzable(_refTokenBridgeData.recipient);
     _assumeFuzzable(_refTokenBridgeData.destinationExecutor);
 
+    _executionChainId = bound(_executionChainId, 1, type(uint256).max);
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
 
@@ -486,7 +500,12 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
+      IRefTokenBridge.relayAndExecute.selector,
+      _refTokenBridgeData,
+      _refTokenMetadata,
+      _destinationChainId,
+      _refundAddress,
+      _data
     );
 
     // Mocks and Expects
@@ -503,7 +522,7 @@ contract RefTokenBridgeUnit is Helpers {
     _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(
-        IL2ToL2CrossDomainMessenger.sendMessage.selector, _destinationChainId, address(refTokenBridge), _message
+        IL2ToL2CrossDomainMessenger.sendMessage.selector, _executionChainId, address(refTokenBridge), _message
       ),
       abi.encode(true)
     );
@@ -518,11 +537,11 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
       _refTokenBridgeData.destinationExecutor,
-      _destinationChainId
+      _executionChainId
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
 
     (
       address _nativeAssetAddress,
@@ -543,6 +562,7 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
     uint256 _destinationChainId,
+    uint256 _executionChainId,
     uint256 _anotherDestinationChainId,
     address _refundAddress,
     bytes memory _data
@@ -553,6 +573,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     _refTokenBridgeData.amount = bound(_refTokenBridgeData.amount, 1, type(uint256).max);
     _destinationChainId = bound(_destinationChainId, 1, type(uint256).max);
+    _executionChainId = bound(_executionChainId, 1, type(uint256).max);
     _anotherDestinationChainId = bound(_anotherDestinationChainId, 1, type(uint256).max);
 
     _refTokenMetadata.nativeAssetChainId = _anotherDestinationChainId;
@@ -568,7 +589,12 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
 
     bytes memory _message = abi.encodeWithSelector(
-      IRefTokenBridge.relayAndExecute.selector, _refTokenBridgeData, _refTokenMetadata, _refundAddress, _data
+      IRefTokenBridge.relayAndExecute.selector,
+      _refTokenBridgeData,
+      _refTokenMetadata,
+      _destinationChainId,
+      _refundAddress,
+      _data
     );
 
     // Mocks and Expects
@@ -586,7 +612,7 @@ contract RefTokenBridgeUnit is Helpers {
     _mockAndExpect(
       address(l2ToL2CrossDomainMessenger),
       abi.encodeWithSelector(
-        IL2ToL2CrossDomainMessenger.sendMessage.selector, _destinationChainId, address(refTokenBridge), _message
+        IL2ToL2CrossDomainMessenger.sendMessage.selector, _executionChainId, address(refTokenBridge), _message
       ),
       abi.encode(true)
     );
@@ -601,11 +627,11 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenBridgeData.amount,
       _refTokenBridgeData.recipient,
       _refTokenBridgeData.destinationExecutor,
-      _destinationChainId
+      _executionChainId
     );
 
     vm.prank(caller);
-    refTokenBridge.sendAndExecute(_refTokenBridgeData, _destinationChainId, _refundAddress, _data);
+    refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
   }
 
   function test_RelayRevertWhen_CrossDomainSenderIsNotTheRefTokenBridgeAndIsNotValidCaller(
@@ -838,16 +864,18 @@ contract RefTokenBridgeUnit is Helpers {
   function test_RelayAndExecuteRevertWhen_CrossDomainSenderIsNotTheRefTokenBridgeAndIsNotValidCaller(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    uint256 _destinationChainId,
     bytes memory _data
   ) external {
     vm.prank(address(caller));
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 
   function test_RelayAndExecuteRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    uint256 _destinationChainId,
     bytes memory _data
   ) external {
     _mockAndExpect(
@@ -858,12 +886,13 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidMessage.selector);
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteTheTokensToTheNativeChain(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    uint256 _destinationChainId,
     bytes memory _data
   ) external {
     _assumeFuzzable(_refTokenBridgeData.token);
@@ -898,13 +927,14 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsNotDeployedAndNativeTokenIsSent(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
     uint256 _anotherDestinationChainId,
+    uint256 _destinationChainId,
     bytes memory _data
   ) external {
     _anotherDestinationChainId = bound(_anotherDestinationChainId, 1, type(uint256).max);
@@ -950,7 +980,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
@@ -970,6 +1000,7 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
     uint256 _anotherDestinationChainId,
+    uint256 _destinationChainId,
     bytes memory _data
   ) external {
     _anotherDestinationChainId = bound(_anotherDestinationChainId, 1, type(uint256).max);
@@ -1013,7 +1044,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
@@ -1032,6 +1063,7 @@ contract RefTokenBridgeUnit is Helpers {
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsDeployed(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    uint256 _destinationChainId,
     uint256 _anotherDestinationChainId,
     address _deployedRefToken,
     bytes memory _data
@@ -1082,7 +1114,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
@@ -1158,7 +1190,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
   }
 
   function test_RelayAndExecuteWhenCalledToRelayAndExecuteWithARefTokenAndIsNotDeployedAndNativeTokenIsSentAndExecutionFailed(
@@ -1242,7 +1274,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
@@ -1330,7 +1362,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
@@ -1431,7 +1463,7 @@ contract RefTokenBridgeUnit is Helpers {
     );
 
     vm.prank(address(l2ToL2CrossDomainMessenger));
-    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, caller, _data);
+    refTokenBridge.relayAndExecute(_refTokenBridgeData, _refTokenMetadata, _destinationChainId, caller, _data);
 
     (
       address _nativeAssetAddress,
