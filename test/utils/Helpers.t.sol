@@ -37,6 +37,8 @@ contract Helpers is Test {
     assumeNotForgeAddress(_address);
     assumeNotZeroAddress(_address);
     assumeNotPrecompile(_address);
+    // Precompile address that is not checked on the helpers
+    vm.assume(_address != 0x000000000000000000000000000000000000000A);
   }
 
   /**
@@ -135,7 +137,7 @@ contract Helpers is Test {
     address _refTokenBridge,
     address _nativeAsset,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
-  ) internal returns (address _refTokenAddress, bytes32 _salt, bytes32 _initCodeHash) {
+  ) internal pure returns (address _refTokenAddress, bytes32 _salt, bytes32 _initCodeHash) {
     _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _nativeAsset));
 
     bytes memory _initCode = bytes.concat(
