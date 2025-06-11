@@ -47,13 +47,13 @@ contract RefToken is SuperchainERC20 {
    * @param _nativeAssetDecimals The decimals of the native asset
    */
   constructor(
-    IRefTokenBridge _refTokenBridge,
+    address _refTokenBridge,
     uint256 _nativeAssetChainId,
     string memory _nativeAssetName,
     string memory _nativeAssetSymbol,
     uint8 _nativeAssetDecimals
   ) {
-    REF_TOKEN_BRIDGE = _refTokenBridge;
+    REF_TOKEN_BRIDGE = IRefTokenBridge(_refTokenBridge);
     NATIVE_ASSET_CHAIN_ID = _nativeAssetChainId;
     nativeAssetName = _nativeAssetName;
     nativeAssetSymbol = _nativeAssetSymbol;

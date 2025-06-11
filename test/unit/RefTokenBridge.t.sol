@@ -96,7 +96,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     bytes memory _message =
@@ -152,13 +153,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -177,7 +180,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     refTokenBridge.setRefTokenAddress(_refTokenBridgeData.token, refToken);
@@ -225,13 +229,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -256,7 +262,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenMetadata.nativeAssetAddress,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
@@ -299,6 +306,8 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.prank(caller);
     refTokenBridge.send(_refTokenBridgeData, _destinationChainId);
+
+    // TODO: Missing assertions
   }
 
   function test_SendAndExecuteRevertWhen_DestinationIdIsTheBlockChainId(
@@ -402,7 +411,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     bytes memory _message = abi.encodeWithSelector(
@@ -464,13 +474,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -493,7 +505,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenBridgeData.token,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     refTokenBridge.setRefTokenAddress(_refTokenBridgeData.token, refToken);
@@ -547,13 +560,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, block.chainid);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
@@ -583,7 +598,8 @@ contract RefTokenBridgeUnit is Helpers {
       nativeAssetAddress: _refTokenMetadata.nativeAssetAddress,
       nativeAssetChainId: block.chainid,
       nativeAssetName: 'RefToken',
-      nativeAssetSymbol: 'REF'
+      nativeAssetSymbol: 'REF',
+      nativeAssetDecimals: 18
     });
 
     refTokenBridge.setRefTokenMetadata(refToken, _refTokenMetadata);
@@ -739,13 +755,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -792,13 +810,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
@@ -851,13 +871,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(_deployedRefToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
@@ -986,13 +1008,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -1050,13 +1074,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
@@ -1120,13 +1146,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(_deployedRefToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
@@ -1280,13 +1308,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenBridgeData.token);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenBridgeData.token), refToken);
   }
 
@@ -1368,13 +1398,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(refToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'RefToken');
     assertEq(_nativeAssetSymbol, 'REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), refToken);
   }
 
@@ -1469,13 +1501,15 @@ contract RefTokenBridgeUnit is Helpers {
       address _nativeAssetAddress,
       uint256 _nativeAssetChainId,
       string memory _nativeAssetName,
-      string memory _nativeAssetSymbol
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
     ) = refTokenBridge.refTokenMetadata(_deployedRefToken);
 
     assertEq(_nativeAssetAddress, _refTokenMetadata.nativeAssetAddress);
     assertEq(_nativeAssetChainId, _anotherDestinationChainId);
     assertEq(_nativeAssetName, 'DeployedRefToken');
     assertEq(_nativeAssetSymbol, 'DEPLOYED_REF');
+    assertEq(_nativeAssetDecimals, 18);
     assertEq(refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAssetAddress), _deployedRefToken);
   }
 
