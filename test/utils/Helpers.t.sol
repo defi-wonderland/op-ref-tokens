@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
 import {RefToken} from '../../src/contracts/RefToken.sol';
 import {IRefTokenBridge} from '../../src/interfaces/IRefTokenBridge.sol';

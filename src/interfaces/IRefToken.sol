@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
 import {ISuperchainERC20} from '@interop-lib/src/interfaces/ISuperchainERC20.sol';
 
