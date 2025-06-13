@@ -127,7 +127,7 @@ contract Helpers is Test {
     address _refTokenBridge,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
   ) internal pure returns (address _refTokenAddress) {
-    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAssetAddress));
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAsset));
 
     bytes memory _initCode = bytes.concat(
       type(RefToken).creationCode,

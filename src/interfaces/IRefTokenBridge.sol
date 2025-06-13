@@ -131,7 +131,7 @@ interface IRefTokenBridge {
   /**
    * @notice Error emitted when the messenger is invalid
    */
-  error RefTokenBridge_InvalidMessenger();
+  error RefTokenBridge_Unauthorized();
 
   /**
    * @notice Error emitted when the sender is invalid

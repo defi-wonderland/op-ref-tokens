@@ -7,6 +7,7 @@ import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefToken
 import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
 import {IExecutor} from 'interfaces/external/IExecutor.sol';
 
+import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 import {RefToken} from 'contracts/RefToken.sol';
 
@@ -18,7 +19,8 @@ contract RefTokenBridge is IRefTokenBridge {
   /**
    * @notice The L2 to L2 cross domain messenger address
    */
-  IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_CROSS_DOMAIN_MESSENGER;
+  IL2ToL2CrossDomainMessenger public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER =
+    IL2ToL2CrossDomainMessenger(PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
   /**
    * @notice The RefToken metadata
@@ -29,14 +31,6 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice The RefToken address
    */
   mapping(address _nativeToken => address _refToken) public nativeToRefToken;
-
-  /**
-   * @notice Constructs the RefTokenBridge
-   * @param _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
-   */
-  constructor(IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger) {
-    L2_TO_L2_CROSS_DOMAIN_MESSENGER = _l2ToL2CrossDomainMessenger;
-  }
 
   /**
    * @notice Send token to the relay chain
@@ -295,7 +289,7 @@ contract RefTokenBridge is IRefTokenBridge {
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
         || L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSender() != address(this)
     ) {
-      revert RefTokenBridge_InvalidMessenger();
+      revert RefTokenBridge_Unauthorized();
     }
 
     if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
