@@ -123,7 +123,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
         _destinationChainId
       );
 
-      emit UniSwapExecutor_SentToDestinationChain(_tokenOut, _amountOut, _recipient, _destinationChainId);
+      emit SentToDestinationChain(_tokenOut, _amountOut, _recipient, _destinationChainId);
     }
   }
 
@@ -181,7 +181,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
     _amountOut = IERC20(_tokenOut).balanceOf(address(this));
     if (_amountOut < _v4Params.amountOutMin) revert UniSwapExecutor_InsufficientOutputAmount();
 
-    emit UniSwapExecutor_SwapExecuted(_token, _amount, _tokenOut, _amountOut);
+    emit SwapExecuted(_token, _amount, _tokenOut, _amountOut);
   }
 
   /**

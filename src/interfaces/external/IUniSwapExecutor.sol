@@ -45,9 +45,7 @@ interface IUniSwapExecutor is IExecutor {
    * @param _tokenOut The token out
    * @param _amountOut The amount out
    */
-  event UniSwapExecutor_SwapExecuted(
-    address indexed _tokenIn, uint256 _amountIn, address indexed _tokenOut, uint256 _amountOut
-  );
+  event SwapExecuted(address indexed _tokenIn, uint256 _amountIn, address indexed _tokenOut, uint256 _amountOut);
 
   /**
    * @notice Event emitted when a swap is sent to the destination chain
@@ -56,7 +54,7 @@ interface IUniSwapExecutor is IExecutor {
    * @param _recipient The recipient
    * @param _destinationChainId The destination chain id
    */
-  event UniSwapExecutor_SentToDestinationChain(
+  event SentToDestinationChain(
     address indexed _tokenOut, uint256 _amountOut, address indexed _recipient, uint256 _destinationChainId
   );
 
@@ -115,4 +113,16 @@ interface IUniSwapExecutor is IExecutor {
    * @return _permit2 The Permit2 address
    */
   function PERMIT2() external view returns (IPermit2 _permit2);
+
+  /**
+   * @notice Get the commands to execute in the Universal Router
+   * @return _commands The commands to execute in the Universal Router
+   */
+  function COMMANDS() external view returns (bytes memory _commands);
+
+  /**
+   * @notice Get the actions to execute in the Universal Router
+   * @return _actions The actions to execute in the Universal Router
+   */
+  function ACTIONS() external view returns (bytes memory _actions);
 }
