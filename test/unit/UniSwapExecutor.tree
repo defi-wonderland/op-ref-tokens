@@ -1,0 +1,22 @@
+UniSwapExecutorUnit::constructor
+└── When constructor is set
+    ├── It should initialize the L2 to L2 cross domain messenger
+    ├── It should initialize the RefTokenBridge
+    ├── It should initialize the Universal Router
+    ├── It should initialize the PoolManager
+    └── It should initialize the Permit2
+
+UniSwapExecutorUnit::execute
+├── When caller is not the RefTokenBridge
+│   └── It should revert
+├── When token is not a valid token
+│   └── It should revert
+├── When amount out after the swap is less than the minimum amount out
+│   └── It should revert
+├── When destination chain is the same as the current chain
+│   ├── It should transfer the token to the recipient
+│   └── It should emit SwapExecuted
+└── When destination chain is not the same as the current chain
+    ├── It should send the token to the destination chain
+    ├── It should emit SwapExecuted
+    └── It should emit SentToDestinationChain

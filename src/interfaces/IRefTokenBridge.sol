@@ -8,6 +8,9 @@ import {IL2ToL2CrossDomainMessenger} from 'optimism/L2/IL2ToL2CrossDomainMesseng
  * @notice Interface for the RefTokenBridge
  */
 interface IRefTokenBridge {
+  /*///////////////////////////////////////////////////////////////
+                            STRUCTS
+  //////////////////////////////////////////////////////////////*/
   /**
    * @notice Data structure for the RefTokenBridge
    * @param token The token to be bridged
@@ -36,6 +39,10 @@ interface IRefTokenBridge {
     string nativeAssetSymbol;
     uint8 nativeAssetDecimals;
   }
+
+  /*///////////////////////////////////////////////////////////////
+                            EVENTS
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Event emitted when tokens are locked
@@ -102,6 +109,10 @@ interface IRefTokenBridge {
    */
   event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
 
+  /*///////////////////////////////////////////////////////////////
+                            ERRORS
+  //////////////////////////////////////////////////////////////*/
+
   /**
    * @notice Error emitted when the amount is invalid
    */
@@ -137,41 +148,9 @@ interface IRefTokenBridge {
    */
   error RefTokenBridge_InvalidSender();
 
-  /**
-   * @notice Get the L2 to L2 cross domain messenger address
-   * @return _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
-   */
-  function L2_TO_L2_CROSS_DOMAIN_MESSENGER()
-    external
-    view
-    returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
-
-  /**
-   * @notice Get the RefToken metadata
-   * @param _token The token to get the metadata from
-   * @return _nativeAssetAddress The address of the native asset
-   * @return _nativeAssetChainId The chain ID of the native asset
-   * @return _nativeAssetName The name of the native asset
-   * @return _nativeAssetSymbol The symbol of the native asset
-   * @return _nativeAssetDecimals The decimals of the native asset
-   */
-  function refTokenMetadata(address _token)
-    external
-    view
-    returns (
-      address _nativeAssetAddress,
-      uint256 _nativeAssetChainId,
-      string memory _nativeAssetName,
-      string memory _nativeAssetSymbol,
-      uint8 _nativeAssetDecimals
-    );
-
-  /**
-   * @notice Get the RefToken address
-   * @param _nativeToken The native token to get the RefToken address from
-   * @return _refToken The RefToken address
-   */
-  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Send token to the destination chain
@@ -226,4 +205,44 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be unlocked
    */
   function unlock(address _token, address _to, uint256 _amount) external;
+
+  /*///////////////////////////////////////////////////////////////
+                            VIEWS
+  //////////////////////////////////////////////////////////////*/
+
+  /**
+   * @notice Get the L2 to L2 cross domain messenger address
+   * @return _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
+   */
+  function L2_TO_L2_CROSS_DOMAIN_MESSENGER()
+    external
+    view
+    returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
+
+  /**
+   * @notice Get the RefToken metadata
+   * @param _token The token to get the metadata from
+   * @return _nativeAssetAddress The address of the native asset
+   * @return _nativeAssetChainId The chain ID of the native asset
+   * @return _nativeAssetName The name of the native asset
+   * @return _nativeAssetSymbol The symbol of the native asset
+   * @return _nativeAssetDecimals The decimals of the native asset
+   */
+  function refTokenMetadata(address _token)
+    external
+    view
+    returns (
+      address _nativeAssetAddress,
+      uint256 _nativeAssetChainId,
+      string memory _nativeAssetName,
+      string memory _nativeAssetSymbol,
+      uint8 _nativeAssetDecimals
+    );
+
+  /**
+   * @notice Get the RefToken address
+   * @param _nativeToken The native token to get the RefToken address from
+   * @return _refToken The RefToken address
+   */
+  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
 }

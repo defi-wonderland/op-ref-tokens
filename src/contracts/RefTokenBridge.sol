@@ -4,9 +4,9 @@ pragma solidity 0.8.26;
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
 import {IExecutor} from 'interfaces/external/IExecutor.sol';
-import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
 
 import {RefToken} from 'contracts/RefToken.sol';
 
@@ -148,7 +148,9 @@ contract RefTokenBridge is IRefTokenBridge {
     IERC20(_token).approve(_refTokenBridgeData.destinationExecutor, _refTokenBridgeData.amount);
 
     // Execute the data on the destination chain executor
-    try IExecutor(_refTokenBridgeData.destinationExecutor).execute(_data) {
+    try IExecutor(_refTokenBridgeData.destinationExecutor).execute(
+      _token, _refTokenBridgeData.recipient, _refTokenBridgeData.amount, _destinationChainId, _data
+    ) {
       emit MessageRelayed(
         _refTokenBridgeData.token,
         _refTokenBridgeData.amount,

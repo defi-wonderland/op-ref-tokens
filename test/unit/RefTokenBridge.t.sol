@@ -7,11 +7,10 @@ import {IL2ToL2CrossDomainMessenger} from 'optimism/L2/IL2ToL2CrossDomainMesseng
 
 import {IExecutor, IRefToken, IRefTokenBridge, RefTokenBridge} from 'src/contracts/RefTokenBridge.sol';
 
-import {IERC20, IERC20Metadata} from 'openzeppelin/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
 
 contract RefTokenBridgeUnit is Helpers {
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
-
   /// Contracts
   IL2ToL2CrossDomainMessenger public l2ToL2CrossDomainMessenger;
   RefTokenBridgeForTest public refTokenBridge;
@@ -345,6 +344,10 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
     refTokenBridge.sendAndExecute(_refTokenBridgeData, _executionChainId, _destinationChainId, _refundAddress, _data);
+  }
+
+  function test_SendAndExecuteRevertWhen_ExecutionIdIsTheBlockChainId() external {
+    // It should revert
   }
 
   function test_SendAndExecuteRevertWhen_AmountIsZero(
@@ -736,6 +739,12 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.relay(_refTokenBridgeData, _refTokenMetadata);
   }
 
+  function test_RelayWhenCalledToRelayWithARefTokenAndIsNotDeployedAndNativeTokenIsSent() external {
+    // It should emit TokensMinted
+    // It should emit MessageRelayed
+    // It should mint the tokens to the user
+  }
+
   function test_RelayWhenCalledToRelayWithARefTokenAndIsNotDeployedAndRefTokenIsSent(
     IRefTokenBridge.RefTokenBridgeData memory _refTokenBridgeData,
     IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
@@ -902,7 +911,14 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        _refTokenMetadata.nativeAssetAddress,
+        _refTokenBridgeData.recipient,
+        _refTokenBridgeData.amount,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(true)
     );
 
@@ -954,7 +970,14 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        _precalculatedRefToken,
+        _refTokenBridgeData.recipient,
+        _refTokenBridgeData.amount,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(true)
     );
 
@@ -1023,7 +1046,14 @@ contract RefTokenBridgeUnit is Helpers {
 
     _mockAndExpect(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        refToken,
+        _refTokenBridgeData.recipient,
+        _refTokenBridgeData.amount,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(true)
     );
 
@@ -1097,7 +1127,14 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.mockCallRevert(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        _refTokenBridgeData.token,
+        _refTokenBridgeData.recipient,
+        _refTokenBridgeData.amount,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(false)
     );
 
@@ -1178,7 +1215,14 @@ contract RefTokenBridgeUnit is Helpers {
 
     vm.mockCallRevert(
       _refTokenBridgeData.destinationExecutor,
-      abi.encodeWithSelector(IExecutor.execute.selector, _data),
+      abi.encodeWithSelector(
+        IExecutor.execute.selector,
+        refToken,
+        _refTokenBridgeData.recipient,
+        _refTokenBridgeData.amount,
+        _destinationChainId,
+        _data
+      ),
       abi.encode(false)
     );
 
