@@ -10,7 +10,7 @@
 
 ## Overview
 
-`RefTokens` turn any native ERC2O token into a first-class cross-chain asset inside the OP Superchain.  
+`RefTokens` turn any native ERC2O token into a cross-chain asset inside the OP Superchain.  
 Instead of physically bridging tokens, we **bridge intent**:
 
 1. **Lock** the native token on its origin chain.
