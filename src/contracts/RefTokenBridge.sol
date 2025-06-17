@@ -85,17 +85,15 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _refToken The RefToken address
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient that will receive the token on the chain where it is relayed
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    */
   function relay(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) external {
-    _relay(_refToken, _recipient, _nativeAsset, _nativeAssetChainId, _amount, _recipient);
+    _relay(_refToken, _recipient, _recipient, _amount, _refTokenMetadata);
     emit MessageRelayed(_refToken, _amount, _recipient, address(0));
   }
 
@@ -104,19 +102,17 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _refToken The token to be relayed
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient that will receive the token on the destination chain
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    * @param _executionData The data to be executed on the destination chain
    */
   function relayAndExecute(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId,
+    IRefToken.RefTokenMetadata calldata _refTokenMetadata,
     ExecutionData calldata _executionData
   ) external {
-    _relay(_refToken, address(this), _nativeAsset, _nativeAssetChainId, _amount, _recipient);
+    _relay(_refToken, address(this), _recipient, _amount, _refTokenMetadata);
 
     // Approve the destination executor to spend the RefToken amount
     IERC20(_refToken).approve(_executionData.destinationExecutor, _amount);
@@ -128,11 +124,11 @@ contract RefTokenBridge is IRefTokenBridge {
       emit MessageRelayed(_refToken, _amount, _recipient, _executionData.destinationExecutor);
     } catch {
       // If it failed and this is not the native asset chain, burn the token (otherwise there is no supply)
-      if (block.chainid != _nativeAssetChainId) _burn(_refToken, address(this), _amount);
+      if (block.chainid != _refTokenMetadata.nativeAssetChainId) _burn(_refToken, address(this), _amount);
 
       // Send the tokens back to the refund address on the origin chain
       uint256 _relayChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
-      _sendMessage(_relayChainId, _refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
+      _sendMessage(_relayChainId, _refToken, _amount, _recipient, _refTokenMetadata, _executionData);
     }
 
     // Revoke the approval for the destination executor after execution
@@ -193,54 +189,63 @@ contract RefTokenBridge is IRefTokenBridge {
 
     address _refToken = getRefToken(_token, _nativeAssetChainId);
     // If the RefToken is not deployed, deploy it
+    IRefToken.RefTokenMetadata memory _refTokenMetadata;
     if (_refToken == address(0)) {
       if (_nativeAssetChainId != block.chainid) revert RefTokenBridge_InvalidNativeAssetChainId();
-      _refToken = _deployRefToken(_token, block.chainid);
+
+      _refTokenMetadata = IRefToken.RefTokenMetadata({
+        nativeAsset: _token,
+        nativeAssetChainId: _nativeAssetChainId,
+        nativeAssetName: IERC20Metadata(_token).name(),
+        nativeAssetSymbol: IERC20Metadata(_token).symbol(),
+        nativeAssetDecimals: IERC20Metadata(_token).decimals()
+      });
+      _refToken = _deployRefToken(_refTokenMetadata);
+    } else {
+      _refTokenMetadata = IRefToken(_refToken).metadata();
     }
 
     // If the chain is the native asset chain, but the `_token` is not the native asset, revert since there will not be
     // RefToken supply to burn on this chain
-    address _nativeAsset = IRefToken(_refToken).metadata().nativeAsset;
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
     // TODO: Can be moved above for gas efficiency
     // if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
     // if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
 
     // If the chain is the native asset chain, lock the native asset
-    if (_isNativeAssetChain) _lock(_nativeAsset, _amount);
+    if (_isNativeAssetChain) _lock(_refTokenMetadata.nativeAsset, _amount);
     // Otherwise, burn the RefToken
     else _burn(_refToken, msg.sender, _amount);
 
-    _sendMessage(_relayChainId, _refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
+    _sendMessage(_relayChainId, _refToken, _amount, _recipient, _refTokenMetadata, _executionData);
   }
 
   /**
    * @notice Deploys the RefToken
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    * @return _refToken The address of the RefToken
    */
-  function _deployRefToken(address _nativeAsset, uint256 _nativeAssetChainId) internal returns (address _refToken) {
+  function _deployRefToken(IRefToken.RefTokenMetadata memory _refTokenMetadata) internal returns (address _refToken) {
     // Deploy the RefToken deterministically
-    bytes32 _salt = keccak256(abi.encode(_nativeAssetChainId, _nativeAsset));
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAsset));
     _refToken = address(
       new RefToken{salt: _salt}(
         address(this),
         IRefToken.RefTokenMetadata({
-          nativeAsset: _nativeAsset,
-          nativeAssetChainId: _nativeAssetChainId,
-          nativeAssetName: IERC20Metadata(_nativeAsset).name(),
-          nativeAssetSymbol: IERC20Metadata(_nativeAsset).symbol(),
-          nativeAssetDecimals: IERC20Metadata(_nativeAsset).decimals()
+          nativeAsset: _refTokenMetadata.nativeAsset,
+          nativeAssetChainId: _refTokenMetadata.nativeAssetChainId,
+          nativeAssetName: _refTokenMetadata.nativeAssetName,
+          nativeAssetSymbol: _refTokenMetadata.nativeAssetSymbol,
+          nativeAssetDecimals: _refTokenMetadata.nativeAssetDecimals
         })
       )
     );
 
     // Store the RefToken address and metadata
-    nativeToRefToken[_nativeAsset][_nativeAssetChainId] = _refToken;
+    nativeToRefToken[_refTokenMetadata.nativeAsset][_refTokenMetadata.nativeAssetChainId] = _refToken;
     isRefTokenDeployed[_refToken] = true;
 
-    emit RefTokenDeployed(_refToken, _nativeAsset, _nativeAssetChainId);
+    emit RefTokenDeployed(_refToken, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId);
   }
 
   /**
@@ -249,8 +254,7 @@ contract RefTokenBridge is IRefTokenBridge {
    * @param _refToken The RefToken address
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    * @param _executionData The data to be executed on the destination chain
    */
   function _sendMessage(
@@ -258,20 +262,17 @@ contract RefTokenBridge is IRefTokenBridge {
     address _refToken,
     uint256 _amount,
     address _recipient,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
     ExecutionData memory _executionData
   ) internal {
     bytes memory _message;
     if (_executionData.destinationExecutor == address(0)) {
       // If there is no execution, we just `relay()` the RefToken
-      _message =
-        abi.encodeCall(IRefTokenBridge.relay, (_refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId));
+      _message = abi.encodeCall(IRefTokenBridge.relay, (_refToken, _amount, _recipient, _refTokenMetadata));
     } else {
       // If there is execution, we `relayAndExecute()` the RefToken
       _message = abi.encodeCall(
-        IRefTokenBridge.relayAndExecute,
-        (_refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData)
+        IRefTokenBridge.relayAndExecute, (_refToken, _amount, _recipient, _refTokenMetadata, _executionData)
       );
     }
 
@@ -284,18 +285,16 @@ contract RefTokenBridge is IRefTokenBridge {
    * @notice Relays the RefTokenBridge message, either unlocking the native asset or minting the RefToken
    * @param _refToken The RefToken address
    * @param _mintTo The address to mint the token to
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
-   * @param _amount The amount of token to be relayed
    * @param _recipient The recipient of the token
+   * @param _amount The amount of token to be relayed
+   * @param _refTokenMetadata The metadata of the RefToken
    */
   function _relay(
     address _refToken,
     address _mintTo,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId,
+    address _recipient,
     uint256 _amount,
-    address _recipient
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) internal {
     if (
       msg.sender != address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)
@@ -304,14 +303,14 @@ contract RefTokenBridge is IRefTokenBridge {
       revert RefTokenBridge_Unauthorized();
     }
 
-    if (block.chainid == _nativeAssetChainId) {
+    if (block.chainid == _refTokenMetadata.nativeAssetChainId) {
       // If we are on the native asset chain, we can just unlock the token. If this point is reached, the RefToken is
       // already deployed and its metadata is already set.
-      unlock(_nativeAsset, _recipient, _amount);
+      unlock(_refTokenMetadata.nativeAsset, _recipient, _amount);
     } else {
       // If the RefToken is not deployed, deploy it.
-      if (nativeToRefToken[_nativeAsset][_nativeAssetChainId] == address(0)) {
-        _refToken = _deployRefToken(_nativeAsset, _nativeAssetChainId);
+      if (nativeToRefToken[_refTokenMetadata.nativeAsset][_refTokenMetadata.nativeAssetChainId] == address(0)) {
+        _refToken = _deployRefToken(_refTokenMetadata);
       }
 
       // Mint the RefToken to the recipient

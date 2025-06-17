@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {IRefToken} from './IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger} from '@interop-lib/src/interfaces/IL2ToL2CrossDomainMessenger.sol';
 
 /**
@@ -170,15 +171,13 @@ interface IRefTokenBridge {
    * @param _refToken The RefToken address
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    */
   function relay(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId
+    IRefToken.RefTokenMetadata calldata _refTokenMetadata
   ) external;
 
   /**
@@ -186,16 +185,14 @@ interface IRefTokenBridge {
    * @param _refToken The token to be relayed
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
-   * @param _nativeAsset The native asset to be relayed
-   * @param _nativeAssetChainId The chain ID of the native asset
+   * @param _refTokenMetadata The metadata of the RefToken
    * @param _executionData The data to be executed on the destination chain
    */
   function relayAndExecute(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    address _nativeAsset,
-    uint256 _nativeAssetChainId,
+    IRefToken.RefTokenMetadata calldata _refTokenMetadata,
     ExecutionData calldata _executionData
   ) external;
 
