@@ -119,7 +119,7 @@ contract RefTokenBridge is IRefTokenBridge {
       // If it failed and this is not the native asset chain, burn the token (otherwise there is no supply)
       if (block.chainid != _refTokenMetadata.nativeAssetChainId) _burn(_token, address(this), _amount);
 
-      // Send the tokens back to the refund address on the origin chain
+      // Send the tokens back to the refund address on the origin chain, without executing anything, just relaying
       uint256 _relayChainId = L2_TO_L2_CROSS_DOMAIN_MESSENGER.crossDomainMessageSource();
       ExecutionData memory _emptyExecutionData;
       _sendMessage(_token, _relayChainId, _amount, _executionData.refundAddress, _refTokenMetadata, _emptyExecutionData);

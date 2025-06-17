@@ -45,6 +45,18 @@ contract Helpers is Test {
   }
 
   /**
+   * @notice Sets up a mock revert and expects a call to it
+   *
+   * @param _receiver The address to have a mock on
+   * @param _calldata The calldata to mock and expect
+   * @param _returned The data to return from the mocked call
+   */
+  function _mockRevertAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+    vm.mockCallRevert(_receiver, _calldata, _returned);
+    vm.expectCall(_receiver, _calldata);
+  }
+
+  /**
    * @notice Creates a mock contract, labels it and erases the bytecode
    *
    * @param _name The label to use for the mock contract

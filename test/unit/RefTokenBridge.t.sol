@@ -4,8 +4,8 @@ pragma solidity 0.8.25;
 import {Helpers} from 'test/utils/Helpers.t.sol';
 
 import {IL2ToL2CrossDomainMessenger} from '@interop-lib/src/interfaces/IL2ToL2CrossDomainMessenger.sol';
-
 import {IRefToken, IRefTokenBridge, RefTokenBridge} from 'src/contracts/RefTokenBridge.sol';
+import {IExecutor} from 'src/interfaces/external/IExecutor.sol';
 
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
@@ -726,7 +726,6 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should deploy the RefToken
     address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
-
     vm.expectEmit(address(refTokenBridge));
     emit IRefTokenBridge.RefTokenDeployed(
       _refToken, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId
@@ -784,56 +783,351 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
   }
 
-  function test_RelayAndExecuteWhenOnTheNativeAssetChainAndExecutionSucceeds() external {
-    // It should unlock the native assets to the executor
+  function test_RelayAndExecuteWhenOnTheNativeAssetChainAndExecutionSucceeds(
+    address _refToken,
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
     // It should approve the executor
+    vm.mockCall(_refTokenMetadata.nativeAsset, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
+    vm.expectCall(
+      _refTokenMetadata.nativeAsset, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount))
+    );
+
     // It should execute the data
+    _mockAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute,
+        (_refTokenMetadata.nativeAsset, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
+
     // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(
+      _refTokenMetadata.nativeAsset, _amount, _recipient, _executionData.destinationExecutor
+    );
+
     // It should revoke the executor approval
+    vm.expectCall(
+      _refTokenMetadata.nativeAsset, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0))
+    );
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
   }
 
-  function test_RelayAndExecuteWhenOnTheNativeAssetChainAndExecutionFails() external {
-    // It should unlock the native assets to the executor
-    // It should approve the executor
-    // It should execute the data
-    // It shouldsend RefTokens to the refund address on the origin chain
-    // It should revoke the executor approval
-  }
+  function test_RelayAndExecuteWhenOnTheNativeAssetChainAndExecutionFails(
+    address _refToken,
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData,
+    uint256 _sourceChainId
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_executionData.destinationExecutor);
 
-  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsDeployedAndExecutionSucceeds() external {
-    // It should mint the tokens to the executor
-    // It should approve the executor
-    // It should execute the data
-    // It should emit MessageRelayed
-    // It should revoke the executor approval
-  }
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSource, ()),
+      abi.encode(_sourceChainId)
+    );
 
-  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployedAndExecutionSucceeds() external {
-    // It should deploy the RefToken
-    // It should mint the tokens to the executor
     // It should approve the executor
-    // It should execute the data
-    // It should emit MessageRelayed
-    // It should revoke the executor approval
-  }
+    vm.mockCall(_refTokenMetadata.nativeAsset, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
+    vm.expectCall(
+      _refTokenMetadata.nativeAsset, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount))
+    );
 
-  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndRefTokenIsDeployedAndExecutionFails() external {
-    // It should mint the tokens to the executor
-    // It should approve the executor
     // It should execute the data
-    // It should burn the RefTokens
-    // It shouldsend RefTokens to the refund address on the origin chain
-    // It should revoke the executor approval
-  }
+    _mockRevertAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute,
+        (_refTokenMetadata.nativeAsset, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
 
-  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployedAndExecutionFails() external {
-    // It should deploy the RefToken
-    // It should mint the tokens to the executor
-    // It should approve the executor
-    // It should execute the data
-    // It should burn the RefTokens
     // It should send RefTokens to the refund address on the origin chain
+    bytes memory _message =
+      abi.encodeCall(IRefTokenBridge.relay, (_amount, _executionData.refundAddress, _refTokenMetadata));
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_sourceChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(
+      _refTokenMetadata.nativeAsset, _amount, _executionData.refundAddress, address(0), _sourceChainId
+    );
+
     // It should revoke the executor approval
+    vm.expectCall(
+      _refTokenMetadata.nativeAsset, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0))
+    );
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
+  }
+
+  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsDeployedAndExecutionSucceeds(
+    address _refToken,
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refToken);
+    _assumeFuzzable(_executionData.destinationExecutor);
+
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
+    // It should mint the tokens to itself
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)), abi.encode(true));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+
+    // It should approve the executor
+    vm.mockCall(_refToken, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
+
+    // It should execute the data
+    _mockAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute, (_refToken, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(_refToken, _amount, _recipient, _executionData.destinationExecutor);
+
+    // It should revoke the executor approval
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0)));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
+  }
+
+  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployedAndExecutionSucceeds(
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_executionData.destinationExecutor);
+    vm.assume(_executionData.destinationExecutor != PERMIT2);
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+
+    // It should deploy the RefToken
+    address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokenDeployed(
+      _refToken, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId
+    );
+
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
+    // It should mint the tokens to itself
+    vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+
+    // It should approve the executor
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
+
+    // It should execute the data
+    _mockAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute, (_refToken, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(_refToken, _amount, _recipient, _executionData.destinationExecutor);
+
+    // It should revoke the executor approval
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0)));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
+
+    assertTrue(refTokenBridge.isRefTokenDeployed(_refToken));
+    assertEq(
+      refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId), _refToken
+    );
+  }
+
+  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndRefTokenIsDeployedAndExecutionFails(
+    address _refToken,
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData,
+    uint256 _sourceChainId
+  ) external {
+    _assumeFuzzable(_executionData.destinationExecutor);
+    _assumeFuzzable(_refToken);
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSource, ()),
+      abi.encode(_sourceChainId)
+    );
+
+    // It should mint the tokens to itself
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)), abi.encode(true));
+    // vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+
+    // It should approve the executor
+    vm.mockCall(_refToken, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
+
+    // It should execute the data
+    _mockRevertAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute, (_refToken, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
+
+    // It should burn the RefTokens
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.burn, (address(refTokenBridge), _amount)), abi.encode(true));
+    // vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_refToken, address(refTokenBridge), _amount);
+
+    // It should send RefTokens to the refund address on the origin chain
+    bytes memory _message =
+      abi.encodeCall(IRefTokenBridge.relay, (_amount, _executionData.refundAddress, _refTokenMetadata));
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_sourceChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+    // vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(_refToken, _amount, _executionData.refundAddress, address(0), _sourceChainId);
+
+    // It should revoke the executor approval
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0)));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
+  }
+
+  function test_RelayAndExecuteWhenNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployedAndExecutionFails(
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData,
+    uint256 _sourceChainId
+  ) external {
+    _assumeFuzzable(_executionData.destinationExecutor);
+    vm.assume(_executionData.destinationExecutor != PERMIT2);
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+
+    // It should deploy the RefToken
+    address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokenDeployed(
+      _refToken, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId
+    );
+
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSource, ()),
+      abi.encode(_sourceChainId)
+    );
+
+    // It should mint the tokens to itself
+    vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+
+    // It should approve the executor
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
+
+    // It should execute the data
+    _mockRevertAndExpect(
+      _executionData.destinationExecutor,
+      abi.encodeCall(
+        IExecutor.execute, (_refToken, _recipient, _amount, _executionData.destinationChainId, _executionData.data)
+      ),
+      abi.encode(true)
+    );
+
+    // It should burn the RefTokens
+    vm.expectCall(_refToken, abi.encodeCall(IRefToken.burn, (address(refTokenBridge), _amount)));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_refToken, address(refTokenBridge), _amount);
+
+    // It should send RefTokens to the refund address on the origin chain
+    bytes memory _message =
+      abi.encodeCall(IRefTokenBridge.relay, (_amount, _executionData.refundAddress, _refTokenMetadata));
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_sourceChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(_refToken, _amount, _executionData.refundAddress, address(0), _sourceChainId);
+
+    // It should revoke the executor approval
+    vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, 0)));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
   }
 
   function test_UnlockRevertWhen_CallerIsNotTheL2ToL2CrossDomainMessenger(

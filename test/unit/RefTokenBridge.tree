@@ -77,32 +77,30 @@ RefTokenBridgeUnit::relayAndExecute
 ├── When cross domain sender is not the RefToken bridge
 │   └── It should revert
 ├── When on the native asset chain and execution succeeds
-│   ├── It should unlock the native assets to the executor
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should emit MessageRelayed
 │   └── It should revoke the executor approval
 ├── When on the native asset chain and execution fails
-│   ├── It should unlock the native assets to the executor
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should send RefTokens to the refund address on the origin chain
 │   └── It should revoke the executor approval
 ├── When not on the native asset chain and the RefToken is deployed and execution succeeds
-│   ├── It should mint the tokens to the executor
+│   ├── It should mint the tokens to itself
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should emit MessageRelayed
 │   └── It should revoke the executor approval
 ├── When not on the native asset chain and the RefToken is not deployed and execution succeeds
 │   ├── It should deploy the RefToken
-│   ├── It should mint the tokens to the executor
+│   ├── It should mint the tokens to itself
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should emit MessageRelayed
 │   └── It should revoke the executor approval
 ├── When not on the native asset chain and RefToken is deployed and execution fails
-│   ├── It should mint the tokens to the executor
+│   ├── It should mint the tokens to itself
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should burn the RefTokens
@@ -110,7 +108,7 @@ RefTokenBridgeUnit::relayAndExecute
 │   └── It should revoke the executor approval
 └── When not on the native asset chain and the RefToken is not deployed and execution fails
     ├── It should deploy the RefToken
-    ├── It should mint the tokens to the executor
+    ├── It should mint the tokens to itself
     ├── It should approve the executor
     ├── It should execute the data
     ├── It should burn the RefTokens
