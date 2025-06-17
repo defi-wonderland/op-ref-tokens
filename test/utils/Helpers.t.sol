@@ -129,16 +129,7 @@ contract Helpers is Test {
   ) internal pure returns (address _refTokenAddress) {
     bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAsset));
 
-    bytes memory _initCode = bytes.concat(
-      type(RefToken).creationCode,
-      abi.encode(
-        _refTokenBridge,
-        _refTokenMetadata.nativeAssetChainId,
-        _refTokenMetadata.nativeAssetName,
-        _refTokenMetadata.nativeAssetSymbol,
-        _refTokenMetadata.nativeAssetDecimals
-      )
-    );
+    bytes memory _initCode = bytes.concat(type(RefToken).creationCode, abi.encode(_refTokenBridge, _refTokenMetadata));
 
     bytes32 _initCodeHash = keccak256(_initCode);
     _refTokenAddress = _precalculateCreate2Address(_salt, _initCodeHash, _refTokenBridge);

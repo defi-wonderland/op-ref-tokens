@@ -26,9 +26,10 @@ interface IRefTokenBridge {
   /**
    * @notice Event emitted when tokens are locked
    * @param _token The token to be locked
+   * @param _user The address that locked the tokens
    * @param _amount The amount of tokens to be locked
    */
-  event TokensLocked(address indexed _token, uint256 _amount);
+  event TokensLocked(address indexed _token, address _user, uint256 _amount);
 
   /**
    * @notice Event emitted when tokens are unlocked
@@ -89,39 +90,44 @@ interface IRefTokenBridge {
   event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
 
   /**
-   * @notice Error emitted when the amount is invalid
+   * @notice Thrown when the amount is invalid
    */
   error RefTokenBridge_InvalidAmount();
 
   /**
-   * @notice Error emitted when the recipient is invalid
+   * @notice Thrown when the recipient is invalid
    */
   error RefTokenBridge_InvalidRecipient();
 
   /**
-   * @notice Error emitted when the destination chain id is invalid
+   * @notice Thrown when the destination chain id is invalid
    */
   error RefTokenBridge_InvalidDestinationChainId();
 
   /**
-   * @notice Error emitted when the execution chain id is invalid
+   * @notice Thrown when the execution chain id is invalid
    */
   error RefTokenBridge_InvalidExecutionChainId();
 
   /**
-   * @notice Error emitted when the destination executor is invalid
+   * @notice Thrown when the destination executor is invalid
    */
   error RefTokenBridge_InvalidDestinationExecutor();
 
   /**
-   * @notice Error emitted when the caller is not authorized
+   * @notice Thrown when the caller is not authorized
    */
   error RefTokenBridge_Unauthorized();
 
   /**
-   * @notice Error emitted when the token is not the native asset
+   * @notice Thrown when the token is not the native asset
    */
   error RefTokenBridge_NotNativeAsset();
+
+  /**
+   * @notice Thrown when the native asset chain id does not match the block chain id when deploying a RefToken on _send
+   */
+  error RefTokenBridge_InvalidNativeAssetChainId();
 
   /**
    * @notice Get the L2 to L2 cross domain messenger address

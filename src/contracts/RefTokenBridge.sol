@@ -192,7 +192,10 @@ contract RefTokenBridge is IRefTokenBridge {
 
     address _refToken = getRefToken(_token, _nativeAssetChainId);
     // If the RefToken is not deployed, deploy it
-    if (_refToken == address(0)) _refToken = _deployRefToken(_token, block.chainid);
+    if (_refToken == address(0)) {
+      if (_nativeAssetChainId != block.chainid) revert RefTokenBridge_InvalidNativeAssetChainId();
+      _refToken = _deployRefToken(_token, block.chainid);
+    }
 
     // If the chain is the native asset chain, but the `_token` is not the native asset, revert since there will not be
     // RefToken supply to burn on this chain
@@ -207,7 +210,7 @@ contract RefTokenBridge is IRefTokenBridge {
     // Otherwise, burn the RefToken
     else _burn(_refToken, msg.sender, _amount);
 
-    _sendMessage(_relayChainId, _token, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
+    _sendMessage(_relayChainId, _refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
   }
 
   /**
@@ -340,13 +343,13 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Internal function to lock the token
+   * @notice Internal function to lock the native asset
    * @dev This function is used to lock the token on the source chain
-   * @param _token The token to be locked
+   * @param _nativeAsset The native asset to be locked
    * @param _amount The amount of token to be locked
    */
-  function _lock(address _token, uint256 _amount) internal {
-    IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-    emit TokensLocked(_token, _amount);
+  function _lock(address _nativeAsset, uint256 _amount) internal {
+    IERC20(_nativeAsset).transferFrom(msg.sender, address(this), _amount);
+    emit TokensLocked(_nativeAsset, msg.sender, _amount);
   }
 }
