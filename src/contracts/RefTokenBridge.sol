@@ -4,9 +4,9 @@ pragma solidity 0.8.26;
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
 import {IExecutor} from 'interfaces/external/IExecutor.sol';
-import {IERC20} from 'openzeppelin/token/ERC20/IERC20.sol';
 
 import {RefToken} from 'contracts/RefToken.sol';
 

@@ -7,7 +7,7 @@ import {IL2ToL2CrossDomainMessenger} from 'optimism/L2/IL2ToL2CrossDomainMesseng
 
 import {IExecutor, IRefToken, IRefTokenBridge, RefTokenBridge} from 'src/contracts/RefTokenBridge.sol';
 
-import {IERC20, IERC20Metadata} from 'openzeppelin/token/ERC20/extensions/IERC20Metadata.sol';
+import {IERC20, IERC20Metadata} from '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 contract RefTokenBridgeUnit is Helpers {
   address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
