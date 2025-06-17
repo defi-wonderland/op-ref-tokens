@@ -168,28 +168,20 @@ interface IRefTokenBridge {
 
   /**
    * @notice Relay token from the destination chain
-   * @param _refToken The RefToken address
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
    * @param _refTokenMetadata The metadata of the RefToken
    */
-  function relay(
-    address _refToken,
-    uint256 _amount,
-    address _recipient,
-    IRefToken.RefTokenMetadata calldata _refTokenMetadata
-  ) external;
+  function relay(uint256 _amount, address _recipient, IRefToken.RefTokenMetadata calldata _refTokenMetadata) external;
 
   /**
    * @notice Relay token from the destination chain and execute in the destination chain executor
-   * @param _refToken The token to be relayed
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
    * @param _refTokenMetadata The metadata of the RefToken
    * @param _executionData The data to be executed on the destination chain
    */
   function relayAndExecute(
-    address _refToken,
     uint256 _amount,
     address _recipient,
     IRefToken.RefTokenMetadata calldata _refTokenMetadata,
