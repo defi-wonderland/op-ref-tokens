@@ -105,6 +105,26 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
+  function test_SendRevertWhen_NativeAssetChainIdDoesNotMatchTheBlockChainIdWhenDeployingARefToken(
+    address _caller,
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
+
+    // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
+    vm.prank(_caller);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _nativeAsset, _amount, _recipient);
+  }
+
   function test_SendWhenCalledWithANativeTokenFirstTime(
     address _caller,
     uint256 _relayChainId,
@@ -391,6 +411,30 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
+  function test_SendAndExecuteRevertWhen_NativeAssetChainIdDoesNotMatchTheBlockChainIdWhenDeployingARefToken(
+    address _caller,
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.destinationChainId != block.chainid);
+    vm.assume(_executionData.destinationChainId != 0);
+
+    // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
+    vm.prank(_caller);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _nativeAsset, _amount, _recipient, _executionData);
+  }
+
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
     address _caller,
     uint256 _relayChainId,
@@ -619,8 +663,7 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _nativeAssetChainId,
     address _token,
     uint256 _amount,
-    address _recipient,
-    IRefTokenBridge.ExecutionData memory _executionData
+    address _recipient
   ) external {
     vm.assume(_randomCaller != address(refTokenBridge));
     _mockAndExpect(
