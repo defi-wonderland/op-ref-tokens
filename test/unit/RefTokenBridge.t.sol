@@ -391,23 +391,211 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
-  function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime() external {
+  function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
+    address _caller,
+    uint256 _relayChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.destinationChainId != block.chainid);
+    vm.assume(_executionData.destinationChainId != 0);
+
     // It should create the RefToken
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+    address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
+
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeWithSelector(IERC20Metadata.name.selector),
+      abi.encode(_refTokenMetadata.nativeAssetName)
+    );
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeWithSelector(IERC20Metadata.symbol.selector),
+      abi.encode(_refTokenMetadata.nativeAssetSymbol)
+    );
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeWithSelector(IERC20Metadata.decimals.selector),
+      abi.encode(_refTokenMetadata.nativeAssetDecimals)
+    );
+    vm.expectCall(_refToken, abi.encodeCall(IRefToken.metadata, ()));
+
     // It should lock the tokens
-    // It should send the message to call relayAndExecute
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeCall(IERC20.transferFrom, (_caller, address(refTokenBridge), _amount)),
+      abi.encode(true)
+    );
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+
+    // It should send the message to call relay
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (
+        _refToken,
+        _amount,
+        _recipient,
+        _refTokenMetadata.nativeAsset,
+        _refTokenMetadata.nativeAssetChainId,
+        _executionData
+      )
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_relayChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+
     // It should emit MessageSent
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(_refToken, _amount, _recipient, _executionData.destinationExecutor, _relayChainId);
+
+    vm.prank(_caller);
+    refTokenBridge.sendAndExecute(
+      _refTokenMetadata.nativeAssetChainId,
+      _relayChainId,
+      _refTokenMetadata.nativeAsset,
+      _amount,
+      _recipient,
+      _executionData
+    );
+
+    assertTrue(refTokenBridge.isRefTokenDeployed(_refToken));
+    assertEq(
+      refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId), _refToken
+    );
   }
 
-  function test_SendAndExecuteWhenCallingWithTheNativeTokenAfterTheCreationOfTheRefToken() external {
+  function test_SendAndExecuteWhenCallingWithTheNativeTokenAfterTheCreationOfTheRefToken(
+    address _caller,
+    uint256 _relayChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _refToken,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_refToken);
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.destinationChainId != block.chainid);
+    vm.assume(_executionData.destinationChainId != 0);
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(_refTokenMetadata));
+
     // It should lock the tokens
-    // It should send the message to call relayAndExecute
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeCall(IERC20.transferFrom, (_caller, address(refTokenBridge), _amount)),
+      abi.encode(true)
+    );
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+
+    // It should send the message to call relay
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (
+        _refToken,
+        _amount,
+        _recipient,
+        _refTokenMetadata.nativeAsset,
+        _refTokenMetadata.nativeAssetChainId,
+        _executionData
+      )
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_relayChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+
     // It should emit MessageSent
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(_refToken, _amount, _recipient, _executionData.destinationExecutor, _relayChainId);
+
+    vm.prank(_caller);
+    refTokenBridge.sendAndExecute(
+      _refTokenMetadata.nativeAssetChainId,
+      _relayChainId,
+      _refTokenMetadata.nativeAsset,
+      _amount,
+      _recipient,
+      _executionData
+    );
   }
 
-  function test_SendAndExecuteWhenCalledWithARefToken() external {
+  function test_SendAndExecuteWhenCalledWithARefToken(
+    address _caller,
+    uint256 _relayChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _refToken,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_refToken);
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.destinationChainId != block.chainid);
+    vm.assume(_executionData.destinationChainId != 0);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(_refTokenMetadata));
+
     // It should burn the tokens
-    // It should send the message to call relayAndExecute
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.burn, (_caller, _amount)), abi.encode(true));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensBurned(_refToken, _caller, _amount);
+
+    // It should send the message to call relay
+    bytes memory _message = abi.encodeCall(
+      IRefTokenBridge.relayAndExecute,
+      (
+        _refToken,
+        _amount,
+        _recipient,
+        _refTokenMetadata.nativeAsset,
+        _refTokenMetadata.nativeAssetChainId,
+        _executionData
+      )
+    );
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.sendMessage, (_relayChainId, address(refTokenBridge), _message)),
+      abi.encode(true)
+    );
+
     // It should emit MessageSent
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageSent(_refToken, _amount, _recipient, _executionData.destinationExecutor, _relayChainId);
+
+    vm.prank(_caller);
+    refTokenBridge.sendAndExecute(
+      _refTokenMetadata.nativeAssetChainId, _relayChainId, _refToken, _amount, _recipient, _executionData
+    );
   }
 
   function test_RelayRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(
@@ -431,7 +619,8 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _nativeAssetChainId,
     address _token,
     uint256 _amount,
-    address _recipient
+    address _recipient,
+    IRefTokenBridge.ExecutionData memory _executionData
   ) external {
     vm.assume(_randomCaller != address(refTokenBridge));
     _mockAndExpect(
