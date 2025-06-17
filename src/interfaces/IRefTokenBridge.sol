@@ -130,33 +130,6 @@ interface IRefTokenBridge {
   error RefTokenBridge_InvalidNativeAssetChainId();
 
   /**
-   * @notice Get the L2 to L2 cross domain messenger address
-   * @return _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
-   */
-  function L2_TO_L2_CROSS_DOMAIN_MESSENGER()
-    external
-    view
-    returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
-
-  /**
-   * @notice Check if the RefToken is deployed
-   * @param _refToken The RefToken address
-   * @return _isRefTokenDeployed Whether the RefToken is deployed
-   */
-  function isRefTokenDeployed(address _refToken) external view returns (bool _isRefTokenDeployed);
-
-  /**
-   * @notice Get the RefToken address
-   * @param _nativeToken The native token to get the RefToken address from
-   * @param _nativeAssetChainId The chain ID of the native asset
-   * @return _refToken The RefToken address
-   */
-  function nativeToRefToken(
-    address _nativeToken,
-    uint256 _nativeAssetChainId
-  ) external view returns (address _refToken);
-
-  /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
    * @param _nativeAssetChainId The chain ID of the native asset
@@ -241,4 +214,31 @@ interface IRefTokenBridge {
    * @return _refToken The address of the RefToken, zero address if the RefToken is not deployed
    */
   function getRefToken(address _token, uint256 _nativeAssetChainId) external view returns (address _refToken);
+
+  /**
+   * @notice Get the L2 to L2 cross domain messenger address
+   * @return _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
+   */
+  function L2_TO_L2_CROSS_DOMAIN_MESSENGER()
+    external
+    view
+    returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
+
+  /**
+   * @notice Check if the RefToken is deployed
+   * @param _refToken The RefToken address
+   * @return _isRefTokenDeployed Whether the RefToken is deployed
+   */
+  function isRefTokenDeployed(address _refToken) external view returns (bool _isRefTokenDeployed);
+
+  /**
+   * @notice Get the RefToken address
+   * @param _nativeToken The native token to get the RefToken address from
+   * @param _nativeAssetChainId The chain ID of the native asset
+   * @return _refToken The RefToken address
+   */
+  function nativeToRefToken(
+    address _nativeToken,
+    uint256 _nativeAssetChainId
+  ) external view returns (address _refToken);
 }
