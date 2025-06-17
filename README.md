@@ -1,175 +1,223 @@
-<img src="https://raw.githubusercontent.com/defi-wonderland/brand/v1.0.0/external/solidity-foundry-boilerplate-banner.png" alt="wonderland banner" align="center" />
-<br />
+# RefTokens – Native Cross-Chain Liquidity for the Superchain
 
-<div align="center"><strong>Start your next Solidity project with Foundry in seconds</strong></div>
-<div align="center">A highly scalable foundation focused on DX and best practices</div>
+`RefTokenBridge • RefToken • SuperchainERC20`
 
-<br />
+> ⚠️ **Caution**  
+> The contracts have **NOT** been audited yet.  
+> Use at your own risk.
 
-## Features
+---
 
-<dl>
-  <dt>Sample contracts</dt>
-  <dd>Basic Greeter contract with an external interface.</dd>
+## Overview
 
-  <dt>Foundry setup</dt>
-  <dd>Foundry configuration with multiple custom profiles and remappings.</dd>
+`RefTokens` turn any native ERC2O token into a first-class cross-chain asset inside the OP Superchain.  
+Instead of physically bridging tokens, we **bridge intent**:
 
-  <dt>Deployment scripts</dt>
-  <dd>Sample scripts to deploy contracts on both mainnet and testnet.</dd>
+1. **Lock** the native token on its origin chain.
+2. **Mint** a deterministic `RefToken` on the destination chain.
+3. **Execute** downstream protocol logic (Uniswap swaps, LP-adds, etc.) in the same transaction.
+4. **Deliver** the result to _any_ Superchain L2 or roll back and unlock if it reverts.
 
-  <dt>Sample Integration, Unit, Property-based fuzzed and symbolic tests</dt>
-  <dd>Example tests showcasing mocking, assertions and configuration for mainnet forking. As well it includes everything needed in order to check code coverage.</dd>
-  <dd>Unit tests are built based on the <a href="https://twitter.com/PaulRBerg/status/1682346315806539776">Branched-Tree Technique</a>, using <a href="https://github.com/alexfertel/bulloak">Bulloak</a>.
-  <dd>Formal verification and property-based fuzzing are achieved with <a href="https://github.com/a16z/halmos">Halmos</a> and <a href="https://github.com/crytic/medusa">Medusa</a> (resp.).
-
-  <dt>Linter</dt>
-  <dd>Simple and fast solidity linting thanks to forge fmt.</dd>
-  <dd>Find missing natspec automatically.</dd>
-
-  <dt>Github workflows CI</dt>
-  <dd>Run all tests and see the coverage as you push your changes.</dd>
-  <dd>Export your Solidity interfaces and contracts as packages, and publish them to NPM.</dd>
-</dl>
+---
 
 ## Setup
 
-1. Install Foundry by following the instructions from [their repository](https://github.com/foundry-rs/foundry#installation).
-2. Copy the `.env.example` file to `.env` and fill in the variables.
-3. Install rust dependencies: `cargo install lintspec`
-4. Install the dependencies by running: `yarn install`. In case there is an error with the commands, run `foundryup` and try them again.
+This repository uses **Foundry** for development and **Yarn** for scripting.
+
+```bash
+git clone git@github.com:defi-wonderland/op-ref-tokens.git
+cd ref-tokens
+yarn install
+yarn build
+```
+
+---
+
+## Available Commands
+
+| Yarn Command                   | Description                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `yarn build`                   | Compile all contracts.                                                               |
+| `yarn build:optimized`         | Compile with the `optimized` Foundry profile (via IR).                               |
+| `yarn coverage`                | Generate a coverage report.                                                          |
+| `yarn deploy:optimism`         | Deploy to OP Mainnet (set `$OPTIMISM_RPC` & secrets in `.env`).                      |
+| `yarn deploy:optimism-sepolia` | Deploy to OP Sepolia testnet.                                                        |
+| `yarn test`                    | Run unit **and** integration tests.                                                  |
+| `yarn test:unit`               | Run only unit tests.                                                                 |
+| `yarn test:unit:deep`          | Unit tests with 5 000 fuzz runs.                                                     |
+| `yarn test:integration`        | Run integration tests (fork).                                                        |
+| `yarn test:fuzz`               | Run Echidna fuzzing campaign.                                                        |
+| `yarn test:symbolic`           | Run Halmos symbolic execution tests.                                                 |
+| `yarn lint:bulloak`            | Run Bulloak on every \*.tree file under /test and automatically apply fixes (--fix). |
+| `yarn lint:check`              | Solidity & formatting lints (read-only).                                             |
+| `yarn lint:fix`                | Auto-fix lint & formatting issues.                                                   |
+
+> Make sure `OPTIMISM_RPC`, `OPTIMISM_DEPLOYER_NAME`, etc. are exported or present in `.env` before running deploy or integration tests.
+
+---
+
+## Design
+
+### Core Components
+
+1. **RefToken**
+
+   - ERC-20 compliant, address derived with `CREATE2` from `(originChainId, originToken)`.
+   - Implements `SuperchainERC20` hooks for future `SuperchainTokenBridge` upgrades.
+
+2. **RefTokenBridge**
+
+   - Custodies locked native assets on the source chain.
+   - Mints / burns `RefTokens` on source and destination.
+   - Rolls back if the downstream call fails (burns and unlocks).
+
+3. **AppActionExecutor** (pluggable)
+   - Receives freshly-minted `RefTokens` that have been approved.
+   - Executes arbitrary protocol logic.
+   - Example: `UniSwapperExecutor` that performs a Uniswap v4 hook-based swap.
+
+Any `Executor` that wants to use this system will have to implement this interface:
+
+```
+interface IExecutor {
+  function execute(
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    uint256 _destinationChainId,
+    bytes calldata _data
+  ) external;
+}
+```
+
+---
+
+### Flows
+
+1. **Cross-Chain Swap (OP ⇒ UNI)**  
+   lock native OP → mint `refOP` on Unichain → swap to UNI → deliver to recipient.
+
+2. **Execute Swap (OP ⇒ WETH) + Cross-Chain Swap (WETH ⇒ UNI)**  
+   user uses OP executor to swap OP→WETH → lock native WETH → mint `refWETH` on Unichain → swap to UNI → deliver to recipient.
+
+3. **Plain Send**  
+   lock token → mint `RefToken` to recipient (no downstream execution).
+
+4. **Failure Rollback**  
+   downstream call reverts → burn `RefToken` → unlock original asset on source.
+
+5. **Post-Launch SuperchainTokenBridge**  
+   once the canonical bridge is live, `crosschainBurn` + `crosschainMint` let users seamlessly redeem locked native assets.
+
+---
+
+### Modules
+
+| Module                    | Responsibility                                          |
+| ------------------------- | ------------------------------------------------------- |
+| **RefTokenBridge**        | Lock / mint / burn / unlock logic & rollback messaging. |
+| **AppActionExecutor**     | Protocol-specific logic (swap, LP, etc.).               |
+| **SuperchainTokenBridge** | Future integration for unified ERC-20 bridging.         |
+
+---
+
+### Periphery
+
+- **UniSwapperExecutor** – Reference executor for Uniswap v4.
+- **Create2Deployer** – Helper for deterministic `RefToken` deployment.
+- **Libraries** – Encoding helpers and cross-domain messenger utilities.
+
+---
+
+## Failure-Mode Analysis
+
+- Malicious or buggy `AppActionExecutor` → user fund loss.
+- `RefTokenBridge` is the single most critical contract: it must never mint more than it has locked.
+- Liquidity fragmentation if the same underlying asset originates from multiple chains.
+- Rollback returns the _locked_ asset, which may differ from the asset originally supplied by the user in multi-hop scenarios.
+
+---
+
+## Risks & Uncertainties
+
+1. **Liquidity Fragmentation** – different origins create distinct `RefToken` addresses.
+2. **Execution Re-entrancy** – executors must not call bridge methods in the same tx.
+3. **Paused Canonical Bridges** – until official bridges are live, redemption only works via the originating `RefTokenBridge`.
+
+---
 
 ## Build
 
-The default way to build the code is suboptimal but fast, you can run it via:
+Fast compile:
 
 ```bash
 yarn build
 ```
 
-In order to build a more optimized code ([via IR](https://docs.soliditylang.org/en/v0.8.15/ir-breaking-changes.html#solidity-ir-based-codegen-changes)), run:
+Optimised (IR):
 
 ```bash
 yarn build:optimized
 ```
 
-## Running tests
+---
 
-Unit tests should be isolated from any externalities, while Integration usually run in a fork of the blockchain. In this boilerplate you will find example of both.
-
-In order to run both unit and integration tests, run:
+## Running Tests
 
 ```bash
+# All tests
 yarn test
-```
 
-In order to just run unit tests, run:
-
-```bash
+# Only unit
 yarn test:unit
-```
 
-In order to run unit tests and run way more fuzzing than usual (5x), run:
-
-```bash
+# Deep fuzz (5 000 runs)
 yarn test:unit:deep
-```
 
-In order to just run integration tests, run:
-
-```bash
+# Integration (fork)
 yarn test:integration
 ```
 
-In order to start the Medusa fuzzing campaign (requires [Medusa](https://github.com/crytic/medusa/blob/master/docs/src/getting_started/installation.md) installed), run:
-
-```bash
-yarn test:fuzz
-```
-
-In order to just run the symbolic execution tests (requires [Halmos](https://github.com/a16z/halmos/blob/main/README.md#installation) installed), run:
-
-```bash
-yarn test:symbolic
-```
-
-In order to check your current code coverage, run:
+Static analysis & coverage:
 
 ```bash
 yarn coverage
+yarn lint:check
 ```
 
-<br>
+---
 
-## Deploy & verify
+## Deploy & Verify
 
-### Setup
-
-Configure the `.env` variables and source them:
+1. Fill in `.env` with RPC URLs, private keys and Etherscan keys.
+2. Import the deployer key into Foundry:
 
 ```bash
-source .env
+cast wallet import $OPTIMISM_DEPLOYER_NAME --interactive
 ```
 
-Import your private keys into Foundry's encrypted keystore:
+3. Deploy:
 
 ```bash
-cast wallet import $MAINNET_DEPLOYER_NAME --interactive
+yarn deploy:optimism      # mainnet
+yarn deploy:optimism-sepolia
 ```
 
-```bash
-cast wallet import $SEPOLIA_DEPLOYER_NAME --interactive
-```
+Broadcast files land in `./broadcast`.
 
-### Sepolia
+See the Foundry Book for advanced flags.
 
-```bash
-yarn deploy:sepolia
-```
-
-### Mainnet
-
-```bash
-yarn deploy:mainnet
-```
-
-The deployments are stored in ./broadcast
-
-See the [Foundry Book for available options](https://book.getfoundry.sh/reference/forge/forge-create.html).
-
-## Export And Publish
-
-Export TypeScript interfaces from Solidity contracts and interfaces providing compatibility with TypeChain. Publish the exported packages to NPM.
-
-To enable this feature, make sure you've set the `NPM_TOKEN` on your org's secrets. Then set the job's conditional to `true`:
-
-```yaml
-jobs:
-  export:
-    name: Generate Interfaces And Contracts
-    # Remove the following line if you wish to export your Solidity contracts and interfaces and publish them to NPM
-    if: true
-    ...
-```
-
-Also, remember to update the `package_name` param to your package name:
-
-```yaml
-- name: Export Solidity - ${{ matrix.export_type }}
-  uses: defi-wonderland/solidity-exporter-action@1dbf5371c260add4a354e7a8d3467e5d3b9580b8
-  with:
-    # Update package_name with your package name
-    package_name: "my-cool-project"
-    ...
-
-
-- name: Publish to NPM - ${{ matrix.export_type }}
-  # Update `my-cool-project` with your package name
-  run: cd export/my-cool-project-${{ matrix.export_type }} && npm publish --access public
-  ...
-```
-
-You can take a look at our [solidity-exporter-action](https://github.com/defi-wonderland/solidity-exporter-action) repository for more information and usage examples.
+---
 
 ## Licensing
-The primary license for the boilerplate is MIT, see [`LICENSE`](https://github.com/defi-wonderland/solidity-foundry-boilerplate/blob/main/LICENSE)
+
+Primary license: **MIT** – see [LICENSE](./LICENSE).
+
+---
+
+## Contributors
+
+Built with ❤️ by
+
+- @0x Discotech
+- @Ashitaka h
