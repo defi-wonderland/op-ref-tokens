@@ -171,7 +171,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+    emit IRefTokenBridge.NativeAssetLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_amount, _recipient, _refTokenMetadata));
@@ -223,7 +223,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+    emit IRefTokenBridge.NativeAssetLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_amount, _recipient, _refTokenMetadata));
@@ -265,7 +265,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should burn the tokens
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.burn, (_caller, _amount)), abi.encode(true));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensBurned(_refToken, _caller, _amount);
+    emit IRefTokenBridge.RefTokenBurned(_refToken, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message = abi.encodeCall(IRefTokenBridge.relay, (_amount, _recipient, _refTokenMetadata));
@@ -480,7 +480,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+    emit IRefTokenBridge.NativeAssetLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message =
@@ -544,7 +544,7 @@ contract RefTokenBridgeUnit is Helpers {
       abi.encode(true)
     );
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
+    emit IRefTokenBridge.NativeAssetLocked(_refTokenMetadata.nativeAsset, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message =
@@ -598,7 +598,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should burn the tokens
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.burn, (_caller, _amount)), abi.encode(true));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensBurned(_refToken, _caller, _amount);
+    emit IRefTokenBridge.RefTokenBurned(_refToken, _caller, _amount);
 
     // It should send the message to call relay
     bytes memory _message =
@@ -672,7 +672,7 @@ contract RefTokenBridgeUnit is Helpers {
       _refTokenMetadata.nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true)
     );
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensUnlocked(_refTokenMetadata.nativeAsset, _recipient, _amount);
+    emit IRefTokenBridge.NativeAssetUnlocked(_refTokenMetadata.nativeAsset, _recipient, _amount);
 
     // It should emit MessageRelayed
     vm.expectEmit(address(refTokenBridge));
@@ -701,7 +701,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to the recipient
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (_recipient, _amount)), abi.encode(true));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, _recipient, _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, _recipient, _amount);
 
     // It should emit MessageRelayed
     vm.expectEmit(address(refTokenBridge));
@@ -734,7 +734,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to the recipient
     vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (_recipient, _amount)));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, _recipient, _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, _recipient, _amount);
 
     // It should emit MessageRelayed
     vm.expectEmit(address(refTokenBridge));
@@ -914,7 +914,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to itself
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)), abi.encode(true));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, address(refTokenBridge), _amount);
 
     // It should approve the executor
     vm.mockCall(_refToken, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
@@ -966,7 +966,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to itself
     vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, address(refTokenBridge), _amount);
 
     // It should approve the executor
     vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
@@ -1023,7 +1023,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to itself
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)), abi.encode(true));
     // vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, address(refTokenBridge), _amount);
 
     // It should approve the executor
     vm.mockCall(_refToken, abi.encodeWithSelector(IERC20.approve.selector), abi.encode(true));
@@ -1041,7 +1041,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should burn the RefTokens
     _mockAndExpect(_refToken, abi.encodeCall(IRefToken.burn, (address(refTokenBridge), _amount)), abi.encode(true));
     // vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensBurned(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenBurned(_refToken, address(refTokenBridge), _amount);
 
     // It should send RefTokens to the refund address on the origin chain
     bytes memory _message =
@@ -1093,7 +1093,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should mint the tokens to itself
     vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (address(refTokenBridge), _amount)));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensMinted(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenMinted(_refToken, address(refTokenBridge), _amount);
 
     // It should approve the executor
     vm.expectCall(_refToken, abi.encodeCall(IERC20.approve, (_executionData.destinationExecutor, _amount)));
@@ -1110,7 +1110,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should burn the RefTokens
     vm.expectCall(_refToken, abi.encodeCall(IRefToken.burn, (address(refTokenBridge), _amount)));
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.RefTokensBurned(_refToken, address(refTokenBridge), _amount);
+    emit IRefTokenBridge.RefTokenBurned(_refToken, address(refTokenBridge), _amount);
 
     // It should send RefTokens to the refund address on the origin chain
     bytes memory _message =
@@ -1174,7 +1174,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should emit TokenUnlocked
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensUnlocked(_nativeAsset, _recipient, _amount);
+    emit IRefTokenBridge.NativeAssetUnlocked(_nativeAsset, _recipient, _amount);
 
     vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
@@ -1192,9 +1192,9 @@ contract RefTokenBridgeUnit is Helpers {
     // It should transfer the tokens to user
     _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true));
 
-    // It should emit TokensUnlocked
+    // It should emit NativeAssetUnlocked
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.TokensUnlocked(_nativeAsset, _recipient, _amount);
+    emit IRefTokenBridge.NativeAssetUnlocked(_nativeAsset, _recipient, _amount);
 
     vm.prank(_refToken);
     refTokenBridge.unlock(_nativeAsset, _recipient, _amount);

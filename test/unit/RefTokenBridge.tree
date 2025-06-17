@@ -125,7 +125,7 @@ RefTokenBridgeUnit::unlock
 │   └── It should emit TokenUnlocked
 └── When called by the associated RefToken
     ├── It should transfer the tokens to user
-    └── It should emit TokensUnlocked
+    └── It should emit NativeAssetUnlocked
 
 RefTokenBridgeUnit::getRefToken
 ├── When called with a native token and the RefToken exists

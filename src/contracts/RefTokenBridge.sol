@@ -143,7 +143,7 @@ contract RefTokenBridge is IRefTokenBridge {
     }
 
     IERC20(_nativeAsset).transfer(_to, _amount);
-    emit TokensUnlocked(_nativeAsset, _to, _amount);
+    emit NativeAssetUnlocked(_nativeAsset, _to, _amount);
   }
 
   /**
@@ -319,7 +319,7 @@ contract RefTokenBridge is IRefTokenBridge {
    */
   function _mint(address _token, address _to, uint256 _amount) internal {
     IRefToken(_token).mint(_to, _amount);
-    emit RefTokensMinted(_token, _to, _amount);
+    emit RefTokenMinted(_token, _to, _amount);
   }
 
   /**
@@ -331,7 +331,7 @@ contract RefTokenBridge is IRefTokenBridge {
    */
   function _burn(address _token, address _to, uint256 _amount) internal {
     IRefToken(_token).burn(_to, _amount);
-    emit RefTokensBurned(_token, _to, _amount);
+    emit RefTokenBurned(_token, _to, _amount);
   }
 
   /**
@@ -342,6 +342,6 @@ contract RefTokenBridge is IRefTokenBridge {
    */
   function _lock(address _nativeAsset, uint256 _amount) internal {
     IERC20(_nativeAsset).transferFrom(msg.sender, address(this), _amount);
-    emit TokensLocked(_nativeAsset, msg.sender, _amount);
+    emit NativeAssetLocked(_nativeAsset, msg.sender, _amount);
   }
 }

@@ -29,7 +29,7 @@ interface IRefTokenBridge {
    * @param _user The address that locked the tokens
    * @param _amount The amount of tokens to be locked
    */
-  event TokensLocked(address indexed _token, address _user, uint256 _amount);
+  event NativeAssetLocked(address indexed _token, address _user, uint256 _amount);
 
   /**
    * @notice Event emitted when tokens are unlocked
@@ -37,7 +37,7 @@ interface IRefTokenBridge {
    * @param _to The address to unlock the token to
    * @param _amount The amount of tokens to be unlocked
    */
-  event TokensUnlocked(address indexed _token, address indexed _to, uint256 _amount);
+  event NativeAssetUnlocked(address indexed _token, address indexed _to, uint256 _amount);
 
   /**
    * @notice Event emitted when tokens are burned
@@ -45,14 +45,14 @@ interface IRefTokenBridge {
    * @param _to The address to burn the token to
    * @param _amount The amount of tokens to be burned
    */
-  event RefTokensBurned(address indexed _token, address indexed _to, uint256 _amount);
+  event RefTokenBurned(address indexed _token, address indexed _to, uint256 _amount);
   /**
    * @notice Event emitted when tokens are minted
    * @param _token The token to be minted
    * @param _to The address to mint the token to
    * @param _amount The amount of tokens to be minted
    */
-  event RefTokensMinted(address indexed _token, address indexed _to, uint256 _amount);
+  event RefTokenMinted(address indexed _token, address indexed _to, uint256 _amount);
 
   /**
    * @notice Event emitted when a message is sent
