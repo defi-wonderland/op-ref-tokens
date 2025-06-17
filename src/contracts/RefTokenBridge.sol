@@ -171,6 +171,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Internal function to send a message
+   * @param _nativeAssetChainId The chain where the native asset is locked
    * @param _relayChainId The relay chain ID
    * @param _token The token to be sent, either the native asset or the RefToken
    * @param _amount The amount of token to be sent
