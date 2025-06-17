@@ -2,7 +2,7 @@
 pragma solidity 0.8.25;
 
 import {RefToken} from '../../src/contracts/RefToken.sol';
-import {IRefTokenBridge} from '../../src/interfaces/IRefTokenBridge.sol';
+import {IRefToken} from '../../src/interfaces/IRefToken.sol';
 import {Test} from 'forge-std/Test.sol';
 
 /**
@@ -125,7 +125,7 @@ contract Helpers is Test {
    */
   function _precalculateRefTokenAddress(
     address _refTokenBridge,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) internal pure returns (address _refTokenAddress) {
     bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAsset));
 

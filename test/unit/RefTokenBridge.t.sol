@@ -12,12 +12,12 @@ import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interf
 import {IERC20Metadata} from 'src/interfaces/external/IERC20Metadata.sol';
 
 contract RefTokenBridgeForTest is RefTokenBridge {
-  function setRefTokenAddress(address _nativeToken, address _refToken) external {
-    nativeToRefToken[_nativeToken] = _refToken;
+  function setRefTokenDeployed(address _nativeToken, bool _deployed) external {
+    isRefTokenDeployed[_nativeToken] = _deployed;
   }
 
-  function setRefTokenMetadata(address _refToken, IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata) external {
-    refTokenMetadata[_refToken] = _refTokenMetadata;
+  function setNativeToRefToken(address _nativeToken, uint256 _nativeAssetChainId, address _refToken) external {
+    nativeToRefToken[_nativeToken][_nativeAssetChainId] = _refToken;
   }
 }
 
@@ -31,14 +31,12 @@ contract RefTokenBridgeUnit is Helpers {
 
   /// Variables
   address public refToken;
-  IRefTokenBridge.RefTokenMetadata public refTokenMetadata;
-
-  mapping(address _refToken => bool _deployed) public refTokenDeployed;
+  IRefToken.RefTokenMetadata public refTokenMetadata;
 
   function setUp() public {
     refTokenBridge = new RefTokenBridgeForTest();
 
-    refTokenMetadata = IRefTokenBridge.RefTokenMetadata({
+    refTokenMetadata = IRefToken.RefTokenMetadata({
       nativeAsset: nativeAsset,
       nativeAssetChainId: nativeAssetChainId,
       nativeAssetName: nativeAssetName,
@@ -50,24 +48,35 @@ contract RefTokenBridgeUnit is Helpers {
     vm.label(refToken, 'Setup RefToken');
   }
 
-  function test_SendRevertWhen_AmountIsZero(address _token, address _recipient, uint256 _relayChainId) external {
+  function test_SendRevertWhen_AmountIsZero(
+    uint256 _nativeAssetChainId,
+    address _token,
+    address _recipient,
+    uint256 _relayChainId
+  ) external {
     uint256 _amount = 0;
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
-    refTokenBridge.send(_relayChainId, _token, _amount, _recipient);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
-  function test_SendRevertWhen_RecipientIsZero(address _token, uint256 _amount, uint256 _relayChainId) external {
+  function test_SendRevertWhen_RecipientIsZero(
+    uint256 _nativeAssetChainId,
+    address _token,
+    uint256 _amount,
+    uint256 _relayChainId
+  ) external {
     _amount = bound(_amount, 1, type(uint256).max);
     address _recipient = address(0);
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
-    refTokenBridge.send(_relayChainId, _token, _amount, _recipient);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
   function test_SendRevertWhen_RelayChainIdIsTheBlockChainId(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount
@@ -78,17 +87,22 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.send(_relayChainId, _token, _amount, _recipient);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
-  function test_SendRevertWhen_RelayChainIdIsZero(address _token, address _recipient, uint256 _amount) external {
+  function test_SendRevertWhen_RelayChainIdIsZero(
+    uint256 _nativeAssetChainId,
+    address _token,
+    address _recipient,
+    uint256 _amount
+  ) external {
     vm.assume(_recipient != address(0));
     _amount = bound(_amount, 1, type(uint256).max);
     uint256 _relayChainId = 0;
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.send(_relayChainId, _token, _amount, _recipient);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
   function test_SendWhenCalledWithANativeTokenFirstTime() external {
@@ -111,6 +125,7 @@ contract RefTokenBridgeUnit is Helpers {
   }
 
   function test_SendAndExecuteRevertWhen_ExecutionDataDestinationExecutorIsTheZeroAddress(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount,
@@ -121,10 +136,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationExecutor.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteRevertWhen_ExecutionDataDestinationChainIdIsZero(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount,
@@ -136,10 +152,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteRevertWhen_ExecutionDataDestinationChainIdIsTheBlockChainId(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount,
@@ -151,10 +168,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteRevertWhen_AmountIsZero(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _relayChainId,
@@ -168,10 +186,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidAmount.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteRevertWhen_RecipientIsZero(
+    uint256 _nativeAssetChainId,
     address _token,
     uint256 _amount,
     uint256 _relayChainId,
@@ -186,10 +205,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteRevertWhen_RelayChainIdIsZero(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount,
@@ -205,10 +225,11 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.send(_relayChainId, _token, _amount, _recipient);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
   function test_SendAndExecuteRevertWhen_RelayChainIdIsTheBlockChainId(
+    uint256 _nativeAssetChainId,
     address _token,
     address _recipient,
     uint256 _amount,
@@ -224,7 +245,7 @@ contract RefTokenBridgeUnit is Helpers {
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
-    refTokenBridge.sendAndExecute(_relayChainId, _token, _amount, _recipient, _executionData);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime() external {
@@ -248,24 +269,26 @@ contract RefTokenBridgeUnit is Helpers {
 
   function test_RelayRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(
     address _caller,
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
     address _token,
     uint256 _amount,
-    address _recipient,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+    address _recipient
   ) external {
     vm.assume(_caller != L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
     vm.prank(_caller);
-    refTokenBridge.relay(_token, _amount, _recipient, _refTokenMetadata);
+    refTokenBridge.relay(_token, _amount, _recipient, _nativeAsset, _nativeAssetChainId);
   }
 
   function test_RelayRevertWhen_CrossDomainSenderIsNotTheRefTokenBridge(
     address _randomCaller,
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
     address _token,
     uint256 _amount,
-    address _recipient,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+    address _recipient
   ) external {
     vm.assume(_randomCaller != address(refTokenBridge));
     _mockAndExpect(
@@ -277,7 +300,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
     vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    refTokenBridge.relay(_token, _amount, _recipient, _refTokenMetadata);
+    refTokenBridge.relay(_token, _amount, _recipient, _nativeAsset, _nativeAssetChainId);
   }
 
   function test_RelayWhenOnTheNativeAssetChain() external {
@@ -301,14 +324,15 @@ contract RefTokenBridgeUnit is Helpers {
     address _token,
     uint256 _amount,
     address _recipient,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
     IRefTokenBridge.ExecutionData memory _executionData
   ) external {
     vm.assume(_caller != L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
     vm.prank(_caller);
-    refTokenBridge.relayAndExecute(_token, _amount, _recipient, _refTokenMetadata, _executionData);
+    refTokenBridge.relayAndExecute(_token, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
   }
 
   function test_RelayAndExecuteRevertWhen_CrossDomainSenderIsNotTheRefTokenBridge(
@@ -316,7 +340,8 @@ contract RefTokenBridgeUnit is Helpers {
     address _token,
     uint256 _amount,
     address _recipient,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata,
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
     IRefTokenBridge.ExecutionData memory _executionData
   ) external {
     vm.assume(_randomCaller != address(refTokenBridge));
@@ -329,7 +354,7 @@ contract RefTokenBridgeUnit is Helpers {
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
     vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
-    refTokenBridge.relayAndExecute(_token, _amount, _recipient, _refTokenMetadata, _executionData);
+    refTokenBridge.relayAndExecute(_token, _amount, _recipient, _nativeAsset, _nativeAssetChainId, _executionData);
   }
 
   function test_RelayAndExecuteWhenOnTheNativeAssetChainAndExecutionSucceeds() external {
@@ -384,33 +409,117 @@ contract RefTokenBridgeUnit is Helpers {
     // It should revoke the executor approval
   }
 
-  function test_UnlockRevertWhen_CallerIsNotValid() external {
+  function test_UnlockRevertWhen_CallerIsNotTheL2ToL2CrossDomainMessenger(
+    address _caller,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    vm.assume(_caller != address(0));
+    vm.assume(_caller != L2_TO_L2_CROSS_DOMAIN_MESSENGER);
     // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
+    vm.prank(_caller);
+    refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
   }
 
-  function test_UnlockWhenCalledL2ToL2CrossDomainMessenger() external {
-    // It should emit TokenUnlocked
+  function test_UnlockRevertWhen_CallerIsNotTheRefTokenForTheNativeAsset(
+    address _caller,
+    address _refToken,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    vm.assume(_caller != L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    vm.assume(_caller != _refToken);
+
+    refTokenBridge.setNativeToRefToken(_nativeAsset, block.chainid, _refToken);
+
+    // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_Unauthorized.selector);
+    vm.prank(_caller);
+    refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
+  }
+
+  function test_UnlockWhenCalledByTheL2ToL2CrossDomainMessenger(
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_nativeAsset);
+
     // It should transfer the tokens to user
-  }
+    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true));
 
-  function test_UnlockWhenCalledToken() external {
     // It should emit TokenUnlocked
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.TokensUnlocked(_nativeAsset, _recipient, _amount);
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
+  }
+
+  function test_UnlockWhenCalledByTheAssociatedRefToken(
+    address _refToken,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_nativeAsset);
+    refTokenBridge.setNativeToRefToken(_nativeAsset, block.chainid, _refToken);
+
     // It should transfer the tokens to user
+    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true));
+
+    // It should emit TokensUnlocked
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.TokensUnlocked(_nativeAsset, _recipient, _amount);
+
+    vm.prank(_refToken);
+    refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
   }
 
-  function test_GetRefTokenWhenCalledWithANativeTokenAndTheRefTokenExists() external {
-    // It should return the RefToken and its metadata
+  function test_GetRefTokenWhenCalledWithANativeTokenAndTheRefTokenExists(
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
+    address _refToken
+  ) external {
+    vm.assume(_nativeAsset != address(0));
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+    refTokenBridge.setNativeToRefToken(_nativeAsset, _nativeAssetChainId, _refToken);
+
+    // It should return the RefToken
+    address _refTokenResult = refTokenBridge.getRefToken(_nativeAsset, _nativeAssetChainId);
+    assertEq(_refTokenResult, _refToken);
   }
 
-  function test_GetRefTokenWhenCalledWithANativeTokenAndTheRefTokenDoesntExist() external {
-    // It should empty the RefToken and its metadata
+  function test_GetRefTokenWhenCalledWithANativeTokenAndTheRefTokenDoesntExist(
+    address _nativeAsset,
+    uint256 _nativeAssetChainId
+  ) external view {
+    // It should return the RefToken
+    address _refTokenResult = refTokenBridge.getRefToken(_nativeAsset, _nativeAssetChainId);
+
+    assertEq(_refTokenResult, address(0));
   }
 
-  function test_GetRefTokenWhenCalledWithARefTokenAndTheRefTokenExists() external {
-    // It should return the RefToken and its metadata
+  function test_GetRefTokenWhenCalledWithARefTokenAndTheRefTokenExists(
+    address _refToken,
+    uint256 _randomChainId
+  ) external {
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+
+    // It should return the RefToken
+    address _refTokenResult = refTokenBridge.getRefToken(_refToken, _randomChainId);
+    assertEq(_refTokenResult, _refToken);
   }
 
-  function test_GetRefTokenWhenCalledWithARefTokenAndTheRefTokenDoesntExist() external {
-    // It should return the RefToken and its metadata
+  function test_GetRefTokenWhenCalledWithARefTokenAndTheRefTokenDoesntExist(
+    address _refToken,
+    uint256 _randomChainId
+  ) external view {
+    // It should return the RefToken
+    address _refTokenResult = refTokenBridge.getRefToken(_refToken, _randomChainId);
+    assertEq(_refTokenResult, address(0));
   }
 }

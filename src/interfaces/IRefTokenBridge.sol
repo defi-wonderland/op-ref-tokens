@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {IRefToken} from './IRefToken.sol';
 import {IL2ToL2CrossDomainMessenger} from '@interop-lib/src/interfaces/IL2ToL2CrossDomainMessenger.sol';
 
 /**
@@ -20,22 +21,6 @@ interface IRefTokenBridge {
     uint256 destinationChainId;
     address refundAddress;
     bytes data;
-  }
-
-  // TODO: This could live on the ref token
-  /**
-   * @notice Data structure for the RefToken metadata
-   * @param nativeAsset The address of the native asset
-   * @param nativeAssetChainId The chain ID of the native asset
-   * @param nativeAssetName The name of the native asset
-   * @param nativeAssetSymbol The symbol of the native asset
-   */
-  struct RefTokenMetadata {
-    address nativeAsset;
-    uint256 nativeAssetChainId;
-    string nativeAssetName;
-    string nativeAssetSymbol;
-    uint8 nativeAssetDecimals;
   }
 
   /**
@@ -129,14 +114,9 @@ interface IRefTokenBridge {
   error RefTokenBridge_InvalidDestinationExecutor();
 
   /**
-   * @notice Error emitted when the messenger is invalid
+   * @notice Error emitted when the caller is not authorized
    */
   error RefTokenBridge_Unauthorized();
-
-  /**
-   * @notice Error emitted when the sender is invalid
-   */
-  error RefTokenBridge_InvalidSender();
 
   /**
    * @notice Error emitted when the token is not the native asset
@@ -153,45 +133,44 @@ interface IRefTokenBridge {
     returns (IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger);
 
   /**
-   * @notice Get the RefToken metadata
-   * @param _token The token to get the metadata from
-   * @return _nativeAssetAddress The address of the native asset
-   * @return _nativeAssetChainId The chain ID of the native asset
-   * @return _nativeAssetName The name of the native asset
-   * @return _nativeAssetSymbol The symbol of the native asset
-   * @return _nativeAssetDecimals The decimals of the native asset
+   * @notice Check if the RefToken is deployed
+   * @param _refToken The RefToken address
+   * @return _isRefTokenDeployed Whether the RefToken is deployed
    */
-  function refTokenMetadata(address _token)
-    external
-    view
-    returns (
-      address _nativeAssetAddress,
-      uint256 _nativeAssetChainId,
-      string memory _nativeAssetName,
-      string memory _nativeAssetSymbol,
-      uint8 _nativeAssetDecimals
-    );
+  function isRefTokenDeployed(address _refToken) external view returns (bool _isRefTokenDeployed);
 
   /**
    * @notice Get the RefToken address
    * @param _nativeToken The native token to get the RefToken address from
+   * @param _nativeAssetChainId The chain ID of the native asset
    * @return _refToken The RefToken address
    */
-  function nativeToRefToken(address _nativeToken) external view returns (address _refToken);
+  function nativeToRefToken(
+    address _nativeToken,
+    uint256 _nativeAssetChainId
+  ) external view returns (address _refToken);
 
   /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
+   * @param _nativeAssetChainId The chain ID of the native asset
    * @param _relayChainId The chain where the tokens will be relayed to
    * @param _token The input token to be sent, either the native asset or the RefToken
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient that will receive the token on the relay chain
    */
-  function send(uint256 _relayChainId, address _token, uint256 _amount, address _recipient) external;
+  function send(
+    uint256 _nativeAssetChainId,
+    uint256 _relayChainId,
+    address _token,
+    uint256 _amount,
+    address _recipient
+  ) external;
 
   /**
    * @notice Send token to the destination chain and execute in the destination chain executor
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
+   * @param _nativeAssetChainId The chain ID of the native asset
    * @param _relayChainId The chain where the tokens will be relayed
    * @param _token The input token to be sent, either the native asset or the RefToken
    * @param _amount The amount of token to be sent
@@ -199,6 +178,7 @@ interface IRefTokenBridge {
    * @param _executionData The data to be executed on the destination chain
    */
   function sendAndExecute(
+    uint256 _nativeAssetChainId,
     uint256 _relayChainId,
     address _token,
     uint256 _amount,
@@ -211,13 +191,15 @@ interface IRefTokenBridge {
    * @param _refToken The RefToken address
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
-   * @param _refTokenMetadata The metadata of the RefToken
+   * @param _nativeAsset The native asset to be relayed
+   * @param _nativeAssetChainId The chain ID of the native asset
    */
   function relay(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    RefTokenMetadata calldata _refTokenMetadata
+    address _nativeAsset,
+    uint256 _nativeAssetChainId
   ) external;
 
   /**
@@ -225,14 +207,16 @@ interface IRefTokenBridge {
    * @param _refToken The token to be relayed
    * @param _amount The amount of token to be sent
    * @param _recipient The recipient of the token
-   * @param _refTokenMetadata The metadata of the RefToken
+   * @param _nativeAsset The native asset to be relayed
+   * @param _nativeAssetChainId The chain ID of the native asset
    * @param _executionData The data to be executed on the destination chain
    */
   function relayAndExecute(
     address _refToken,
     uint256 _amount,
     address _recipient,
-    RefTokenMetadata calldata _refTokenMetadata,
+    address _nativeAsset,
+    uint256 _nativeAssetChainId,
     ExecutionData calldata _executionData
   ) external;
 
@@ -245,13 +229,10 @@ interface IRefTokenBridge {
   function unlock(address _token, address _to, uint256 _amount) external;
 
   /**
-   * @notice Gets the RefToken and its metadata
+   * @notice Gets the RefToken
    * @param _token Either the native asset or the RefToken
+   * @param _nativeAssetChainId The chain ID of the native asset
    * @return _refToken The address of the RefToken, zero address if the RefToken is not deployed
-   * @return _refTokenMetadata The metadata of the RefToken, empty if the RefToken is not deployed
    */
-  function getRefToken(address _token)
-    external
-    view
-    returns (address _refToken, RefTokenMetadata memory _refTokenMetadata);
+  function getRefToken(address _token, uint256 _nativeAssetChainId) external view returns (address _refToken);
 }

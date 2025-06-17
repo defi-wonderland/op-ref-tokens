@@ -82,7 +82,7 @@ RefTokenBridgeUnit::relayAndExecute
 │   ├── It should unlock the native assets to the executor
 │   ├── It should approve the executor
 │   ├── It should execute the data
-│   ├── It shouldsend RefTokens to the refund address on the origin chain
+│   ├── It should send RefTokens to the refund address on the origin chain
 │   └── It should revoke the executor approval
 ├── When not on the native asset chain and the RefToken is deployed and execution succeeds
 │   ├── It should mint the tokens to the executor
@@ -102,7 +102,7 @@ RefTokenBridgeUnit::relayAndExecute
 │   ├── It should approve the executor
 │   ├── It should execute the data
 │   ├── It should burn the RefTokens
-│   ├── It shouldsend RefTokens to the refund address on the origin chain
+│   ├── It should send RefTokens to the refund address on the origin chain
 │   └── It should revoke the executor approval
 └── When not on the native asset chain and the RefToken is not deployed and execution fails
     ├── It should deploy the RefToken
@@ -114,21 +114,23 @@ RefTokenBridgeUnit::relayAndExecute
     └── It should revoke the executor approval
 
 RefTokenBridgeUnit::unlock
-├── When caller is not valid
+├── When caller is not the L2 to L2 cross domain messenger
 │   └── It should revert
-├── When called L2 to L2 Cross Domain Messenger
-│   ├── It should emit TokenUnlocked
-│   └── It should transfer the tokens to user
-└── When called token
-    ├── It should emit TokenUnlocked
-    └── It should transfer the tokens to user
+├── When caller is not the RefToken for the native asset
+│   └── It should revert
+├── When called by the L2 to L2 Cross Domain Messenger
+│   ├── It should transfer the tokens to user
+│   └── It should emit TokenUnlocked
+└── When called by the associated RefToken
+    ├── It should transfer the tokens to user
+    └── It should emit TokensUnlocked
 
 RefTokenBridgeUnit::getRefToken
 ├── When called with a native token and the RefToken exists
-│   └── It should return the RefToken and its metadata
+│   └── It should return the RefToken
 ├── When called with a native token and the RefToken doesnt exist
-│   └── It should empty the RefToken and its metadata
+│   └── It should empty the RefToken
 ├── When called with a RefToken and the RefToken exists
-│   └── It should return the RefToken and its metadata
+│   └── It should return the RefToken
 └── When called with a RefToken and the RefToken doesnt exist
-    └── It should return the RefToken and its metadata
+    └── It should return the RefToken

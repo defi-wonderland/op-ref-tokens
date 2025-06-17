@@ -1,13 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {ISuperchainERC20} from '@interop-lib/src/interfaces/ISuperchainERC20.sol';
+import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 
 /**
  * @title IRefToken
  * @notice Interface for the RefToken
  */
-interface IRefToken is ISuperchainERC20 {
+interface IRefToken {
+  /*///////////////////////////////////////////////////////////////
+                            STRUCTS
+  //////////////////////////////////////////////////////////////*/
+  /**
+   * @notice Data structure for the RefToken metadata
+   * @param nativeAsset The address of the native asset
+   * @param nativeAssetChainId The chain ID of the native asset
+   * @param nativeAssetName The name of the native asset
+   * @param nativeAssetSymbol The symbol of the native asset
+   */
+  struct RefTokenMetadata {
+    address nativeAsset;
+    uint256 nativeAssetChainId;
+    string nativeAssetName;
+    string nativeAssetSymbol;
+    uint8 nativeAssetDecimals;
+  }
+
   /*///////////////////////////////////////////////////////////////
                             LOGIC
   //////////////////////////////////////////////////////////////*/
@@ -34,19 +52,13 @@ interface IRefToken is ISuperchainERC20 {
    * @notice The address of the RefTokenBridge contract
    * @return _refTokenBridge The RefTokenBridge contract address
    */
-  function REF_TOKEN_BRIDGE() external view returns (address _refTokenBridge);
+  function REF_TOKEN_BRIDGE() external view returns (IRefTokenBridge _refTokenBridge);
 
   /**
    * @notice The chain id where the native asset is locked
    * @return _nativeAssetChainId The native asset chain id
    */
   function NATIVE_ASSET_CHAIN_ID() external view returns (uint256 _nativeAssetChainId);
-
-  /**
-   * @notice The decimals of the native asset
-   * @return _nativeAssetDecimals The native asset decimals
-   */
-  function NATIVE_ASSET_DECIMALS() external view returns (uint8 _nativeAssetDecimals);
 
   /**
    * @notice The name of the native asset
@@ -61,20 +73,8 @@ interface IRefToken is ISuperchainERC20 {
   function nativeAssetSymbol() external view returns (string memory _nativeAssetSymbol);
 
   /**
-   * @notice The name of the RefToken, composed by a predefined string and the native asset name
-   * @return _name The RefToken name
+   * @notice The RefToken metadata
+   * @return _refTokenMetadata The RefToken metadata
    */
-  function name() external view returns (string memory _name);
-
-  /**
-   * @notice The symbol of the RefToken, composed by a predefined string and the native asset symbol
-   * @return _symbol The RefToken symbol
-   */
-  function symbol() external view returns (string memory _symbol);
-
-  /**
-   * @notice The decimals of the RefToken, matching the native asset decimals
-   * @return _decimals The RefToken decimals
-   */
-  function decimals() external view returns (uint8 _decimals);
+  function metadata() external view returns (RefTokenMetadata memory _refTokenMetadata);
 }
