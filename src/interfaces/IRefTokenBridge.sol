@@ -101,9 +101,9 @@ interface IRefTokenBridge {
   error RefTokenBridge_InvalidRecipient();
 
   /**
-   * @notice Thrown when the destination chain id is invalid
+   * @notice Thrown when the relay chain id is invalid
    */
-  error RefTokenBridge_InvalidDestinationChainId();
+  error RefTokenBridge_InvalidRelayChainId();
 
   /**
    * @notice Thrown when the execution chain id is invalid
@@ -126,7 +126,7 @@ interface IRefTokenBridge {
   error RefTokenBridge_NotNativeAsset();
 
   /**
-   * @notice Thrown when the native asset chain id does not match the block chain id when deploying a RefToken on _send
+   * @notice Thrown when the native asset chain id is zero
    */
   error RefTokenBridge_InvalidNativeAssetChainId();
 

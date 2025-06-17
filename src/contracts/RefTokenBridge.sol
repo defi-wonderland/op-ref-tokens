@@ -178,13 +178,13 @@ contract RefTokenBridge is IRefTokenBridge {
   ) internal {
     if (_amount == 0) revert RefTokenBridge_InvalidAmount();
     if (_recipient == address(0)) revert RefTokenBridge_InvalidRecipient();
-    if (_relayChainId == 0 || _relayChainId == block.chainid) revert RefTokenBridge_InvalidDestinationChainId();
-    // TODO: relaychain id != nativeAssetChainId check needed here?
+    if (_relayChainId == 0 || _relayChainId == block.chainid) revert RefTokenBridge_InvalidRelayChainId();
 
+    IRefToken.RefTokenMetadata memory _refTokenMetadata;
     address _refToken = getRefToken(_token, _nativeAssetChainId);
     // If the RefToken is not deployed, deploy it
-    IRefToken.RefTokenMetadata memory _refTokenMetadata;
     if (_refToken == address(0)) {
+      // If deploying, the native asset chain id must match the block chain id
       if (_nativeAssetChainId != block.chainid) revert RefTokenBridge_InvalidNativeAssetChainId();
 
       _refTokenMetadata = IRefToken.RefTokenMetadata({

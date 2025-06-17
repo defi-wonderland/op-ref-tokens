@@ -86,7 +86,7 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _relayChainId = block.chainid;
 
     // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRelayChainId.selector);
     refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
@@ -101,7 +101,25 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _relayChainId = 0;
 
     // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRelayChainId.selector);
+    refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
+  }
+
+  function test_SendRevertWhen_NativeAssetChainIdIsZero(
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    address _token,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    _nativeAssetChainId = 0;
+
+    // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
     refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
@@ -256,6 +274,7 @@ contract RefTokenBridgeUnit is Helpers {
     _amount = bound(_amount, 1, type(uint256).max);
     vm.assume(_recipient != address(0));
     _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
     if (_relayChainId == block.chainid) ++_relayChainId;
 
     refTokenBridge.setRefTokenDeployed(_refToken, true);
@@ -383,7 +402,7 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _relayChainId = 0;
 
     // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRelayChainId.selector);
     refTokenBridge.send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient);
   }
 
@@ -403,7 +422,7 @@ contract RefTokenBridgeUnit is Helpers {
     uint256 _relayChainId = block.chainid;
 
     // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidDestinationChainId.selector);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRelayChainId.selector);
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
@@ -429,6 +448,28 @@ contract RefTokenBridgeUnit is Helpers {
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
     vm.prank(_caller);
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _nativeAsset, _amount, _recipient, _executionData);
+  }
+
+  function test_SendAndExecuteRevertWhen_NativeAssetChainIdIsZero(
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _amount = bound(_amount, 1, type(uint256).max);
+    vm.assume(_recipient != address(0));
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
+    if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
+    vm.assume(_executionData.destinationExecutor != address(0));
+
+    // It should revert
+    _nativeAssetChainId = 0;
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
@@ -588,6 +629,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
     _relayChainId = bound(_relayChainId, 1, type(uint256).max);
     if (_relayChainId == block.chainid) ++_relayChainId;
 
@@ -791,6 +833,7 @@ contract RefTokenBridgeUnit is Helpers {
     IRefTokenBridge.ExecutionData memory _executionData
   ) external {
     _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_executionData.destinationExecutor);
 
     _refTokenMetadata.nativeAssetChainId = block.chainid;
     refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
