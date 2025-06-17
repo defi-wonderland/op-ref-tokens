@@ -64,7 +64,7 @@ RefTokenBridgeUnit::relay
 │   └── It should emit MessageRelayed
 ├── When called not on the native asset chain and the RefToken is deployed
 │   ├── It should mint the tokens to the recipient
-│   └── It should emit MessageRelayed and revert
+│   └── It should emit MessageRelayed
 └── When called not on the native asset chain and the RefToken is not deployed
     ├── It should deploy the RefToken
     ├── It should mint the tokens to the recipient

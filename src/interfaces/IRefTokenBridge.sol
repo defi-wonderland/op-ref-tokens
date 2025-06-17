@@ -86,8 +86,9 @@ interface IRefTokenBridge {
    * @notice Event emitted when a RefToken is deployed
    * @param _refToken The RefToken address
    * @param _nativeAsset The native asset address
+   * @param _nativeAssetChainId The chain ID of the native asset
    */
-  event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset);
+  event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset, uint256 _nativeAssetChainId);
 
   /**
    * @notice Thrown when the amount is invalid

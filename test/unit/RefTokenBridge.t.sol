@@ -678,20 +678,119 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.relay(_token, _amount, _recipient, _nativeAsset, _nativeAssetChainId);
   }
 
-  function test_RelayWhenOnTheNativeAssetChain() external {
+  function test_RelayWhenOnTheNativeAssetChain(
+    address _refToken,
+    uint256 _amount,
+    address _nativeAsset,
+    address _recipient
+  ) external {
+    _assumeFuzzable(_nativeAsset);
+
+    uint256 _nativeAssetChainId = block.chainid;
+    refTokenBridge.setNativeToRefToken(_nativeAsset, _nativeAssetChainId, _refToken);
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
     // It should unlock the native assets to the recipient
+    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.TokensUnlocked(_nativeAsset, _recipient, _amount);
+
     // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(_refToken, _amount, _recipient, address(0));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relay(_refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId);
   }
 
-  function test_RelayWhenCalledNotOnTheNativeAssetChainAndTheRefTokenIsDeployed() external {
+  function test_RelayWhenCalledNotOnTheNativeAssetChainAndTheRefTokenIsDeployed(
+    address _refToken,
+    uint256 _amount,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _nativeAssetChainId
+  ) external {
+    vm.assume(_nativeAssetChainId != block.chainid);
+    _assumeFuzzable(_refToken);
+
+    refTokenBridge.setNativeToRefToken(_nativeAsset, _nativeAssetChainId, _refToken);
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
     // It should mint the tokens to the recipient
-    // It should emit MessageRelayed and revert
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.mint, (_recipient, _amount)), abi.encode(true));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, _recipient, _amount);
+
+    // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(_refToken, _amount, _recipient, address(0));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relay(_refToken, _amount, _recipient, _nativeAsset, _nativeAssetChainId);
   }
 
-  function test_RelayWhenCalledNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployed() external {
+  function test_RelayWhenCalledNotOnTheNativeAssetChainAndTheRefTokenIsNotDeployed(
+    uint256 _amount,
+    address _recipient,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
+  ) external {
+    vm.assume(_refTokenMetadata.nativeAssetChainId != block.chainid);
+
+    _mockAndExpect(
+      L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      abi.encodeCall(IL2ToL2CrossDomainMessenger.crossDomainMessageSender, ()),
+      abi.encode(address(refTokenBridge))
+    );
+
     // It should deploy the RefToken
+    address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeCall(IERC20Metadata.name, ()),
+      abi.encode(_refTokenMetadata.nativeAssetName)
+    );
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeCall(IERC20Metadata.symbol, ()),
+      abi.encode(_refTokenMetadata.nativeAssetSymbol)
+    );
+    _mockAndExpect(
+      _refTokenMetadata.nativeAsset,
+      abi.encodeCall(IERC20Metadata.decimals, ()),
+      abi.encode(_refTokenMetadata.nativeAssetDecimals)
+    );
+
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokenDeployed(
+      _refToken, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId
+    );
+
     // It should mint the tokens to the recipient
+    vm.expectCall(_refToken, abi.encodeCall(IRefToken.mint, (_recipient, _amount)));
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokensMinted(_refToken, _recipient, _amount);
+
     // It should emit MessageRelayed
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.MessageRelayed(_refToken, _amount, _recipient, address(0));
+
+    vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.relay(
+      _refToken, _amount, _recipient, _refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId
+    );
+
+    assertTrue(refTokenBridge.isRefTokenDeployed(_refToken));
+    assertEq(
+      refTokenBridge.nativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId), _refToken
+    );
   }
 
   function test_RelayAndExecuteRevertWhen_SenderIsNotTheL2ToL2CrossDomainMessenger(

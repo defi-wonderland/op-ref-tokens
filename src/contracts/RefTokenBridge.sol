@@ -239,7 +239,7 @@ contract RefTokenBridge is IRefTokenBridge {
     nativeToRefToken[_nativeAsset][_nativeAssetChainId] = _refToken;
     isRefTokenDeployed[_refToken] = true;
 
-    emit RefTokenDeployed(_refToken, _nativeAsset);
+    emit RefTokenDeployed(_refToken, _nativeAsset, _nativeAssetChainId);
   }
 
   /**
