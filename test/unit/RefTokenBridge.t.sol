@@ -142,6 +142,9 @@ contract RefTokenBridgeUnit is Helpers {
     _refTokenMetadata.nativeAssetChainId = block.chainid;
     address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
 
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokenDeployed(_refToken, _refTokenMetadata.nativeAsset, block.chainid);
+
     _mockAndExpect(
       _refTokenMetadata.nativeAsset,
       abi.encodeWithSelector(IERC20Metadata.name.selector),
@@ -455,6 +458,9 @@ contract RefTokenBridgeUnit is Helpers {
     // It should create the RefToken
     _refTokenMetadata.nativeAssetChainId = block.chainid;
     address _refToken = _precalculateRefTokenAddress(address(refTokenBridge), _refTokenMetadata);
+
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.RefTokenDeployed(_refToken, _refTokenMetadata.nativeAsset, block.chainid);
 
     _mockAndExpect(
       _refTokenMetadata.nativeAsset,
