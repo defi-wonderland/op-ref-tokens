@@ -91,24 +91,31 @@ interface IExecutor {
 
 1.  **Cross-Chain Swap (OP ⇒ UNI)**
     ![Flow-1](docs/assets/flow-1.webp)
+
     A user locks native `OP` on the origin chain → `refOP` is minted on the destination chain → a `UniSwapperExecutor` swaps `refOP` to `UNI` → `UNI` is sent to the recipient.
 
 2.  **Execute Swap (OP ⇒ WETH) + Cross-Chain Swap (WETH ⇒ UNI)**
     ![Flow-2](docs/assets/flow-2.webp)
-    A user first swaps `OP` for `WETH` on the origin chain → the executor then locks the native `WETH` → `refWETH` is minted on the destination chain → it's swapped to `UNI` → `UNI` is sent to the recipient.
+
+    A user first swaps `OP` for `WETH` on the origin chain → then locks the native `WETH` → `refWETH` is minted on the destination chain → it's swapped to `UNI` → `UNI` is sent to the recipient.
 
 3.  **Send without execute**
     ![Flow-3](docs/assets/flow-3.webp)
-    Lock a native token → mint the corresponding `RefToken` on the destination chain → send it directly to the recipient (no downstream execution).
+
+    Lock a native token → mint the corresponding `RefToken` on the destination chain → send it directly to the recipient (no fallback execution).
 
 4.  **Failure Rollback**
     ![Flow-4](docs/assets/flow-4.webp)
+
+    Assuming that the first steps were executed properly, after that the message got relayed on Unichain chain:
+
     If the downstream call on the destination chain reverts, the freshly minted `RefToken` is burned and a message is sent back to the origin chain to unlock the original asset.
 
     > ⚠️ This is a fallback mechanism if the `AppActionExecutor` call fails. It won't protect funds from a buggy implementation with an undesired output that didn't revert.
 
 5.  **Post-Launch SuperchainTokenBridge Integration**
     ![Flow-5](docs/assets/flow-5.webp)
+
     Once the canonical bridge is live, `crosschainBurn` + `crosschainMint` will let users seamlessly redeem locked native assets for the real thing via the official bridge.
 
 ---
