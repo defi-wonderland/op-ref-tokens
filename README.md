@@ -13,7 +13,7 @@
 
 1.  **Lock** the native token on its origin chain.
 2.  **Mint** a deterministic `RefToken` on the destination chain.
-3.  **Execute** downstream protocol logic (Uniswap swaps, LP-adds, etc.) in the same transaction.
+3.  **Execute** external protocol logic (Uniswap swaps, LP-adds, etc.) in the same transaction.
 4.  **Deliver** the result to _any_ Superchain L2 or roll back and unlock if it reverts.
 
 ---
