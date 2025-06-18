@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
 import {Helpers} from 'test/utils/Helpers.t.sol';
 
@@ -7,6 +7,8 @@ import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.
 import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
 
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
+
+import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
@@ -17,29 +19,32 @@ contract UnitRefTokenTest is Helpers {
 
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
+  IRefToken.RefTokenMetadata public refTokenMetadata;
 
   function setUp() public {
     refTokenBridge = IRefTokenBridge(makeAddr('RefTokenBridge'));
-    refToken =
-      new RefToken(address(refTokenBridge), nativeAssetChainId, nativeAssetName, nativeAssetSymbol, nativeAssetDecimals);
+    refTokenMetadata = IRefToken.RefTokenMetadata({
+      nativeAsset: nativeAsset,
+      nativeAssetChainId: nativeAssetChainId,
+      nativeAssetName: nativeAssetName,
+      nativeAssetSymbol: nativeAssetSymbol,
+      nativeAssetDecimals: nativeAssetDecimals
+    });
+    refToken = new RefToken(address(refTokenBridge), refTokenMetadata);
   }
 
   function test_ConstructorWhenDeployed(
     IRefTokenBridge _refTokenBridge,
-    uint256 _nativeAssetChainId,
-    string memory _nativeAssetName,
-    string memory _nativeAssetSymbol,
-    uint8 _nativeAssetDecimals
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) external {
     // It constructs the RefToken contract
-    RefToken newRefToken = new RefToken(
-      address(_refTokenBridge), _nativeAssetChainId, _nativeAssetName, _nativeAssetSymbol, _nativeAssetDecimals
-    );
+    RefToken newRefToken = new RefToken(address(_refTokenBridge), _refTokenMetadata);
+
     assertEq(address(newRefToken.REF_TOKEN_BRIDGE()), address(_refTokenBridge));
-    assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), _nativeAssetChainId);
-    assertEq(newRefToken.nativeAssetName(), _nativeAssetName);
-    assertEq(newRefToken.nativeAssetSymbol(), _nativeAssetSymbol);
-    assertEq(newRefToken.decimals(), _nativeAssetDecimals);
+    assertEq(newRefToken.NATIVE_ASSET_CHAIN_ID(), _refTokenMetadata.nativeAssetChainId);
+    assertEq(newRefToken.nativeAssetName(), _refTokenMetadata.nativeAssetName);
+    assertEq(newRefToken.nativeAssetSymbol(), _refTokenMetadata.nativeAssetSymbol);
+    assertEq(newRefToken.decimals(), _refTokenMetadata.nativeAssetDecimals);
   }
 
   function test_MintWhenCallerIsNotAuthorized(address _caller, address _user, uint256 _amount) external {
@@ -87,6 +92,10 @@ contract UnitRefTokenTest is Helpers {
     vm.prank(address(refTokenBridge));
     refToken.burn(_user, _burnAmount);
     assertEq(refToken.balanceOf(_user), _initialBalance - _burnAmount);
+  }
+
+  function test_RefTokenMetadataWhenCalled() external view {
+    assertEq(abi.encode(refToken.metadata()), abi.encode(refTokenMetadata));
   }
 
   function test_NameWhenCalled() external view {
