@@ -1,7 +1,7 @@
 {
   "name": "op-ref-tokens",
   "version": "1.0.0",
-  "description": "RefTokens – Native cross-chain liquidity primitive for the OP Superchain (RefTokenBridge + AppActionExecutors)",
+  "description": "Cross-chain liquidity protocol to bridge RefTokens representations on a given asset that does not exist on destination.",
   "homepage": "https://github.com/defi-wonderland/op-ref-tokens#readme",
   "repository": {
     "type": "git",

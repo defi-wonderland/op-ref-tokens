@@ -3,20 +3,18 @@
 `RefTokenBridge • RefToken • SuperchainERC20`
 
 > ⚠️ **Caution**  
-> The contracts have **NOT** been audited yet.  
-> Use at your own risk.
+> The contracts have **NOT** been audited yet. This is a work in progress, and cannot be considered production-ready.
 
 ---
 
-## Overview
+## What are RefTokens?
 
-`RefTokens` turn any native ERC2O token into a cross-chain asset inside the OP Superchain.  
-Instead of physically bridging tokens, we **bridge intent**:
+`RefTokens` turn any native ERC20 token into a cross-chain asset inside the OP Superchain. Instead of physically bridging tokens, we **bridge intent**:
 
-1. **Lock** the native token on its origin chain.
-2. **Mint** a deterministic `RefToken` on the destination chain.
-3. **Execute** downstream protocol logic (Uniswap swaps, LP-adds, etc.) in the same transaction.
-4. **Deliver** the result to _any_ Superchain L2 or roll back and unlock if it reverts.
+1.  **Lock** the native token on its origin chain.
+2.  **Mint** a deterministic `RefToken` on the destination chain.
+3.  **Execute** downstream protocol logic (Uniswap swaps, LP-adds, etc.) in the same transaction.
+4.  **Deliver** the result to _any_ Superchain L2 or roll back and unlock if it reverts.
 
 ---
 
@@ -56,29 +54,28 @@ yarn build
 
 ---
 
-## Design
+## How it Works
+
+The design introduces `RefTokens`, a standardized remote ERC-20 representation, and a per-chain `RefTokenBridge` that locks, mints, and routes tokens as part of atomic cross-chain executions.
 
 ### Core Components
 
-1. **RefToken**
+1.  **RefToken**
 
-   - ERC-20 compliant, address derived with `CREATE2` from `(originChainId, originToken)`.
-   - Implements `SuperchainERC20` hooks for future `SuperchainTokenBridge` upgrades.
+    - An ERC-20 representation uniquely tied to an original asset on an origin chain `(originChainId, originTokenAddress)`. Its contract address is deterministically derived using `CREATE2`, meaning a `RefToken` (e.g., OP on OPM) will have the same address on any destination chain. This prevents front-running and simplifies integration.
 
-2. **RefTokenBridge**
+2.  **RefTokenBridge**
 
-   - Custodies locked native assets on the source chain.
-   - Mints / burns `RefTokens` on source and destination.
-   - Rolls back if the downstream call fails (burns and unlocks).
+    - The bridge in charge of the lock/mint & burn/release mechanism.
+    - **On the source chain**: It locks native tokens and initiates a cross-chain message.
+    - **On the destination chain**: It receives the message, mints the corresponding `RefToken`, and dispatches the action to an executor. It also handles burning `RefTokens` to unlock the native asset on the origin.
 
-3. **AppActionExecutor** (pluggable)
-   - Receives freshly-minted `RefTokens` that have been approved.
-   - Executes arbitrary protocol logic.
-   - Example: `UniSwapperExecutor` that performs a Uniswap v4 hook-based swap.
+3.  **AppActionExecutor** (pluggable)
+    - A contract responsible for executing application-specific logic (e.g., a Uniswap swap) using the `RefToken` on the destination chain. This decouples protocol logic from the bridge.
 
 Any `Executor` that wants to use this system will have to implement this interface:
 
-```
+```solidity
 interface IExecutor {
   function execute(
     address _token,
@@ -90,24 +87,65 @@ interface IExecutor {
 }
 ```
 
----
-
 ### Flows
 
-1. **Cross-Chain Swap (OP ⇒ UNI)**  
-   lock native OP → mint `refOP` on Unichain → swap to UNI → deliver to recipient.
+1.  **Cross-Chain Swap (OP ⇒ UNI)**
+    ![Flow-1](docs/assets/flow-1.webp)
+    A user locks native `OP` on the origin chain → `refOP` is minted on the destination chain → a `UniSwapperExecutor` swaps `refOP` to `UNI` → `UNI` is sent to the recipient.
 
-2. **Execute Swap (OP ⇒ WETH) + Cross-Chain Swap (WETH ⇒ UNI)**  
-   user uses OP executor to swap OP→WETH → lock native WETH → mint `refWETH` on Unichain → swap to UNI → deliver to recipient.
+2.  **Execute Swap (OP ⇒ WETH) + Cross-Chain Swap (WETH ⇒ UNI)**
+    ![Flow-2](docs/assets/flow-2.webp)
+    A user first swaps `OP` for `WETH` on the origin chain → the executor then locks the native `WETH` → `refWETH` is minted on the destination chain → it's swapped to `UNI` → `UNI` is sent to the recipient.
 
-3. **Plain Send**  
-   lock token → mint `RefToken` to recipient (no downstream execution).
+3.  **Send without execute**
+    ![Flow-3](docs/assets/flow-3.webp)
+    Lock a native token → mint the corresponding `RefToken` on the destination chain → send it directly to the recipient (no downstream execution).
 
-4. **Failure Rollback**  
-   downstream call reverts → burn `RefToken` → unlock original asset on source.
+4.  **Failure Rollback**
+    ![Flow-4](docs/assets/flow-4.webp)
+    If the downstream call on the destination chain reverts, the freshly minted `RefToken` is burned and a message is sent back to the origin chain to unlock the original asset.
 
-5. **Post-Launch SuperchainTokenBridge**  
-   once the canonical bridge is live, `crosschainBurn` + `crosschainMint` let users seamlessly redeem locked native assets.
+    > ⚠️ This is a fallback mechanism if the `AppActionExecutor` call fails. It won't protect funds from a buggy implementation with an undesired output that didn't revert.
+
+5.  **Post-Launch SuperchainTokenBridge Integration**
+    ![Flow-5](docs/assets/flow-5.webp)
+    Once the canonical bridge is live, `crosschainBurn` + `crosschainMint` will let users seamlessly redeem locked native assets for the real thing via the official bridge.
+
+---
+
+## Setup
+
+This repository uses **Foundry** for development and **Yarn** for scripting.
+
+```bash
+git clone git@github.com:defi-wonderland/op-ref-tokens.git
+cd ref-tokens
+yarn install
+yarn build
+```
+
+---
+
+## Available Commands
+
+| Yarn Command                   | Description                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `yarn build`                   | Compile all contracts.                                                               |
+| `yarn build:optimized`         | Compile with the `optimized` Foundry profile (via IR).                               |
+| `yarn coverage`                | Generate a coverage report.                                                          |
+| `yarn deploy:optimism`         | Deploy to OP Mainnet (set `$OPTIMISM_RPC` & secrets in `.env`).                      |
+| `yarn deploy:optimism-sepolia` | Deploy to OP Sepolia testnet.                                                        |
+| `yarn test`                    | Run unit **and** integration tests.                                                  |
+| `yarn test:unit`               | Run only unit tests.                                                                 |
+| `yarn test:unit:deep`          | Unit tests with 5 000 fuzz runs.                                                     |
+| `yarn test:integration`        | Run integration tests (fork).                                                        |
+| `yarn test:fuzz`               | Run Echidna fuzzing campaign.                                                        |
+| `yarn test:symbolic`           | Run Halmos symbolic execution tests.                                                 |
+| `yarn lint:bulloak`            | Run Bulloak on every \*.tree file under /test and automatically apply fixes (--fix). |
+| `yarn lint:check`              | Solidity & formatting lints (read-only).                                             |
+| `yarn lint:fix`                | Auto-fix lint & formatting issues.                                                   |
+
+> Make sure `OPTIMISM_RPC`, `OPTIMISM_DEPLOYER_NAME`, etc. are exported or present in `.env` before running deploy or integration tests.
 
 ---
 
@@ -127,22 +165,20 @@ interface IExecutor {
 - **Create2Deployer** – Helper for deterministic `RefToken` deployment.
 - **Libraries** – Encoding helpers and cross-domain messenger utilities.
 
----
+### Failure-Mode Analysis
 
-## Failure-Mode Analysis
-
-- Malicious or buggy `AppActionExecutor` → user fund loss.
-- `RefTokenBridge` is the single most critical contract: it must never mint more than it has locked.
-- Liquidity fragmentation if the same underlying asset originates from multiple chains.
-- Rollback returns the _locked_ asset, which may differ from the asset originally supplied by the user in multi-hop scenarios.
+- A malicious or buggy `AppActionExecutor` can lead to user fund loss.
+- The `RefTokenBridge` is the most critical contract: it must never mint more than it has locked.
+- Liquidity can become fragmented if the same underlying asset originates from multiple chains.
+- A rollback returns the _locked_ asset, which may differ from the asset originally supplied by the user in multi-hop scenarios (e.g. user supplies OP, it's swapped to WETH, WETH is bridged, action fails, user gets WETH back, not OP).
 
 ---
 
 ## Risks & Uncertainties
 
-1. **Liquidity Fragmentation** – different origins create distinct `RefToken` addresses.
-2. **Execution Re-entrancy** – executors must not call bridge methods in the same tx.
-3. **Paused Canonical Bridges** – until official bridges are live, redemption only works via the originating `RefTokenBridge`.
+1.  **Liquidity Fragmentation** – Different origins create distinct `RefToken` addresses for the same underlying asset (e.g., `USDT` from OP Mainnet and `USDT` from Base will be different `RefTokens` on a third chain).
+2.  **Execution Re-entrancy** – Executors must not call bridge methods in the same transaction to avoid re-entrancy bugs.
+3.  **Paused Canonical Bridges** – Until official bridges are live, redemption only works by going back through the originating `RefTokenBridge`.
 
 ---
 
@@ -189,14 +225,14 @@ yarn lint:check
 
 ## Deploy & Verify
 
-1. Fill in `.env` with RPC URLs, private keys and Etherscan keys.
-2. Import the deployer key into Foundry:
+1.  Fill in `.env` with RPC URLs, private keys and Etherscan keys.
+2.  Import the deployer key into Foundry:
 
 ```bash
 cast wallet import $OPTIMISM_DEPLOYER_NAME --interactive
 ```
 
-3. Deploy:
+3.  Deploy:
 
 ```bash
 yarn deploy:optimism      # mainnet
@@ -217,7 +253,4 @@ Primary license: **MIT** – see [LICENSE](./LICENSE).
 
 ## Contributors
 
-Built with ❤️ by
-
-- @0x Discotech
-- @Ashitaka h
+Built with ❤️ by Wonderland
