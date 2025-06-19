@@ -90,22 +90,22 @@ interface IExecutor {
 ### Flows
 
 1.  **Cross-Chain Swap (OP ⇒ UNI)**
-    ![Flow-1](docs/assets/flow-1.webp)
+    ![flow-1](https://github.com/user-attachments/assets/057bb48f-e117-4b57-bf75-718221ae45b7)
 
     A user locks native `OP` on the origin chain → `refOP` is minted on the destination chain → a `UniSwapperExecutor` swaps `refOP` to `UNI` → `UNI` is sent to the recipient.
 
 2.  **Execute Swap (OP ⇒ WETH) + Cross-Chain Swap (WETH ⇒ UNI)**
-    ![Flow-2](docs/assets/flow-2.webp)
+    ![flow-2](https://github.com/user-attachments/assets/6fa9313b-953f-441c-b438-b735e2c7a734)
 
     A user first swaps `OP` for `WETH` on the origin chain → then locks the native `WETH` → `refWETH` is minted on the destination chain → it's swapped to `UNI` → `UNI` is sent to the recipient.
 
 3.  **Send without execute**
-    ![Flow-3](docs/assets/flow-3.webp)
+    ![flow-3](https://github.com/user-attachments/assets/c00eace3-7bd4-47d4-ba62-fe80c6fedce1)
 
     Lock a native token → mint the corresponding `RefToken` on the destination chain → send it directly to the recipient (no fallback execution).
 
 4.  **Failure Rollback**
-    ![Flow-4](docs/assets/flow-4.webp)
+    ![flow-4](https://github.com/user-attachments/assets/250e31ac-7081-466b-b737-c98a9f9cacd4)
 
     Assuming that the first steps were executed properly, after that the message got relayed on Unichain chain:
 
@@ -114,7 +114,7 @@ interface IExecutor {
     > ⚠️ This is a fallback mechanism if the `AppActionExecutor` call fails. It won't protect funds from a buggy implementation with an undesired output that didn't revert.
 
 5.  **Post-Launch SuperchainTokenBridge Integration**
-    ![Flow-5](docs/assets/flow-5.webp)
+    ![flow-5](https://github.com/user-attachments/assets/a6e34b6e-50c4-44b6-8c65-27a886d0e4e0)
 
     Once the canonical bridge is live, `crosschainBurn` + `crosschainMint` will let users seamlessly redeem locked native assets for the real thing via the official bridge.
 
@@ -160,6 +160,7 @@ yarn build
 
 | Module                    | Responsibility                                          |
 | ------------------------- | ------------------------------------------------------- |
+| **RefToken**              | Cross-chain representation of a native token.           |
 | **RefTokenBridge**        | Lock / mint / burn / unlock logic & rollback messaging. |
 | **AppActionExecutor**     | Protocol-specific logic (swap, LP, etc.).               |
 | **SuperchainTokenBridge** | Future integration for unified ERC-20 bridging.         |
@@ -185,7 +186,6 @@ yarn build
 
 1.  **Liquidity Fragmentation** – Different origins create distinct `RefToken` addresses for the same underlying asset (e.g., `USDT` from OP Mainnet and `USDT` from Base will be different `RefTokens` on a third chain).
 2.  **Execution Re-entrancy** – Executors must not call bridge methods in the same transaction to avoid re-entrancy bugs.
-3.  **Paused Canonical Bridges** – Until official bridges are live, redemption only works by going back through the originating `RefTokenBridge`.
 
 ---
 
