@@ -11,6 +11,8 @@ RefTokenBridgeUnit::send
 │   └── It should revert
 ├── When native asset chain id is zero
 │   └── It should revert
+├── When native chain id is not does not match the block chain id and the token is not the ref token
+│   └── It should revert
 ├── When called with a native token first time
 │   ├── It should create the RefToken
 │   ├── It should lock the tokens
@@ -40,9 +42,13 @@ RefTokenBridgeUnit::sendAndExecute
 │   └── It should revert
 ├── When recipient is zero
 │   └── It should revert
+├── When refund address is zero
+│   └── It should revert
 ├── When native asset chain id does not match the block chain id when deploying a RefToken
 │   └── It should revert
 ├── When native asset chain id is zero
+│   └── It should revert
+├── When native chain id is not does not match the block chain id and the token is not the ref token
 │   └── It should revert
 ├── When called with a native token first time
 │   ├── It should create the RefToken
@@ -124,6 +130,9 @@ RefTokenBridgeUnit::unlock
 │   └── It should revert
 ├── When caller is not the RefToken for the native asset
 │   └── It should revert
+├── When called by the L2 to L2 Cross Domain Messenge and transfer reverts
+│   ├── It should update the mapping
+│   └── It should emit stuckfFunds
 ├── When called by the L2 to L2 Cross Domain Messenger
 │   ├── It should transfer the tokens to user
 │   └── It should emit TokenUnlocked

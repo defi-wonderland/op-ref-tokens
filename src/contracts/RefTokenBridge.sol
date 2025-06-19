@@ -34,6 +34,11 @@ contract RefTokenBridge is IRefTokenBridge {
   mapping(address _nativeToken => mapping(uint256 _nativeAssetChainId => address _refToken)) public nativeToRefToken;
 
   /**
+   * @notice The amount of native asset that has been stuck on the destination chain
+   */
+  mapping(address _recipient => mapping(address _nativeAsset => uint256 _amount)) public stuckFunds;
+
+  /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
    * @param _nativeAssetChainId The chain where the native asset is locked
@@ -75,7 +80,7 @@ contract RefTokenBridge is IRefTokenBridge {
     if (_executionData.destinationChainId == 0 || _executionData.destinationChainId == block.chainid) {
       revert RefTokenBridge_InvalidExecutionChainId();
     }
-    // TODO: Check refund address is not zero? Not sure
+    if (_executionData.refundAddress == address(0)) revert RefTokenBridge_InvalidRefundAddress();
 
     _send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
@@ -130,6 +135,20 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
+   * @notice Withdraws stuck funds from the RefTokenBridge
+   * @param _user The user to withdraw the funds from
+   * @param _nativeAsset The native asset to withdraw the funds from
+   */
+  function withdrawStuckFunds(address _user, address _nativeAsset) external {
+    uint256 _amount = stuckFunds[_user][_nativeAsset];
+    if (_amount == 0) revert RefTokenBridge_NoStuckFunds();
+    stuckFunds[_user][_nativeAsset] = 0;
+    IERC20(_nativeAsset).transfer(_user, _amount);
+
+    emit StuckFundsWithdrawn(_user, _nativeAsset, _amount);
+  }
+
+  /**
    * @notice Internal function to unlock the token
    * @dev This function is used to unlock the token on the source chain
    * @param _nativeAsset The native asset to be unlocked
@@ -142,7 +161,15 @@ contract RefTokenBridge is IRefTokenBridge {
       revert RefTokenBridge_Unauthorized();
     }
 
-    IERC20(_nativeAsset).transfer(_to, _amount);
+    // If the transfer fails, we need to refund the funds to the refund address
+    try IERC20(_nativeAsset).transfer(_to, _amount) {}
+    catch {
+      if (msg.sender == address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
+        // If the transfer fails, we need to refund the funds to the refund address
+        stuckFunds[_to][_nativeAsset] += _amount;
+        emit StuckFunds(_to, _nativeAsset, _amount);
+      }
+    }
     emit NativeAssetUnlocked(_nativeAsset, _to, _amount);
   }
 
@@ -199,12 +226,10 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = IRefToken(_refToken).metadata();
     }
 
-    // If the chain is the native asset chain, but the `_token` is not the native asset, revert since there will not be
+    // If it is not the native asset chain, the token must be the RefToken
     // RefToken supply to burn on this chain
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
-    // TODO: Can be moved above for gas efficiency
-    // if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
-    // if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
+    if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
 
     // If the chain is the native asset chain, lock the native asset
     if (_isNativeAssetChain) _lock(_refTokenMetadata.nativeAsset, _amount);

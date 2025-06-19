@@ -91,6 +91,22 @@ interface IRefTokenBridge {
   event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset, uint256 _nativeAssetChainId);
 
   /**
+   * @notice Event emitted when funds are stuck on the destination chain
+   * @param _recipient The recipient of the stuck funds
+   * @param _nativeAsset The native asset address
+   * @param _amount The amount of funds that are stuck
+   */
+  event StuckFunds(address indexed _recipient, address indexed _nativeAsset, uint256 _amount);
+
+  /**
+   * @notice Event emitted when stuck funds are withdrawn
+   * @param _user The user to withdraw the funds from
+   * @param _nativeAsset The native asset to withdraw the funds from
+   * @param _amount The amount of funds that are withdrawn
+   */
+  event StuckFundsWithdrawn(address indexed _user, address indexed _nativeAsset, uint256 _amount);
+
+  /**
    * @notice Thrown when the amount is invalid
    */
   error RefTokenBridge_InvalidAmount();
@@ -129,6 +145,21 @@ interface IRefTokenBridge {
    * @notice Thrown when the native asset chain id is zero
    */
   error RefTokenBridge_InvalidNativeAssetChainId();
+
+  /**
+   * @notice Thrown when the token is not the RefToken
+   */
+  error RefTokenBridge_NotRefToken();
+
+  /**
+   * @notice Thrown when the refund address is invalid
+   */
+  error RefTokenBridge_InvalidRefundAddress();
+
+  /**
+   * @notice Thrown when there are no stuck funds
+   */
+  error RefTokenBridge_NoStuckFunds();
 
   /**
    * @notice Send token to the relay chain
