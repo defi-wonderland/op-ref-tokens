@@ -1,11 +1,11 @@
 {
-  "name": "solidity-foundry-boilerplate",
+  "name": "op-ref-tokens",
   "version": "1.0.0",
-  "description": "Production ready Solidity boilerplate with Foundry",
-  "homepage": "https://github.com/defi-wonderland/solidity-foundry-boilerplate#readme",
+  "description": "Cross-chain liquidity protocol to bridge RefTokens representations on a given asset that does not exist on destination.",
+  "homepage": "https://github.com/defi-wonderland/op-ref-tokens#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/defi-wonderland/solidity-foundry-boilerplate.git"
+    "url": "git+https://github.com/defi-wonderland/op-ref-tokens.git"
   },
   "license": "MIT",
   "author": "Wonderland",
@@ -34,6 +34,9 @@
     "package.json": "sort-package-json"
   },
   "dependencies": {
+    "@eth-optimism/contracts-bedrock": "0.17.3",
+    "@openzeppelin/contracts": "5.3.0",
+    "@uniswap/v4-core": "1.0.2",
     "solady": "0.1.19"
   },
   "devDependencies": {
