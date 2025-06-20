@@ -144,14 +144,15 @@ contract RefTokenBridgeUnit is Helpers {
     _assumeFuzzable(_refTokenMetadata.nativeAsset);
     _assumeFuzzable(_refToken);
 
-    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
-    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
-    if (_relayChainId == block.chainid) ++_relayChainId;
-
-    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
-
     _amount = bound(_amount, 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
+
     vm.assume(_recipient != address(0));
+    vm.assume(_refTokenMetadata.nativeAsset != _refToken);
+
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
 
     refTokenBridge.setRefTokenDeployed(_refToken, true);
     refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
@@ -533,7 +534,6 @@ contract RefTokenBridgeUnit is Helpers {
 
     _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
     _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
-
     _relayChainId = bound(_relayChainId, 1, type(uint256).max);
     _amount = bound(_amount, 1, type(uint256).max);
 
@@ -544,6 +544,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_recipient != address(0));
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.refundAddress != address(0));
+    vm.assume(_refTokenMetadata.nativeAsset != _refToken);
 
     refTokenBridge.setRefTokenDeployed(_refToken, true);
     refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
@@ -1268,6 +1269,37 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.relayAndExecute(_amount, _recipient, _refTokenMetadata, _executionData);
   }
 
+  function test_WithdrawStuckFundsRevertWhen_CallerDoesntHaveFundsToWithdraw(
+    address _user,
+    address _nativeAsset
+  ) external {
+    // It should revert
+    vm.prank(caller);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_NoStuckFunds.selector);
+    refTokenBridge.withdrawStuckFunds(_user, _nativeAsset);
+  }
+
+  function test_WithdrawStuckFundsWhenCalledByACallerWhichHasStuckFunds(
+    address _user,
+    address _nativeAsset,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_user);
+    _assumeFuzzable(_nativeAsset);
+    _amount = bound(_amount, 1, type(uint256).max);
+
+    refTokenBridge.setStuckFunds(_user, _nativeAsset, _amount);
+
+    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_user, _amount)), abi.encode(true));
+
+    // It should update the stuck funds mapping
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.StuckFundsWithdrawn(_user, _nativeAsset, _amount);
+
+    vm.prank(caller);
+    refTokenBridge.withdrawStuckFunds(_user, _nativeAsset);
+  }
+
   function test_UnlockRevertWhen_CallerIsNotTheL2ToL2CrossDomainMessenger(
     address _caller,
     address _nativeAsset,
@@ -1410,5 +1442,9 @@ contract RefTokenBridgeForTest is RefTokenBridge {
 
   function setNativeToRefToken(address _nativeToken, uint256 _nativeAssetChainId, address _refToken) external {
     nativeToRefToken[_nativeToken][_nativeAssetChainId] = _refToken;
+  }
+
+  function setStuckFunds(address _user, address _nativeAsset, uint256 _amount) external {
+    stuckFunds[_user][_nativeAsset] = _amount;
   }
 }
