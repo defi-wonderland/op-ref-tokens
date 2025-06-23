@@ -1,127 +1,142 @@
-RefTokenBridgeUnit::constructor
-└── When constructor is set
-    └── It should initialize the L2 to L2 cross domain messenger
-
 RefTokenBridgeUnit::send
-├── When destination id is the block chain id
+├── When relay chain id is the block chain id
+│   └── It should revert
+├── When relay chain id is zero
 │   └── It should revert
 ├── When amount is zero
 │   └── It should revert
 ├── When recipient is zero
 │   └── It should revert
-├── When destination chain id is zero
+├── When native asset chain id does not match the block chain id when deploying a RefToken
+│   └── It should revert
+├── When native asset chain id is zero
 │   └── It should revert
 ├── When called with a native token first time
-│   ├── It should emit TokensLocked
-│   ├── It should emit MessageSent
-│   ├── It should create the ref token
-│   └── It should send the message to the L2 messenger
-├── When calling with the native token any time after the creation of the ref token
-│   ├── It should emit TokensLocked
-│   ├── It should emit MessageSent
-│   └── It should send the message to the L2 messenger
-└── When called with a ref token
-    ├── It should emit TokensBurned
-    ├── It should emit MessageSent
-    └── It should send the message to the L2 messenger
+│   ├── It should create the RefToken
+│   ├── It should lock the tokens
+│   ├── It should send the message to call relay
+│   └── It should emit MessageSent
+├── When calling with the native token after the creation of the RefToken
+│   ├── It should lock the tokens
+│   ├── It should send the message to call relay
+│   └── It should emit MessageSent
+└── When called with a RefToken
+    ├── It should burn the tokens
+    ├── It should send the message to call relay
+    └── It should emit MessageSent
 
 RefTokenBridgeUnit::sendAndExecute
-├── When destination id is the block chain id
+├── When execution data destination executor is the zero address
 │   └── It should revert
-├── When execution id is the block chain id
+├── When execution data destination chain id is zero
+│   └── It should revert
+├── When execution data destination chain id is the block chain id
+│   └── It should revert
+├── When relay chain id is the block chain id
+│   └── It should revert
+├── When relay chain id is zero
 │   └── It should revert
 ├── When amount is zero
 │   └── It should revert
 ├── When recipient is zero
 │   └── It should revert
-├── When destination chain id is zero
+├── When native asset chain id does not match the block chain id when deploying a RefToken
 │   └── It should revert
-├── When destination executor is zero
+├── When native asset chain id is zero
 │   └── It should revert
 ├── When called with a native token first time
-│   ├── It should emit TokensLocked
-│   ├── It should emit MessageSent
-│   ├── It should create the ref token
-│   └── It should send the message to the L2 messenger
-├── When called with a native token following successions
-│   ├── It should emit TokensLocked
-│   ├── It should emit MessageSent
-│   └── It should send the message to the L2 messenger
-└── When called with a ref token
-    ├── It should emit TokensBurned
-    ├── It should emit MessageSent
-    └── It should send the message to the L2 messenger
+│   ├── It should create the RefToken
+│   ├── It should lock the tokens
+│   ├── It should send the message to call relayAndExecute
+│   └── It should emit MessageSent
+├── When calling with the native token after the creation of the RefToken
+│   ├── It should lock the tokens
+│   ├── It should send the message to call relayAndExecute
+│   └── It should emit MessageSent
+└── When called with a RefToken
+    ├── It should burn the tokens
+    ├── It should send the message to call relayAndExecute
+    └── It should emit MessageSent
 
 RefTokenBridgeUnit::relay
-├── When cross domain sender is not the ref token bridge and is not valid caller
-│   └── It should revert
 ├── When sender is not the L2 to L2 cross domain messenger
 │   └── It should revert
-├── When called to relay the tokens to the native chain
-│   ├── It should emit TokensUnlocked
-│   ├── It should emit MessageRelayed
-│   └── It should unlock the tokens to the user
-├── When called to relay with a ref token and is not deployed and native token is sent
-│   ├── It should emit TokensMinted
-│   ├── It should emit MessageRelayed
-│   └── It should mint the tokens to the user
-├── When called to relay with a ref token and is not deployed and ref token is sent
-│   ├── It should emit TokensMinted
-│   ├── It should emit MessageRelayed
-│   └── It should mint the tokens to the user
-└── When called to relay with a ref token and is deployed
-    ├── It should emit TokensMinted
-    ├── It should emit MessageRelayed
-    └── It should mint the tokens to the user
+├── When cross domain sender is not the RefToken bridge
+│   └── It should revert
+├── When on the native asset chain
+│   ├── It should unlock the native assets to the recipient
+│   └── It should emit MessageRelayed
+├── When called not on the native asset chain and the RefToken is deployed
+│   ├── It should mint the tokens to the recipient
+│   └── It should emit MessageRelayed
+└── When called not on the native asset chain and the RefToken is not deployed
+    ├── It should deploy the RefToken
+    ├── It should mint the tokens to the recipient
+    └── It should emit MessageRelayed
+
 
 RefTokenBridgeUnit::relayAndExecute
-├── When cross domain sender is not the ref token bridge and is not valid caller
-│   └── It should revert
 ├── When sender is not the L2 to L2 cross domain messenger
 │   └── It should revert
-├── When called to relay and execute the tokens to the native chain
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
+├── When cross domain sender is not the RefToken bridge
+│   └── It should revert
+├── When on the native asset chain and execution succeeds
+│   ├── It should approve the executor
+│   ├── It should execute the data
 │   ├── It should emit MessageRelayed
-│   └── It should approve the tokens to the executor
-├── When called to relay and execute with a ref token and is not deployed and ref token is sent
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
+│   └── It should revoke the executor approval
+├── When on the native asset chain and execution fails
+│   ├── It should approve the executor
+│   ├── It should execute the data
+│   ├── It should send RefTokens to the refund address on the origin chain
+│   └── It should revoke the executor approval
+├── When not on the native asset chain and the RefToken is deployed and execution succeeds
+│   ├── It should mint the tokens to itself
+│   ├── It should approve the executor
+│   ├── It should execute the data
 │   ├── It should emit MessageRelayed
-│   └── It should approve the tokens to the executor
-├── When called to relay and execute with a ref token and is deployed
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
+│   └── It should revoke the executor approval
+├── When not on the native asset chain and the RefToken is not deployed and execution succeeds
+│   ├── It should deploy the RefToken
+│   ├── It should mint the tokens to itself
+│   ├── It should approve the executor
+│   ├── It should execute the data
 │   ├── It should emit MessageRelayed
-│   └── It should approve the tokens to the executor
-├── When called to relay and execute the tokens to the native chain and execution failed
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
-│   ├── It should emit TokenBurned
-│   ├── It should emit Approval
-│   ├── It should emit MessageSent
-│   └── It should send message to refund the tokens
-├── When called to relay and execute with a ref token and is not deployed and ref token is sent and execution failed
-│   ├── It should emit Approval
-│   ├── It should emit TokenMinted
-│   ├── It should emit TokenBurned
-│   ├── It should emit Approval
-│   ├── It should emit MessageSent
-│   └── It should send message to refund the tokens
-└── When called to relay and execute with a ref token and is deployed and execution failed
-    ├── It should emit Approval
-    ├── It should emit TokenMinted
-    ├── It should emit TokenBurned
-    ├── It should emit Approval
-    ├── It should emit MessageSent
-    └── It should send message to refund the tokens
+│   └── It should revoke the executor approval
+├── When not on the native asset chain and RefToken is deployed and execution fails
+│   ├── It should mint the tokens to itself
+│   ├── It should approve the executor
+│   ├── It should execute the data
+│   ├── It should burn the RefTokens
+│   ├── It should send RefTokens to the refund address on the origin chain
+│   └── It should revoke the executor approval
+└── When not on the native asset chain and the RefToken is not deployed and execution fails
+    ├── It should deploy the RefToken
+    ├── It should mint the tokens to itself
+    ├── It should approve the executor
+    ├── It should execute the data
+    ├── It should burn the RefTokens
+    ├── It should send RefTokens to the refund address on the origin chain
+    └── It should revoke the executor approval
 
 RefTokenBridgeUnit::unlock
-├── When caller is not valid
+├── When caller is not the L2 to L2 cross domain messenger
 │   └── It should revert
-├── When called L2 to L2 Cross Domain Messenger
+├── When caller is not the RefToken for the native asset
+│   └── It should revert
+├── When called by the L2 to L2 Cross Domain Messenger
+│   ├── It should transfer the tokens to user
 │   └── It should emit TokenUnlocked
-│   └── It should transfer the tokens to user
-└── When called token
-    └── It should emit TokenUnlocked
-    └── It should transfer the tokens to user
+└── When called by the associated RefToken
+    ├── It should transfer the tokens to user
+    └── It should emit NativeAssetUnlocked
+
+RefTokenBridgeUnit::getRefToken
+├── When called with a native token and the RefToken exists
+│   └── It should return the RefToken
+├── When called with a native token and the RefToken doesnt exist
+│   └── It should empty the RefToken
+├── When called with a RefToken and the RefToken exists
+│   └── It should return the RefToken
+└── When called with a RefToken and the RefToken doesnt exist
+    └── It should return the RefToken

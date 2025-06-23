@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.26;
+pragma solidity 0.8.25;
 
 import {RefToken} from '../../src/contracts/RefToken.sol';
-import {IRefTokenBridge} from '../../src/interfaces/IRefTokenBridge.sol';
+import {IRefToken} from '../../src/interfaces/IRefToken.sol';
 import {Test} from 'forge-std/Test.sol';
 
 /**
@@ -44,6 +44,18 @@ contract Helpers is Test {
    */
   function _mockAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
     vm.mockCall(_receiver, _calldata, _returned);
+    vm.expectCall(_receiver, _calldata);
+  }
+
+  /**
+   * @notice Sets up a mock revert and expects a call to it
+   *
+   * @param _receiver The address to have a mock on
+   * @param _calldata The calldata to mock and expect
+   * @param _returned The data to return from the mocked call
+   */
+  function _mockRevertAndExpect(address _receiver, bytes memory _calldata, bytes memory _returned) internal {
+    vm.mockCallRevert(_receiver, _calldata, _returned);
     vm.expectCall(_receiver, _calldata);
   }
 
@@ -128,20 +140,11 @@ contract Helpers is Test {
    */
   function _precalculateRefTokenAddress(
     address _refTokenBridge,
-    IRefTokenBridge.RefTokenMetadata memory _refTokenMetadata
+    IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) internal pure returns (address _refTokenAddress) {
-    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAssetAddress));
+    bytes32 _salt = keccak256(abi.encode(_refTokenMetadata.nativeAssetChainId, _refTokenMetadata.nativeAsset));
 
-    bytes memory _initCode = bytes.concat(
-      type(RefToken).creationCode,
-      abi.encode(
-        _refTokenBridge,
-        _refTokenMetadata.nativeAssetChainId,
-        _refTokenMetadata.nativeAssetName,
-        _refTokenMetadata.nativeAssetSymbol,
-        _refTokenMetadata.nativeAssetDecimals
-      )
-    );
+    bytes memory _initCode = bytes.concat(type(RefToken).creationCode, abi.encode(_refTokenBridge, _refTokenMetadata));
 
     bytes32 _initCodeHash = keccak256(_initCode);
     _refTokenAddress = _precalculateCreate2Address(_salt, _initCodeHash, _refTokenBridge);

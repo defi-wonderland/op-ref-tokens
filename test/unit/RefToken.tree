@@ -52,3 +52,7 @@ UnitRefTokenTest::transferFrom
 └── When the caller is the Permit2 contract and from has enough balance
     └── It transfers the amount
 
+UnitRefTokenTest::refTokenMetadata
+└── When called
+    └── It returns the RefToken metadata
+
