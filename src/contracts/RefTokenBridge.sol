@@ -166,6 +166,7 @@ contract RefTokenBridge is IRefTokenBridge {
     catch {
       if (msg.sender == address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
         // If the transfer fails, we need to refund the funds to the refund address
+        // solhint-disable-next-line reentrancy
         stuckFunds[_to][_nativeAsset] += _amount;
         emit StuckFunds(_to, _nativeAsset, _amount);
       }
@@ -226,7 +227,6 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = IRefToken(_refToken).metadata();
     }
 
-    // If it is not the native asset chain, the token must be the RefToken
     // RefToken supply to burn on this chain
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
     if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
