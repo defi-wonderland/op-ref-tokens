@@ -1,5 +1,9 @@
+@openzeppelin/uniswap-hooks/=lib/uniswap-hooks/src/
+openzeppelin/=node_modules/@openzeppelin/contracts/
+optimism/=node_modules/@eth-optimism/contracts-bedrock/src/
 forge-std/=node_modules/forge-std/src
 halmos-cheatcodes=node_modules/halmos-cheatcodes
+@interop-lib/=lib/interop-lib
 
 contracts/=src/contracts
 interfaces/=src/interfaces

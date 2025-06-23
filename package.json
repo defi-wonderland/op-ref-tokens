@@ -1,11 +1,11 @@
 {
-  "name": "solidity-foundry-boilerplate",
+  "name": "op-ref-tokens",
   "version": "1.0.0",
-  "description": "Production ready Solidity boilerplate with Foundry",
-  "homepage": "https://github.com/defi-wonderland/solidity-foundry-boilerplate#readme",
+  "description": "Cross-chain liquidity protocol to bridge RefTokens representations on a given asset that does not exist on destination.",
+  "homepage": "https://github.com/defi-wonderland/op-ref-tokens#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/defi-wonderland/solidity-foundry-boilerplate.git"
+    "url": "git+https://github.com/defi-wonderland/op-ref-tokens.git"
   },
   "license": "MIT",
   "author": "Wonderland",
@@ -13,11 +13,12 @@
     "build": "forge build",
     "build:optimized": "FOUNDRY_PROFILE=optimized forge build",
     "coverage": "forge coverage --report summary --report lcov --match-path 'test/unit/*'",
-    "deploy:mainnet": "bash -c 'source .env && forge script Deploy --rpc-url $MAINNET_RPC --account $MAINNET_DEPLOYER_NAME --broadcast --verify --chain mainnet -vvvvv'",
-    "deploy:sepolia": "bash -c 'source .env && forge script Deploy --rpc-url $SEPOLIA_RPC --account $SEPOLIA_DEPLOYER_NAME --broadcast --verify --chain sepolia -vvvvv'",
+    "deploy:optimism": "bash -c 'source .env && forge script Deploy --rpc-url $OPTIMISM_RPC --account $OPTIMISM_DEPLOYER_NAME --broadcast --verify --chain optimism -vvvvv'",
+    "deploy:optimism-sepolia": "bash -c 'source .env && forge script Deploy --rpc-url $OPTIMISM_SEPOLIA_RPC --account $OPTIMISM_DEPLOYER_NAME --broadcast --verify --chain optimism-sepolia -vvvvv'",
+    "lint:bulloak": "find test -name '*.tree' | xargs bulloak check --fix",
     "lint:check": "yarn lint:sol && forge fmt --check",
     "lint:fix": "sort-package-json && forge fmt && yarn lint:sol --fix",
-    "lint:natspec": "lintspec src -f variable",
+    "lint:natspec": "lintspec src -f variable --inheritdoc=false",
     "lint:sol": "solhint 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol'",
     "prepare": "husky",
     "test": "forge test -vvv",
@@ -32,13 +33,19 @@
     "(src|test|script)/**/*.sol": "yarn lint:sol",
     "package.json": "sort-package-json"
   },
+  "dependencies": {
+    "@eth-optimism/contracts-bedrock": "0.17.3",
+    "@openzeppelin/contracts": "5.3.0",
+    "@uniswap/v4-core": "1.0.2",
+    "solady": "0.1.19"
+  },
   "devDependencies": {
     "@commitlint/cli": "19.3.0",
     "@commitlint/config-conventional": "19.2.2",
     "forge-std": "github:foundry-rs/forge-std#1.9.2",
     "halmos-cheatcodes": "github:a16z/halmos-cheatcodes#c0d8655",
     "husky": ">=9",
-    "lint-staged": ">=10",
+    "lint-staged": "16.1.0",
     "solhint-community": "4.0.1",
     "sort-package-json": "2.10.0"
   }
