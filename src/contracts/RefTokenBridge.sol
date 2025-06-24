@@ -136,16 +136,16 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Withdraws stuck funds from the RefTokenBridge
-   * @param recipient The recipient to withdraw the funds to
+   * @param _recipient The recipient to withdraw the funds to
    * @param _nativeAsset The native asset to withdraw the funds from
    */
-  function withdrawStuckFunds(address recipient, address _nativeAsset) external {
+  function withdrawStuckFunds(address _recipient, address _nativeAsset) external {
     uint256 _amount = stuckFunds[msg.sender][_nativeAsset];
     if (_amount == 0) revert RefTokenBridge_NoStuckFunds();
     stuckFunds[msg.sender][_nativeAsset] = 0;
-    IERC20(_nativeAsset).transfer(recipient, _amount);
+    IERC20(_nativeAsset).transfer(_recipient, _amount);
 
-    emit StuckFundsWithdrawn(recipient, _nativeAsset, _amount);
+    emit StuckFundsWithdrawn(_recipient, _nativeAsset, _amount);
   }
 
   /**
