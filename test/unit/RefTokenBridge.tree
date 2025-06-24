@@ -128,7 +128,7 @@ RefTokenBridgeUnit::relayAndExecute
 RefTokenBridgeUnit::withdrawStuckFunds
 ├── When caller doesnt have funds to withdraw
 │   └── It should revert
-└── When called by a caller which has stuck funds
+└── When called by a caller which has stuck funds and send it to the recipient
     ├── It should update the stuck funds mapping
     └── It should emit StuckFundsWithdrawn
 
@@ -138,6 +138,9 @@ RefTokenBridgeUnit::unlock
 ├── When caller is not the RefToken for the native asset
 │   └── It should revert
 ├── When called by the L2 to L2 Cross Domain Messenge and transfer reverts
+│   ├── It should update the mapping
+│   └── It should emit stuckfFunds
+├── When called by the associated RefToken and transfer reverts
 │   ├── It should update the mapping
 │   └── It should emit stuckfFunds
 ├── When called by the L2 to L2 Cross Domain Messenger

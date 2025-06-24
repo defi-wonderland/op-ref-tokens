@@ -1279,25 +1279,25 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.withdrawStuckFunds(_user, _nativeAsset);
   }
 
-  function test_WithdrawStuckFundsWhenCalledByACallerWhichHasStuckFunds(
-    address _user,
+  function test_WithdrawStuckFundsWhenCalledByACallerWhichHasStuckFundsAndSendItToTheRecipient(
+    address _recipient,
     address _nativeAsset,
     uint256 _amount
   ) external {
-    _assumeFuzzable(_user);
+    _assumeFuzzable(_recipient);
     _assumeFuzzable(_nativeAsset);
     _amount = bound(_amount, 1, type(uint256).max);
 
-    refTokenBridge.setStuckFunds(_user, _nativeAsset, _amount);
+    refTokenBridge.setStuckFunds(caller, _nativeAsset, _amount);
 
-    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_user, _amount)), abi.encode(true));
+    _mockAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), abi.encode(true));
 
     // It should update the stuck funds mapping
     vm.expectEmit(address(refTokenBridge));
-    emit IRefTokenBridge.StuckFundsWithdrawn(_user, _nativeAsset, _amount);
+    emit IRefTokenBridge.StuckFundsWithdrawn(_recipient, _nativeAsset, _amount);
 
     vm.prank(caller);
-    refTokenBridge.withdrawStuckFunds(_user, _nativeAsset);
+    refTokenBridge.withdrawStuckFunds(_recipient, _nativeAsset);
   }
 
   function test_UnlockRevertWhen_CallerIsNotTheL2ToL2CrossDomainMessenger(
@@ -1347,6 +1347,29 @@ contract RefTokenBridgeUnit is Helpers {
     emit IRefTokenBridge.StuckFunds(_recipient, _nativeAsset, _amount);
 
     vm.prank(L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+    refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
+
+    assertEq(refTokenBridge.stuckFunds(_recipient, _nativeAsset), _amount);
+  }
+
+  function test_UnlockWhenCalledByTheAssociatedRefTokenAndTransferReverts(
+    address _refToken,
+    address _nativeAsset,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_nativeAsset);
+
+    refTokenBridge.setNativeToRefToken(_nativeAsset, block.chainid, _refToken);
+
+    // It should revert
+    _mockRevertAndExpect(_nativeAsset, abi.encodeCall(IERC20.transfer, (_recipient, _amount)), '');
+
+    // It should emit StuckFunds
+    vm.expectEmit(address(refTokenBridge));
+    emit IRefTokenBridge.StuckFunds(_recipient, _nativeAsset, _amount);
+
+    vm.prank(_refToken);
     refTokenBridge.unlock(_nativeAsset, _recipient, _amount);
 
     assertEq(refTokenBridge.stuckFunds(_recipient, _nativeAsset), _amount);

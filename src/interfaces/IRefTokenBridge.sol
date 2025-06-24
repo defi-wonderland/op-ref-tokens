@@ -220,6 +220,13 @@ interface IRefTokenBridge {
   ) external;
 
   /**
+   * @notice Withdraw stuck funds
+   * @param _recipient The recipient to withdraw the funds to
+   * @param _nativeAsset The native asset to withdraw the funds from
+   */
+  function withdrawStuckFunds(address _recipient, address _nativeAsset) external;
+
+  /**
    * @notice Unlocks the token on the origin chain
    * @param _token The token to be unlocked
    * @param _to The address to unlock the token to

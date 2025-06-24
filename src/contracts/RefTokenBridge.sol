@@ -136,16 +136,16 @@ contract RefTokenBridge is IRefTokenBridge {
 
   /**
    * @notice Withdraws stuck funds from the RefTokenBridge
-   * @param _user The user to withdraw the funds from
+   * @param recipient The recipient to withdraw the funds to
    * @param _nativeAsset The native asset to withdraw the funds from
    */
-  function withdrawStuckFunds(address _user, address _nativeAsset) external {
-    uint256 _amount = stuckFunds[_user][_nativeAsset];
+  function withdrawStuckFunds(address recipient, address _nativeAsset) external {
+    uint256 _amount = stuckFunds[msg.sender][_nativeAsset];
     if (_amount == 0) revert RefTokenBridge_NoStuckFunds();
-    stuckFunds[_user][_nativeAsset] = 0;
-    IERC20(_nativeAsset).transfer(_user, _amount);
+    stuckFunds[msg.sender][_nativeAsset] = 0;
+    IERC20(_nativeAsset).transfer(recipient, _amount);
 
-    emit StuckFundsWithdrawn(_user, _nativeAsset, _amount);
+    emit StuckFundsWithdrawn(recipient, _nativeAsset, _amount);
   }
 
   /**
@@ -164,12 +164,10 @@ contract RefTokenBridge is IRefTokenBridge {
     // If the transfer fails, we need to refund the funds to the refund address
     try IERC20(_nativeAsset).transfer(_to, _amount) {}
     catch {
-      if (msg.sender == address(L2_TO_L2_CROSS_DOMAIN_MESSENGER)) {
-        // If the transfer fails, we need to refund the funds to the refund address
-        // solhint-disable-next-line reentrancy
-        stuckFunds[_to][_nativeAsset] += _amount;
-        emit StuckFunds(_to, _nativeAsset, _amount);
-      }
+      // If the transfer fails, we need to refund the funds to the refund address
+      // solhint-disable-next-line reentrancy
+      stuckFunds[_to][_nativeAsset] += _amount;
+      emit StuckFunds(_to, _nativeAsset, _amount);
     }
     emit NativeAssetUnlocked(_nativeAsset, _to, _amount);
   }
