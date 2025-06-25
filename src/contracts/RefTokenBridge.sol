@@ -34,11 +34,6 @@ contract RefTokenBridge is IRefTokenBridge {
   mapping(address _nativeToken => mapping(uint256 _nativeAssetChainId => address _refToken)) public nativeToRefToken;
 
   /**
-   * @notice The amount of native asset that has been stuck on the destination chain
-   */
-  mapping(address _recipient => mapping(address _nativeAsset => uint256 _amount)) public stuckFunds;
-
-  /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
    * @param _nativeAssetChainId The chain where the native asset is locked
@@ -135,20 +130,6 @@ contract RefTokenBridge is IRefTokenBridge {
   }
 
   /**
-   * @notice Withdraws stuck funds from the RefTokenBridge
-   * @param _recipient The recipient to withdraw the funds to
-   * @param _nativeAsset The native asset to withdraw the funds from
-   */
-  function withdrawStuckFunds(address _recipient, address _nativeAsset) external {
-    uint256 _amount = stuckFunds[msg.sender][_nativeAsset];
-    if (_amount == 0) revert RefTokenBridge_NoStuckFunds();
-    stuckFunds[msg.sender][_nativeAsset] = 0;
-    IERC20(_nativeAsset).transfer(_recipient, _amount);
-
-    emit StuckFundsWithdrawn(_recipient, _nativeAsset, _amount);
-  }
-
-  /**
    * @notice Internal function to unlock the token
    * @dev This function is used to unlock the token on the source chain
    * @param _nativeAsset The native asset to be unlocked
@@ -161,14 +142,7 @@ contract RefTokenBridge is IRefTokenBridge {
       revert RefTokenBridge_Unauthorized();
     }
 
-    // If the transfer fails, we need to refund the funds to the refund address
-    try IERC20(_nativeAsset).transfer(_to, _amount) {}
-    catch {
-      // If the transfer fails, we need to refund the funds to the refund address
-      // solhint-disable-next-line reentrancy
-      stuckFunds[_to][_nativeAsset] += _amount;
-      emit StuckFunds(_to, _nativeAsset, _amount);
-    }
+    IERC20(_nativeAsset).transfer(_to, _amount);
     emit NativeAssetUnlocked(_nativeAsset, _to, _amount);
   }
 
