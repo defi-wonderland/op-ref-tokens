@@ -75,7 +75,7 @@ contract RefTokenBridge is IRefTokenBridge {
     if (_executionData.destinationChainId == 0 || _executionData.destinationChainId == block.chainid) {
       revert RefTokenBridge_InvalidExecutionChainId();
     }
-    // TODO: Check refund address is not zero? Not sure
+    if (_executionData.refundAddress == address(0)) revert RefTokenBridge_InvalidRefundAddress();
 
     _send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
@@ -199,12 +199,9 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = IRefToken(_refToken).metadata();
     }
 
-    // If the chain is the native asset chain, but the `_token` is not the native asset, revert since there will not be
     // RefToken supply to burn on this chain
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
-    // TODO: Can be moved above for gas efficiency
-    // if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
-    // if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
+    if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
 
     // If the chain is the native asset chain, lock the native asset
     if (_isNativeAssetChain) _lock(_refTokenMetadata.nativeAsset, _amount);

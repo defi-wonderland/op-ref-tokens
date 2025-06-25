@@ -94,10 +94,6 @@ contract UnitRefTokenTest is Helpers {
     assertEq(refToken.balanceOf(_user), _initialBalance - _burnAmount);
   }
 
-  function test_RefTokenMetadataWhenCalled() external view {
-    assertEq(abi.encode(refToken.metadata()), abi.encode(refTokenMetadata));
-  }
-
   function test_NameWhenCalled() external view {
     // It returns the name of the RefToken
     assertEq(refToken.name(), string.concat('RefToken (', nativeAssetName, ')'));
@@ -204,5 +200,9 @@ contract UnitRefTokenTest is Helpers {
       assertEq(refToken.balanceOf(_from), _fromBalanceBefore - _amount);
       assertEq(refToken.balanceOf(_to), _toBalanceBefore + _amount);
     }
+  }
+
+  function test_RefTokenMetadataWhenCalled() external view {
+    assertEq(abi.encode(refToken.metadata()), abi.encode(refTokenMetadata));
   }
 }
