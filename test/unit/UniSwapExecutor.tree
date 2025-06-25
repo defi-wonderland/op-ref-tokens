@@ -1,6 +1,5 @@
 UniSwapExecutorUnit::constructor
 └── When constructor is set
-    ├── It should initialize the L2 to L2 cross domain messenger
     ├── It should initialize the RefTokenBridge
     ├── It should initialize the Universal Router
     ├── It should initialize the PoolManager
@@ -8,8 +7,6 @@ UniSwapExecutorUnit::constructor
 
 UniSwapExecutorUnit::execute
 ├── When caller is not the RefTokenBridge
-│   └── It should revert
-├── When token is not a valid token
 │   └── It should revert
 ├── When amount out after the swap is less than the minimum amount out
 │   └── It should revert

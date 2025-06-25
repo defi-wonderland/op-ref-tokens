@@ -47,17 +47,6 @@ interface IUniSwapExecutor is IExecutor {
    */
   event SwapExecuted(address indexed _tokenIn, uint256 _amountIn, address indexed _tokenOut, uint256 _amountOut);
 
-  /**
-   * @notice Event emitted when a swap is sent to the destination chain
-   * @param _tokenOut The token out
-   * @param _amountOut The amount out
-   * @param _recipient The recipient
-   * @param _destinationChainId The destination chain id
-   */
-  event SentToDestinationChain(
-    address indexed _tokenOut, uint256 _amountOut, address indexed _recipient, uint256 _destinationChainId
-  );
-
   /*///////////////////////////////////////////////////////////////
                             ERRORS
   //////////////////////////////////////////////////////////////*/
@@ -72,10 +61,25 @@ interface IUniSwapExecutor is IExecutor {
    */
   error UniSwapExecutor_InvalidCaller();
 
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
+
   /**
-   * @notice Error emitted when the token is invalid
+   * @notice Executes a swap from the RefTokenBridge
+   * @param _token The token to swap
+   * @param _recipient The recipient of the token
+   * @param _amount The amount of token to swap
+   * @param _destinationChainId The destination chain id
+   * @param _data The data to execute
    */
-  error UniSwapExecutor_InvalidToken();
+  function execute(
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    uint256 _destinationChainId,
+    bytes calldata _data
+  ) external;
 
   /*///////////////////////////////////////////////////////////////
                             VIEWS

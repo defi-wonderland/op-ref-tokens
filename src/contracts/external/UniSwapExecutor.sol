@@ -6,6 +6,8 @@ import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import {Commands} from '@uniswap/universal-router/contracts/libraries/Commands.sol';
 import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
 
+import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+
 import {StateLibrary} from '@uniswap/v4-core/src/libraries/StateLibrary.sol';
 import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
@@ -29,14 +31,15 @@ contract UniSwapExecutor is IUniSwapExecutor {
   using StateLibrary for IPoolManager;
 
   /**
+   * @notice The L2 to L2 cross domain messenger address
+   */
+  IL2ToL2CrossDomainMessenger public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER =
+    IL2ToL2CrossDomainMessenger(PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
+
+  /**
    * @notice The Universal Router address
    */
   IUniversalRouter public immutable ROUTER;
-
-  /**
-   * @notice The L2 to L2 cross domain messenger address
-   */
-  IL2ToL2CrossDomainMessenger public immutable L2_TO_L2_CROSS_DOMAIN_MESSENGER;
 
   /**
    * @notice The RefTokenBridge address
@@ -68,20 +71,12 @@ contract UniSwapExecutor is IUniSwapExecutor {
    * @notice Constructor
    * @param _router The Universal Router address
    * @param _poolManager The PoolManager address
-   * @param _l2ToL2CrossDomainMessenger The L2 to L2 cross domain messenger address
    * @param _refTokenBridge The RefTokenBridge address
    * @param _permit2 The Permit2 address
    */
-  constructor(
-    IUniversalRouter _router,
-    IPoolManager _poolManager,
-    IL2ToL2CrossDomainMessenger _l2ToL2CrossDomainMessenger,
-    IRefTokenBridge _refTokenBridge,
-    IPermit2 _permit2
-  ) {
+  constructor(IUniversalRouter _router, IPoolManager _poolManager, IRefTokenBridge _refTokenBridge, IPermit2 _permit2) {
     ROUTER = _router;
     POOL_MANAGER = _poolManager;
-    L2_TO_L2_CROSS_DOMAIN_MESSENGER = _l2ToL2CrossDomainMessenger;
     REF_TOKEN_BRIDGE = _refTokenBridge;
     PERMIT2 = _permit2;
   }
@@ -102,8 +97,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
     bytes calldata _data
   ) external {
     if (msg.sender != address(REF_TOKEN_BRIDGE)) revert UniSwapExecutor_InvalidCaller();
-    (address _nativeAsset,,,,) = REF_TOKEN_BRIDGE.refTokenMetadata(_token);
-    if (_nativeAsset == address(0)) revert UniSwapExecutor_InvalidToken();
 
     // Execute the swap
     (address _tokenOut, uint256 _amountOut) = _executeSwap(_token, _amount, _data);
@@ -113,17 +106,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
       IERC20(_tokenOut).transfer(_recipient, _amountOut);
     } else {
       // If the destination chain is not the same as the current chain, send the token to the destination chain
-      REF_TOKEN_BRIDGE.send(
-        IRefTokenBridge.RefTokenBridgeData({
-          token: _tokenOut,
-          recipient: _recipient,
-          amount: _amountOut,
-          destinationExecutor: address(0)
-        }),
-        _destinationChainId
-      );
-
-      emit SentToDestinationChain(_tokenOut, _amountOut, _recipient, _destinationChainId);
+      REF_TOKEN_BRIDGE.send(block.chainid, _destinationChainId, _tokenOut, _amountOut, _recipient);
     }
   }
 
@@ -173,12 +156,13 @@ contract UniSwapExecutor is IUniSwapExecutor {
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
     PERMIT2.approve(_token, address(ROUTER), uint160(_amount), uint48(_v4Params.deadline));
 
+    _tokenOut = _v4Params.tokenOut;
+    uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
+
     // Execute the swap
     ROUTER.execute(COMMANDS, _inputs, _v4Params.deadline);
 
-    _tokenOut = _v4Params.tokenOut;
-
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this));
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_amountOut < _v4Params.amountOutMin) revert UniSwapExecutor_InsufficientOutputAmount();
 
     emit SwapExecuted(_token, _amount, _tokenOut, _amountOut);

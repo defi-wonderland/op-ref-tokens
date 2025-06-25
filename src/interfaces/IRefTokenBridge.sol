@@ -141,6 +141,10 @@ interface IRefTokenBridge {
    */
   error RefTokenBridge_InvalidNativeAssetChainId();
 
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
+
   /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
@@ -206,6 +210,10 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be unlocked
    */
   function unlock(address _token, address _to, uint256 _amount) external;
+
+  /*///////////////////////////////////////////////////////////////
+                            VIEWS
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Gets the RefToken
