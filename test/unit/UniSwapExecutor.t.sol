@@ -119,7 +119,7 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_recipient);
     vm.assume(_params.tokenOut > _token);
 
-    _params.amountOutMin = 0;
+    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
     _amount = bound(_amount, 1, type(uint160).max);
     _params.deadline = bound(_params.deadline, 0, type(uint48).max);
 
@@ -145,7 +145,11 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.mockCall(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), abi.encode(true));
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(0);
+    _mocks[1] = abi.encode(_params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
     vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
 
@@ -175,7 +179,7 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_recipient);
     vm.assume(_params.tokenOut > _token);
 
-    _params.amountOutMin = 0;
+    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
     _amount = bound(_amount, 1, type(uint160).max);
     _params.deadline = bound(_params.deadline, 0, type(uint48).max);
     _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
@@ -202,7 +206,11 @@ contract UniSwapExecutorUnit is Helpers {
 
     vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
 
-    _mockAndExpect(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector, uniSwapExecutor), abi.encode(0));
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(0);
+    _mocks[1] = abi.encode(_params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
     _mockAndExpect(
       address(refTokenBridge),
