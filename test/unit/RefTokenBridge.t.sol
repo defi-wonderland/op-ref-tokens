@@ -1392,8 +1392,4 @@ contract RefTokenBridgeForTest is RefTokenBridge {
   function setNativeToRefToken(address _nativeToken, uint256 _nativeAssetChainId, address _refToken) external {
     nativeToRefToken[_nativeToken][_nativeAssetChainId] = _refToken;
   }
-
-  function setStuckFunds(address _user, address _nativeAsset, uint256 _amount) external {
-    stuckFunds[_user][_nativeAsset] = _amount;
-  }
 }
