@@ -37,6 +37,22 @@ contract UniSwapExecutor is IUniSwapExecutor {
     IL2ToL2CrossDomainMessenger(PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
   /**
+   * @notice The Permit2 address
+   */
+  IPermit2 public constant PERMIT2 = IPermit2(0x000000000022D473030F116dDEE9F6B43aC78BA3);
+
+  /**
+   * @notice The commands to execute in the Universal Router
+   */
+  bytes public constant COMMANDS = abi.encodePacked(uint8(Commands.V4_SWAP));
+
+  /**
+   * @notice The actions to execute in the Universal Router
+   */
+  bytes public constant ACTIONS =
+    abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
+
+  /**
    * @notice The Universal Router address
    */
   IUniversalRouter public immutable ROUTER;
@@ -52,33 +68,15 @@ contract UniSwapExecutor is IUniSwapExecutor {
   IPoolManager public immutable POOL_MANAGER;
 
   /**
-   * @notice The Permit2 address
-   */
-  IPermit2 public immutable PERMIT2;
-
-  /**
-   * @notice The commands to execute in the Universal Router
-   */
-  bytes public constant COMMANDS = abi.encodePacked(uint8(Commands.V4_SWAP));
-
-  /**
-   * @notice The actions to execute in the Universal Router
-   */
-  bytes public constant ACTIONS =
-    abi.encodePacked(uint8(Actions.SWAP_EXACT_IN_SINGLE), uint8(Actions.SETTLE_ALL), uint8(Actions.TAKE_ALL));
-
-  /**
    * @notice Constructor
    * @param _router The Universal Router address
    * @param _poolManager The PoolManager address
    * @param _refTokenBridge The RefTokenBridge address
-   * @param _permit2 The Permit2 address
    */
-  constructor(IUniversalRouter _router, IPoolManager _poolManager, IRefTokenBridge _refTokenBridge, IPermit2 _permit2) {
+  constructor(IUniversalRouter _router, IPoolManager _poolManager, IRefTokenBridge _refTokenBridge) {
     ROUTER = _router;
     POOL_MANAGER = _poolManager;
     REF_TOKEN_BRIDGE = _refTokenBridge;
-    PERMIT2 = _permit2;
   }
 
   /**

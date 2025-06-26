@@ -5,7 +5,6 @@ import {Helpers} from 'test/utils/Helpers.t.sol';
 
 import {
   IERC20,
-  IPermit2,
   IPoolManager,
   IRefTokenBridge,
   IUniSwapExecutor,
@@ -21,25 +20,22 @@ contract UniSwapExecutorUnit is Helpers {
   IRefTokenBridge public refTokenBridge;
   IUniversalRouter public universalRouter;
   IPoolManager public poolManager;
-  IPermit2 public permit2;
   IUniSwapExecutor public uniSwapExecutor;
 
   function setUp() external {
     refTokenBridge = IRefTokenBridge(makeAddr('RefTokenBridge'));
     universalRouter = IUniversalRouter(makeAddr('UniversalRouter'));
     poolManager = IPoolManager(makeAddr('PoolManager'));
-    permit2 = IPermit2(makeAddr('Permit2'));
 
-    uniSwapExecutor = new UniSwapExecutor(universalRouter, poolManager, refTokenBridge, permit2);
+    uniSwapExecutor = new UniSwapExecutor(universalRouter, poolManager, refTokenBridge);
   }
 
   function test_ConstructorWhenConstructorIsSet(
     IUniversalRouter _router,
     IPoolManager _poolManager,
-    IRefTokenBridge _refTokenBridge,
-    IPermit2 _permit2
+    IRefTokenBridge _refTokenBridge
   ) external {
-    uniSwapExecutor = new UniSwapExecutor(_router, _poolManager, _refTokenBridge, _permit2);
+    uniSwapExecutor = new UniSwapExecutor(_router, _poolManager, _refTokenBridge);
 
     assertEq(address(uniSwapExecutor.ROUTER()), address(_router));
     assertEq(address(uniSwapExecutor.POOL_MANAGER()), address(_poolManager));
@@ -47,7 +43,7 @@ contract UniSwapExecutorUnit is Helpers {
       address(uniSwapExecutor.L2_TO_L2_CROSS_DOMAIN_MESSENGER()), PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER
     );
     assertEq(address(uniSwapExecutor.REF_TOKEN_BRIDGE()), address(_refTokenBridge));
-    assertEq(address(uniSwapExecutor.PERMIT2()), address(_permit2));
+    assertEq(address(uniSwapExecutor.PERMIT2()), address(0x000000000022D473030F116dDEE9F6B43aC78BA3));
   }
 
   function test_ExecuteRevertWhen_CallerIsNotTheRefTokenBridge(
@@ -85,7 +81,7 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
-      address(permit2),
+      address(uniSwapExecutor.PERMIT2()),
       abi.encodeWithSelector(
         IAllowanceTransfer.approve.selector,
         _token,
@@ -134,7 +130,7 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
-      address(permit2),
+      address(uniSwapExecutor.PERMIT2()),
       abi.encodeWithSelector(
         IAllowanceTransfer.approve.selector,
         _token,
@@ -193,7 +189,7 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
-      address(permit2),
+      address(uniSwapExecutor.PERMIT2()),
       abi.encodeWithSelector(
         IAllowanceTransfer.approve.selector,
         _token,

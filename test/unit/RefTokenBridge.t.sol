@@ -348,10 +348,6 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
-  function test_SendAndExecuteRevertWhen_ExecutionIdIsTheBlockChainId() external {
-    // It should revert
-  }
-
   function test_SendAndExecuteRevertWhen_AmountIsZero(
     uint256 _nativeAssetChainId,
     address _token,
