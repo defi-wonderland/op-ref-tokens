@@ -192,12 +192,12 @@ contract UniSwapExecutor is IUniSwapExecutor {
   {
     _params = abi.decode(_data, (V4SwapExactInParams));
     _zeroForOne = _tokenIn < _params.tokenOut;
-    _inputCurrency = Currency.wrap(_zeroForOne ? _tokenIn : _params.tokenOut);
-    _outputCurrency = Currency.wrap(_zeroForOne ? _params.tokenOut : _tokenIn);
+    _inputCurrency = Currency.wrap(_tokenIn);
+    _outputCurrency = Currency.wrap(_params.tokenOut);
 
     _poolKey = PoolKey({
-      currency0: _inputCurrency,
-      currency1: _outputCurrency,
+      currency0: _zeroForOne ? _inputCurrency : _outputCurrency,
+      currency1: _zeroForOne ? _outputCurrency : _inputCurrency,
       fee: _params.fee,
       tickSpacing: _params.tickSpacing,
       hooks: IHooks(address(0))
