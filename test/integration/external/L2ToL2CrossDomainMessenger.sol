@@ -38,17 +38,13 @@ error ReentrantCall();
 /// @notice Thrown when the provided message parameters do not match any hash of a previously sent message.
 error InvalidMessage();
 
-interface IL2ToL2CrossDomainMessenger {
-  function setCrossDomainMessageSender(address _sender) external;
-}
-
 /// @custom:proxied true
 /// @custom:predeploy 0x4200000000000000000000000000000000000023
 /// @title L2ToL2CrossDomainMessenger
 /// @notice The L2ToL2CrossDomainMessenger is a higher level abstraction on top of the CrossL2Inbox that provides
 ///         features necessary for secure transfers ERC20 tokens between L2 chains. Messages sent through the
 ///         L2ToL2CrossDomainMessenger on the source chain receive both replay protection as well as domain binding.
-contract L2ToL2CrossDomainMessenger is ISemver, IL2ToL2CrossDomainMessenger, TransientReentrancyAware {
+contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
   /// @notice Storage slot for the sender of the current cross domain message.
   ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.sender")) - 1)
   bytes32 internal constant CROSS_DOMAIN_MESSAGE_SENDER_SLOT =
@@ -207,8 +203,9 @@ contract L2ToL2CrossDomainMessenger is ISemver, IL2ToL2CrossDomainMessenger, Tra
       revert IdOriginNotL2ToL2CrossDomainMessenger();
     }
 
+    // WARNING: Is commented out for testing purposes
     // Signal that this is a cross chain call that needs to have the identifier validated
-    ICrossL2Inbox(PredeployAddresses.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
+    // ICrossL2Inbox(PredeployAddresses.CROSS_L2_INBOX).validateMessage(_id, keccak256(_sentMessage));
 
     // Decode the payload
     (uint256 destination, address target, uint256 nonce, address sender, bytes memory message) =
@@ -291,13 +288,5 @@ contract L2ToL2CrossDomainMessenger is ISemver, IL2ToL2CrossDomainMessenger, Tra
 
     // Data
     (sender_, message_) = abi.decode(_payload[128:], (address, bytes));
-  }
-
-  /// @dev Sets the cross domain messenger sender in transient storage.
-  /// @param _sender Sender address to set.
-  function setCrossDomainMessageSender(address _sender) external {
-    assembly {
-      tstore(CROSS_DOMAIN_MESSAGE_SENDER_SLOT, _sender)
-    }
   }
 }

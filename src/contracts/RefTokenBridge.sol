@@ -12,6 +12,8 @@ import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interf
 import {RefToken} from 'contracts/RefToken.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
 
+import 'forge-std/console.sol';
+
 /**
  * @title RefTokenBridge
  * @notice A bridge for bridging locked native assets and ERC-20s across OP-Stack chains.

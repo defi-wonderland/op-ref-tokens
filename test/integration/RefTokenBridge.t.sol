@@ -4,8 +4,11 @@ pragma solidity 0.8.25;
 import {IntegrationBase} from './IntegrationBase.sol';
 
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+
+import {IRefTokenBridge, RefTokenBridge} from 'contracts/RefTokenBridge.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
-import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
+
+import {Identifier, L2ToL2CrossDomainMessenger} from './external/L2ToL2CrossDomainMessenger.sol';
 
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 
@@ -106,6 +109,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   function test_relayOpFromOpChainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
+    vm.chainId(_unichainChainId);
     _amountToBridge = bound(_amountToBridge, 1, type(uint128).max);
 
     // Check that ref token is not deployed
@@ -121,10 +125,26 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       nativeAssetDecimals: _op.decimals()
     });
 
-    // Prank as the L2 to L2 cross domain messenger and relay the message
-    vm.startPrank(address(_l2ToL2CrossDomainMessenger));
-    _refTokenBridge.relay(_amountToBridge, _recipient, _refTokenMetadata);
-    vm.stopPrank();
+    // Create the message to be relayed
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
+
+    // Create the sent message
+    bytes memory _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 1),
+      abi.encode(address(_refTokenBridge), _message)
+    );
+
+    // Create the identifier for the relay message
+    Identifier memory _identifier = Identifier({
+      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      blockNumber: block.number,
+      logIndex: 1,
+      timestamp: block.timestamp,
+      chainId: _opChainId
+    });
+
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
 
     // Check that ref op was deployed
     _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
@@ -144,6 +164,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   function test_relayOpFromOpChainWithRefTokenDeployed(uint256 _amountToBridge) public {
+    vm.chainId(_unichainChainId);
     _amountToBridge = bound(_amountToBridge, 200, type(uint128).max);
 
     IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken.RefTokenMetadata({
@@ -154,10 +175,26 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       nativeAssetDecimals: _op.decimals()
     });
 
-    // Prank as the L2 to L2 cross domain messenger and relay the message
-    vm.startPrank(address(_l2ToL2CrossDomainMessenger));
+    // Create the message to be relayed
+    bytes memory _message = abi.encodeWithSelector(_refTokenBridge.relay.selector, 100, _recipient, _refTokenMetadata);
+
+    // Create the sent message
+    bytes memory _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 1),
+      abi.encode(address(_refTokenBridge), _message)
+    );
+
+    // Create the identifier for the relay message
+    Identifier memory _identifier = Identifier({
+      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      blockNumber: block.number,
+      logIndex: 1,
+      timestamp: block.timestamp,
+      chainId: _opChainId
+    });
+
     // Relay OP from OpChain first time and deploy ref token
-    _refTokenBridge.relay(100, _recipient, _refTokenMetadata);
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
 
     // Check that the ref token is on the recipient
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
@@ -166,14 +203,111 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Check that ref op was deployed and is the same as the precomputed ref token address
     assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata));
 
+    _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge - 100, _recipient, _refTokenMetadata);
+    _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 2),
+      abi.encode(address(_refTokenBridge), _message)
+    );
+
     // Relay OP from OpChain second time
-    _refTokenBridge.relay(_amountToBridge - 100, _recipient, _refTokenMetadata);
-    vm.stopPrank();
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
 
     // Check that the ref token is on the recipient
     assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToBridge);
 
     // Check that ref op was deployed
     assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
+  }
+
+  function test_sendOpToUnichainRelayFromUnichainAndBackToOpChain(uint256 _amountToBridge) public {
+    _amountToBridge = bound(_amountToBridge, 1, type(uint128).max);
+
+    // Set up user funds
+    deal(address(_op), _user, _amountToBridge);
+
+    // Create a new ref token bridge for the unichain chain
+    RefTokenBridge _unichainRefTokenBridge = new RefTokenBridge();
+
+    vm.startPrank(_user);
+    _op.approve(address(_refTokenBridge), _amountToBridge);
+    // Send OP to Unichain
+    _refTokenBridge.send(_opChainId, _unichainChainId, address(_op), _amountToBridge, _recipient);
+    vm.stopPrank();
+
+    vm.chainId(_unichainChainId);
+
+    // Check that ref token is not deployed
+    address _refOp = _unichainRefTokenBridge.nativeToRefToken(address(_op), _opChainId);
+    assertEq(_refOp, address(0));
+
+    // Get the ref token address from the op chain
+    _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+
+    IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken.RefTokenMetadata({
+      nativeAsset: address(_op),
+      nativeAssetChainId: _opChainId,
+      nativeAssetName: _op.name(),
+      nativeAssetSymbol: _op.symbol(),
+      nativeAssetDecimals: _op.decimals()
+    });
+
+    // Create the message to be relayed
+    bytes memory _message =
+      abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
+
+    // Create the sent message
+    bytes memory _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_unichainRefTokenBridge), 1),
+      abi.encode(address(_unichainRefTokenBridge), _message)
+    );
+
+    // Create the identifier for the relay message
+    Identifier memory _identifier = Identifier({
+      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      blockNumber: block.number,
+      logIndex: 1,
+      timestamp: block.timestamp,
+      chainId: _opChainId
+    });
+
+    // Relay OP from Unichain
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that ref token is deployed
+    address _uniRefOp = _unichainRefTokenBridge.nativeToRefToken(address(_op), _opChainId);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_uniRefOp).balanceOf(_recipient), _amountToBridge);
+
+    // TODO: THIS IS NOT WORKING
+    vm.chainId(_unichainChainId);
+
+    // The recipient sends the ref token to the op chain
+    vm.prank(_recipient);
+    // Send the ref token to the op chain
+    _unichainRefTokenBridge.send(_unichainChainId, _opChainId, address(_uniRefOp), _amountToBridge, _user);
+
+    // Check that the ref token in the recipient has been burned
+    assertEq(IERC20(_uniRefOp).balanceOf(_recipient), 0);
+
+    // Change to the op chain
+    vm.chainId(_opChainId);
+
+    _message = abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToBridge, _user, _refTokenMetadata);
+
+    _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _opChainId, address(_refTokenBridge), 2),
+      abi.encode(address(_refTokenBridge), _message)
+    );
+
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that the OP is on the user
+    assertEq(_op.balanceOf(_user), _amountToBridge);
+
+    // Check that the bridge unlocked the OP and burn the ref token
+    assertEq(_op.balanceOf(address(_refTokenBridge)), 0);
+    assertEq(IERC20(_refOp).balanceOf(address(_refTokenBridge)), 0);
   }
 }
