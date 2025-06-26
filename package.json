@@ -23,7 +23,7 @@
     "prepare": "husky",
     "test": "forge test -vvv",
     "test:fuzz": "medusa fuzz",
-    "test:integration": "forge test --match-contract Integration -vvv",
+    "test:integration": "FOUNDRY_FUZZ_RUNS=250 forge test --match-contract Integration -vvv",
     "test:symbolic": "halmos",
     "test:unit": "forge test --match-contract Unit -vvv",
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit"
