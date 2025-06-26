@@ -146,6 +146,16 @@ interface IRefTokenBridge {
   //////////////////////////////////////////////////////////////*/
 
   /**
+   * @notice Thrown when the token is not the RefToken
+   */
+  error RefTokenBridge_NotRefToken();
+
+  /**
+   * @notice Thrown when the refund address is invalid
+   */
+  error RefTokenBridge_InvalidRefundAddress();
+
+  /**
    * @notice Send token to the relay chain
    * @dev The native asset MUST implement the IERC20Metadata interface for this function to work
    * @param _nativeAssetChainId The chain ID of the native asset
