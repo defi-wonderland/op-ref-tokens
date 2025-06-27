@@ -201,6 +201,7 @@ contract RefTokenBridge is IRefTokenBridge {
 
     // RefToken supply to burn on this chain
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
+    if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
     if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
 
     // If the chain is the native asset chain, lock the native asset
