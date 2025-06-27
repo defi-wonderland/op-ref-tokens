@@ -1,7 +1,8 @@
 ---
-description: 
-globs: 
-alwaysApply: false
+description: General rules for development, documentation, and AI interaction.
+globs:
+  - "**/*"
+alwaysApply: true
 ---
 # General Rules
 
