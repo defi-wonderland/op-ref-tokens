@@ -13,7 +13,7 @@ import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IV4Router} from '@uniswap/v4-periphery/src/interfaces/IV4Router.sol';
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
-
+import {IRefToken} from 'interfaces/IRefToken.sol';
 import {
   IL2ToL2CrossDomainMessenger,
   IPermit2,
@@ -104,7 +104,10 @@ contract UniSwapExecutor is IUniSwapExecutor {
       IERC20(_tokenOut).transfer(_recipient, _amountOut);
     } else {
       // If the destination chain is not the same as the current chain, send the token to the destination chain
-      REF_TOKEN_BRIDGE.send(block.chainid, _destinationChainId, _tokenOut, _amountOut, _recipient);
+      // If the token is a RefToken, use the native asset chain ID, otherwise use the current chain ID
+      uint256 _nativeAssetChainId =
+        REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
+      REF_TOKEN_BRIDGE.send(_nativeAssetChainId, _destinationChainId, _tokenOut, _amountOut, _recipient);
     }
   }
 

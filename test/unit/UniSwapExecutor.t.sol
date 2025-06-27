@@ -6,6 +6,7 @@ import {Helpers} from 'test/utils/Helpers.t.sol';
 import {
   IERC20,
   IPoolManager,
+  IRefToken,
   IRefTokenBridge,
   IUniSwapExecutor,
   IUniversalRouter,
@@ -163,7 +164,7 @@ contract UniSwapExecutorUnit is Helpers {
     uniSwapExecutor.execute(_token, _recipient, _amount, _destinationChainId, _data);
   }
 
-  function test_ExecuteWhenDestinationChainIsNotTheSameAsTheCurrentChain(
+  function test_ExecuteWhenDestinationChainIsNotTheSameAsTheCurrentChainAndTheTokenOutIsNotARefToken(
     address _token,
     address _recipient,
     uint256 _amount,
@@ -210,9 +211,93 @@ contract UniSwapExecutorUnit is Helpers {
 
     _mockAndExpect(
       address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(refTokenBridge),
       abi.encodeWithSelector(
         IRefTokenBridge.send.selector,
         block.chainid,
+        _destinationChainId,
+        _params.tokenOut,
+        _params.amountOutMin,
+        _recipient
+      ),
+      abi.encode(true)
+    );
+
+    // Emits
+    vm.expectEmit(address(uniSwapExecutor));
+    emit IUniSwapExecutor.SwapExecuted(_token, _amount, _params.tokenOut, _params.amountOutMin);
+
+    vm.prank(address(refTokenBridge));
+    uniSwapExecutor.execute(_token, _recipient, _amount, _destinationChainId, _data);
+  }
+
+  function test_ExecuteWhenDestinationChainIsNotTheSameAsTheCurrentChainAndTheTokenOutIsARefToken(
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    uint256 _destinationChainId,
+    IUniSwapExecutor.V4SwapExactInParams memory _params
+  ) external {
+    _assumeFuzzable(_token);
+    _assumeFuzzable(_params.tokenOut);
+    _assumeFuzzable(_recipient);
+    vm.assume(_params.tokenOut > _token);
+
+    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
+    _amount = bound(_amount, 1, type(uint160).max);
+    _params.deadline = bound(_params.deadline, 0, type(uint48).max);
+    _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
+
+    bytes memory _data = abi.encode(_params);
+
+    _mockAndExpect(
+      _token,
+      abi.encodeWithSelector(IERC20.transferFrom.selector, address(refTokenBridge), uniSwapExecutor, _amount),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(uniSwapExecutor.PERMIT2()),
+      abi.encodeWithSelector(
+        IAllowanceTransfer.approve.selector,
+        _token,
+        address(universalRouter),
+        uint160(_amount),
+        uint48(_params.deadline)
+      ),
+      abi.encode(true)
+    );
+
+    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(0);
+    _mocks[1] = abi.encode(_params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
+
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      _params.tokenOut,
+      abi.encodeWithSelector(IRefToken.NATIVE_ASSET_CHAIN_ID.selector),
+      abi.encode(_destinationChainId)
+    );
+
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(
+        IRefTokenBridge.send.selector,
+        _destinationChainId,
         _destinationChainId,
         _params.tokenOut,
         _params.amountOutMin,

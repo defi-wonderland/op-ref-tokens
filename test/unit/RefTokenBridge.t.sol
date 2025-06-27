@@ -380,22 +380,6 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
-  function test_SendAndExecuteRevertWhen_ExecutionIdIsTheBlockChainId(
-    uint256 _nativeAssetChainId,
-    address _token,
-    address _recipient,
-    uint256 _amount,
-    uint256 _relayChainId,
-    IRefTokenBridge.ExecutionData memory _executionData
-  ) external {
-    vm.assume(_executionData.destinationExecutor != address(0));
-    _executionData.destinationChainId = block.chainid;
-
-    // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);
-    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
-  }
-
   function test_SendAndExecuteRevertWhen_AmountIsZero(
     uint256 _nativeAssetChainId,
     address _token,

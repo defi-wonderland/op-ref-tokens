@@ -13,7 +13,11 @@ UniSwapExecutorUnit::execute
 ├── When destination chain is the same as the current chain
 │   ├── It should transfer the token to the recipient
 │   └── It should emit SwapExecuted
-└── When destination chain is not the same as the current chain
+├── When destination chain is not the same as the current chain and the token out is not a ref token
+│   ├── It should send the token to the destination chain
+│   ├── It should emit SwapExecuted
+│   └── It should emit SentToDestinationChain
+└── When destination chain is not the same as the current chain and the token out is a ref token
     ├── It should send the token to the destination chain
     ├── It should emit SwapExecuted
     └── It should emit SentToDestinationChain
