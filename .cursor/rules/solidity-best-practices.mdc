@@ -1,9 +1,4 @@
 ---
-description: 
-globs: 
-alwaysApply: false
----
----
 description: Enforces best practices for writing Solidity code, including naming conventions, security patterns, and gas optimization techniques.
 globs:
   - "**/*.sol"

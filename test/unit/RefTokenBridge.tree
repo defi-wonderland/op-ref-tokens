@@ -11,6 +11,8 @@ RefTokenBridgeUnit::send
 │   └── It should revert
 ├── When native asset chain id is zero
 │   └── It should revert
+├── When native chain id matches the block chain id and the token is not the native token
+│   └── It should revert
 ├── When native chain id is not does not match the block chain id and the token is not the ref token
 │   └── It should revert
 ├── When called with a native token first time
@@ -47,6 +49,8 @@ RefTokenBridgeUnit::sendAndExecute
 ├── When native asset chain id does not match the block chain id when deploying a RefToken
 │   └── It should revert
 ├── When native asset chain id is zero
+│   └── It should revert
+├── When native chain id matches the block chain id and the token is not the native token
 │   └── It should revert
 ├── When native chain id is not does not match the block chain id and the token is not the ref token
 │   └── It should revert
