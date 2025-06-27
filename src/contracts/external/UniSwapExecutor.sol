@@ -96,8 +96,10 @@ contract UniSwapExecutor is IUniSwapExecutor {
   ) external {
     if (msg.sender != address(REF_TOKEN_BRIDGE)) revert UniSwapExecutor_InvalidCaller();
 
+    if (_amount > type(uint128).max) revert UniSwapExecutor_AmountTooLarge();
+
     // Execute the swap
-    (address _tokenOut, uint256 _amountOut) = _executeSwap(_token, _amount, _data);
+    (address _tokenOut, uint256 _amountOut) = _executeSwap(_token, uint128(_amount), _data);
 
     // If the destination chain is the same as the current chain, transfer the token to the recipient
     if (block.chainid == _destinationChainId) {
@@ -121,7 +123,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
    */
   function _executeSwap(
     address _token,
-    uint256 _amount,
+    uint128 _amount,
     bytes calldata _data
   ) internal returns (address _tokenOut, uint256 _amountOut) {
     bytes[] memory _inputs = new bytes[](1);
@@ -141,8 +143,8 @@ contract UniSwapExecutor is IUniSwapExecutor {
       IV4Router.ExactInputSingleParams({
         poolKey: _poolKey,
         zeroForOne: _zeroForOne,
-        amountIn: uint128(_amount),
-        amountOutMinimum: uint128(_v4Params.amountOutMin),
+        amountIn: _amount,
+        amountOutMinimum: _v4Params.amountOutMin,
         hookData: abi.encode('')
       })
     );
@@ -155,7 +157,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Transfer the token from the RefTokenBridge to the executor and approve the router
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-    PERMIT2.approve(_token, address(ROUTER), uint160(_amount), uint48(_v4Params.deadline));
+    PERMIT2.approve(_token, address(ROUTER), uint160(_amount), _v4Params.deadline);
 
     _tokenOut = _v4Params.tokenOut;
     uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));

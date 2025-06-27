@@ -8,6 +8,8 @@ UniSwapExecutorUnit::constructor
 UniSwapExecutorUnit::execute
 ├── When caller is not the RefTokenBridge
 │   └── It should revert
+├── When amount is too large
+│   └── It should revert
 ├── When amount out after the swap is less than the minimum amount out
 │   └── It should revert
 ├── When destination chain is the same as the current chain

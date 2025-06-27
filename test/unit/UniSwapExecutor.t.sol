@@ -58,6 +58,14 @@ contract UniSwapExecutorUnit is Helpers {
     uniSwapExecutor.execute(_token, _recipient, _amount, _destinationChainId, _data);
   }
 
+  function test_ExecuteRevertWhen_AmountIsTooLarge(uint256 _amount) external {
+    _amount = bound(_amount, type(uint160).max, type(uint256).max);
+
+    vm.expectRevert(abi.encodeWithSelector(IUniSwapExecutor.UniSwapExecutor_AmountTooLarge.selector));
+    vm.prank(address(refTokenBridge));
+    uniSwapExecutor.execute(address(0), address(0), _amount, 0, bytes(''));
+  }
+
   function test_ExecuteRevertWhen_AmountOutAfterTheSwapIsLessThanTheMinimumAmountOut(
     address _token,
     address _recipient,
@@ -69,9 +77,9 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_params.tokenOut);
     vm.assume(_params.tokenOut > _token);
 
-    _amount = bound(_amount, 1, type(uint128).max);
-    _params.amountOutMin = bound(_params.amountOutMin, _amount + 1, type(uint160).max);
-    _params.deadline = bound(_params.deadline, 0, type(uint48).max);
+    _amount = uint128(bound(_amount, 1, type(uint64).max));
+    _params.amountOutMin = uint128(bound(_params.amountOutMin, _amount + 1, type(uint128).max));
+    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
 
     bytes memory _data = abi.encode(_params);
 
@@ -116,9 +124,9 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_recipient);
     vm.assume(_params.tokenOut > _token);
 
-    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
-    _amount = bound(_amount, 1, type(uint160).max);
-    _params.deadline = bound(_params.deadline, 0, type(uint48).max);
+    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
+    _amount = uint128(bound(_amount, 1, type(uint128).max));
+    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
 
     _destinationChainId = block.chainid;
 
@@ -176,9 +184,9 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_recipient);
     vm.assume(_params.tokenOut > _token);
 
-    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
-    _amount = bound(_amount, 1, type(uint160).max);
-    _params.deadline = bound(_params.deadline, 0, type(uint48).max);
+    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
+    _amount = uint128(bound(_amount, 1, type(uint128).max));
+    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
     _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
 
     bytes memory _data = abi.encode(_params);
@@ -248,9 +256,9 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_recipient);
     vm.assume(_params.tokenOut > _token);
 
-    _params.amountOutMin = bound(_params.amountOutMin, 1, type(uint160).max);
-    _amount = bound(_amount, 1, type(uint160).max);
-    _params.deadline = bound(_params.deadline, 0, type(uint48).max);
+    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
+    _amount = uint128(bound(_amount, 1, type(uint160).max));
+    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
     _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
 
     bytes memory _data = abi.encode(_params);

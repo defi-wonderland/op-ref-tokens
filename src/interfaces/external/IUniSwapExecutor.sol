@@ -30,8 +30,8 @@ interface IUniSwapExecutor is IExecutor {
     address tokenOut;
     uint24 fee;
     int24 tickSpacing;
-    uint256 amountOutMin;
-    uint256 deadline;
+    uint128 amountOutMin;
+    uint48 deadline;
   }
 
   /*///////////////////////////////////////////////////////////////
@@ -61,25 +61,10 @@ interface IUniSwapExecutor is IExecutor {
    */
   error UniSwapExecutor_InvalidCaller();
 
-  /*///////////////////////////////////////////////////////////////
-                            LOGIC
-  //////////////////////////////////////////////////////////////*/
-
   /**
-   * @notice Executes a swap from the RefTokenBridge
-   * @param _token The token to swap
-   * @param _recipient The recipient of the token
-   * @param _amount The amount of token to swap
-   * @param _destinationChainId The destination chain id
-   * @param _data The data to execute
+   * @notice Error emitted when the amount is too large
    */
-  function execute(
-    address _token,
-    address _recipient,
-    uint256 _amount,
-    uint256 _destinationChainId,
-    bytes calldata _data
-  ) external;
+  error UniSwapExecutor_AmountTooLarge();
 
   /*///////////////////////////////////////////////////////////////
                             VIEWS
