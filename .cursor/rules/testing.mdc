@@ -1,12 +1,9 @@
 ---
 description: Guidelines for testing and quality assurance, including test strategies, tooling, and coverage goals.
 globs: 
+  - "**/*.t.sol"
+  - "test/**/*"
 alwaysApply: false
----
-description: General rules for development, documentation, and AI interaction.
-globs:
-  - "**/*"
-alwaysApply: true
 ---
 
 # Testing and Quality Assurance
