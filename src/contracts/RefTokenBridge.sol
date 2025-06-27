@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IRefToken} from 'interfaces/IRefToken.sol';
-import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
-
-import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
-import {IExecutor} from 'interfaces/external/IExecutor.sol';
-
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 import {RefToken} from 'contracts/RefToken.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
+import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
+import {IExecutor} from 'interfaces/external/IExecutor.sol';
 
 /**
  * @title RefTokenBridge

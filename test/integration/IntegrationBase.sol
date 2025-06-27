@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {L2ToL2CrossDomainMessenger} from './external/L2ToL2CrossDomainMessenger.sol';
-
 import {EIP1967Helper} from './external/EIP1967Helper.sol';
-
+import {MockL2ToL2CrossDomainMessenger as L2ToL2CrossDomainMessenger} from
+  './external/MockL2ToL2CrossDomainMessenger.sol';
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
-
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'forge-std/interfaces/IERC20.sol';
 import {Deploy} from 'script/Deploy.sol';
@@ -27,11 +25,6 @@ contract IntegrationBase is Deploy, Test, PrecomputeRefToken {
 
   function setUp() public virtual override {
     run();
-
-    vm.etch(
-      PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-      vm.getDeployedCode('L2ToL2CrossDomainMessenger.sol:L2ToL2CrossDomainMessenger')
-    );
 
     EIP1967Helper.setImplementation(
       PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER, address(new L2ToL2CrossDomainMessenger())

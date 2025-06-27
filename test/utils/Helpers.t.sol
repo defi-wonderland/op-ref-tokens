@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {RefToken} from '../../src/contracts/RefToken.sol';
-import {IRefToken} from '../../src/interfaces/IRefToken.sol';
 import {PrecomputeRefToken} from './PrecomputeRefToken.t.sol';
 import {Test} from 'forge-std/Test.sol';
 

@@ -7,13 +7,15 @@ import {Script} from 'forge-std/Script.sol';
 contract Deploy is Script {
   RefTokenBridge internal _refTokenBridge;
 
+  bytes32 internal _salt = keccak256('RefTokenBridge'); // TODO: Change to env salt
+
   /// @notice Deployment parameters for each chain
   function setUp() public virtual {}
 
   function run() public {
     vm.startBroadcast();
 
-    _refTokenBridge = new RefTokenBridge();
+    _refTokenBridge = new RefTokenBridge{salt: _salt}();
 
     vm.stopBroadcast();
   }

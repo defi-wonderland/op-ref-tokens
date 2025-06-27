@@ -8,7 +8,7 @@ import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.
 import {TransientReentrancyAware} from '@interop-lib/src/libraries/TransientContext.sol';
 
 // Interfaces
-import {ICrossL2Inbox, Identifier} from '@interop-lib/src/interfaces/ICrossL2Inbox.sol';
+import {Identifier} from '@interop-lib/src/interfaces/ICrossL2Inbox.sol';
 import {ISemver} from '@interop-lib/src/interfaces/ISemver.sol';
 
 /// @notice Thrown when a non-written slot in transient storage is attempted to be read from.
@@ -44,7 +44,7 @@ error InvalidMessage();
 /// @notice The L2ToL2CrossDomainMessenger is a higher level abstraction on top of the CrossL2Inbox that provides
 ///         features necessary for secure transfers ERC20 tokens between L2 chains. Messages sent through the
 ///         L2ToL2CrossDomainMessenger on the source chain receive both replay protection as well as domain binding.
-contract L2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
+contract MockL2ToL2CrossDomainMessenger is ISemver, TransientReentrancyAware {
   /// @notice Storage slot for the sender of the current cross domain message.
   ///         Equal to bytes32(uint256(keccak256("l2tol2crossdomainmessenger.sender")) - 1)
   bytes32 internal constant CROSS_DOMAIN_MESSAGE_SENDER_SLOT =

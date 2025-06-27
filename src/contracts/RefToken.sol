@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import {SuperchainERC20} from '@interop-lib/src/SuperchainERC20.sol';
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
-
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 
