@@ -1,15 +1,9 @@
 ---
-description: 
+description: Guidelines for testing and quality assurance, including test strategies, tooling, and coverage goals.
 globs: 
 alwaysApply: false
 ---
----
-description: Guidelines for testing and quality assurance, including test strategies, tooling, and coverage goals.
-globs:
-  - "**/*.t.sol"
-  - "test/**/*"
-alwaysApply: false
----
+
 # Testing and Quality Assurance
 
 - Implement a comprehensive testing strategy including unit, integration, and end-to-end tests.

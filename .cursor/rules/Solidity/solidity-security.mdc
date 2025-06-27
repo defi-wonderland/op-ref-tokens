@@ -1,0 +1,19 @@
+---
+description: Solidity security guidelines
+globs: **/*.sol
+alwaysApply: false
+---
+# Solidity Security Guidelines
+
+## Security Patterns
+- Use CEI pattern (Checks-Effects-Interactions)
+- Prefer custom errors over require statements
+- Include comprehensive NatSpec documentation
+- Emit events for storage changes
+- Inherit interfaces last to avoid linearization issues
+
+## Best Practices
+- Solidity ^0.8.0 has built-in overflow and underflow checks. Use `unchecked` blocks for micro-optimizations where overflow is impossible.
+- Validate all inputs
+- Handle edge cases explicitly
+- Follow security best practices
