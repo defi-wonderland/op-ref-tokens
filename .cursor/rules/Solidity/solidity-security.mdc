@@ -1,9 +1,8 @@
 ---
 description: Solidity security guidelines
 globs: **/*.sol
-version: 1.0.0
+alwaysApply: false
 ---
-
 # Solidity Security Guidelines
 
 ## Security Patterns
@@ -14,7 +13,7 @@ version: 1.0.0
 - Inherit interfaces last to avoid linearization issues
 
 ## Best Practices
-- Use SafeMath or unchecked blocks appropriately
+- Solidity ^0.8.0 has built-in overflow and underflow checks. Use `unchecked` blocks for micro-optimizations where overflow is impossible.
 - Validate all inputs
 - Handle edge cases explicitly
 - Follow security best practices
