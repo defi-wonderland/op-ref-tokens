@@ -61,6 +61,8 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     // Check that the ref token is deployed
     assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
+    // Check that the total supply of the ref token is 0 in the native chain
+    assertEq(IERC20(_refOp).totalSupply(), 0);
 
     // Check ref token params
     IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken(_refOp).metadata();
@@ -70,7 +72,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(_refTokenMetadata.nativeAssetSymbol, _op.symbol());
     assertEq(_refTokenMetadata.nativeAssetDecimals, _op.decimals());
 
-    // Compute the message to be relayed
+    // Compute the message that should have been relayed
     bytes memory _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
 
@@ -112,15 +114,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(_op.balanceOf(address(_refTokenBridge)), _firstAmountToBridge);
 
     // Precompute the ref token metadata
-    IRefToken.RefTokenMetadata memory _precomputedRefTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_op),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _op.name(),
-      nativeAssetSymbol: _op.symbol(),
-      nativeAssetDecimals: _op.decimals()
-    });
+    IRefToken.RefTokenMetadata memory _precomputedRefTokenMetadata = _opPrecomputedRefTokenMetadata();
 
-    // Compute the message to be relayed
+    // Compute the message that should have been relayed
     bytes memory _message = abi.encodeWithSelector(
       _refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _precomputedRefTokenMetadata
     );
@@ -142,7 +138,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _precomputedRefTokenMetadata));
 
-    // Send OP to Unichain second time and check that the ref token is already deployed
+    // Send OP to Unichain second time
     _refTokenBridge.send(_opChainId, _unichainChainId, address(_op), _secondAmountToBridge, _recipient);
 
     // Check that the OP is on the bridge
@@ -152,7 +148,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _precomputedRefTokenMetadata));
 
-    // Compute the message to be relayed
+    // Check that the total supply of the ref token is 0 in the native chain
+    assertEq(IERC20(_refOp).totalSupply(), 0);
+
+    // Compute the message that should have been relayed
     _message = abi.encodeWithSelector(
       _refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _precomputedRefTokenMetadata
     );
@@ -177,39 +176,20 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    */
   function test_relayOpFromOpChainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
     vm.chainId(_unichainChainId);
-    _amountToBridge = bound(_amountToBridge, 1, type(uint128).max);
+    _amountToBridge = bound(_amountToBridge, 1, type(uint256).max);
 
     // Check that ref token is not deployed
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, address(0));
 
     // Relay OP from OpChain
-    IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_op),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _op.name(),
-      nativeAssetSymbol: _op.symbol(),
-      nativeAssetDecimals: _op.decimals()
-    });
+    IRefToken.RefTokenMetadata memory _refTokenMetadata = _opPrecomputedRefTokenMetadata();
 
     // Create the message to be relayed
     bytes memory _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
 
-    // Create the sent message
-    bytes memory _sentMessage = abi.encodePacked(
-      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 0),
-      abi.encode(address(_refTokenBridge), _message)
-    );
-
-    // Create the identifier for the relay message
-    Identifier memory _identifier = Identifier({
-      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-      blockNumber: block.number,
-      logIndex: 0,
-      timestamp: block.timestamp,
-      chainId: _opChainId
-    });
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
 
     _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
 
@@ -238,35 +218,17 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   function test_relayOpFromOpChainWithRefTokenDeployed(uint256 _amountToBridge, uint256 _firstAmountToBridge) public {
     vm.chainId(_unichainChainId);
     _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
-    _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint128).max);
+    _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint256).max);
     uint256 _secondAmountToBridge = _amountToBridge - _firstAmountToBridge;
 
-    IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_op),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _op.name(),
-      nativeAssetSymbol: _op.symbol(),
-      nativeAssetDecimals: _op.decimals()
-    });
+    IRefToken.RefTokenMetadata memory _refTokenMetadata = _opPrecomputedRefTokenMetadata();
 
     // Create the message to be relayed
     bytes memory _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _refTokenMetadata);
 
-    // Create the sent message
-    bytes memory _sentMessage = abi.encodePacked(
-      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 0),
-      abi.encode(address(_refTokenBridge), _message)
-    );
-
-    // Create the identifier for the relay message
-    Identifier memory _identifier = Identifier({
-      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-      blockNumber: block.number,
-      logIndex: 0,
-      timestamp: block.timestamp,
-      chainId: _opChainId
-    });
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
 
     // Relay OP from OpChain first time and deploy ref token
     _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
@@ -280,10 +242,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _refTokenMetadata);
-    _sentMessage = abi.encodePacked(
-      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _unichainChainId, address(_refTokenBridge), 1),
-      abi.encode(address(_refTokenBridge), _message)
-    );
+    (_sentMessage, _identifier) = _messageAndIdentifier(_message, 1, _unichainChainId);
 
     // Relay OP from OpChain second time
     _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
@@ -314,6 +273,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken(_refOp).metadata();
 
+    // Check that the total supply of the ref token is 0 in the native chain
+    assertEq(IERC20(_refOp).totalSupply(), 0);
+
     // Create the message to be relayed
     bytes memory _message =
       abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
@@ -333,29 +295,58 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Now, we assume that the user sends the ref token to the op chain from Unichain
 
-    // Create the message to be relayed from Unichain to the op chain
-    _message = abi.encodePacked(
-      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _opChainId, address(_refTokenBridge), 0),
-      abi.encode(address(_refTokenBridge), _message)
-    );
-
-    // Create the identifier for the relay message
-    Identifier memory _identifier = Identifier({
-      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
-      blockNumber: block.number,
-      logIndex: 0,
-      timestamp: block.timestamp,
-      chainId: _unichainChainId
-    });
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _opChainId);
 
     // Check that ref token is deployed on the op chain before the relay
     assertEq(_refTokenBridge.isRefTokenDeployed(address(_refOp)), true);
 
     // Relay OP from Unichain
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _message);
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
 
     // Check that the OP is on the recipient and unlocked in the bridge
     assertEq(_op.balanceOf(_recipient), _amountToBridge);
     assertEq(_op.balanceOf(address(_refTokenBridge)), 0);
+  }
+
+  /**
+   * @notice Helper function to precompute the ref token metadata for OP
+   * @return _refTokenMetadata The ref token metadata for OP
+   */
+  function _opPrecomputedRefTokenMetadata() internal view returns (IRefToken.RefTokenMetadata memory _refTokenMetadata) {
+    _refTokenMetadata = IRefToken.RefTokenMetadata({
+      nativeAsset: address(_op),
+      nativeAssetChainId: _opChainId,
+      nativeAssetName: _op.name(),
+      nativeAssetSymbol: _op.symbol(),
+      nativeAssetDecimals: _op.decimals()
+    });
+  }
+
+  /**
+   * @notice Helper function to create the message and identifier for the relay message
+   * @param _message The message to be relayed
+   * @param _nonce The nonce of the relay message
+   * @param _chainId The chain id of the relay message
+   * @return _sentMessage The sent message
+   * @return _identifier The identifier for the relay message
+   */
+  function _messageAndIdentifier(
+    bytes memory _message,
+    uint256 _nonce,
+    uint256 _chainId
+  ) internal view returns (bytes memory _sentMessage, Identifier memory _identifier) {
+    _sentMessage = abi.encodePacked(
+      abi.encode(L2ToL2CrossDomainMessenger.SentMessage.selector, _chainId, address(_refTokenBridge), _nonce),
+      abi.encode(address(_refTokenBridge), _message)
+    );
+
+    _identifier = Identifier({
+      origin: PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER,
+      blockNumber: block.number,
+      logIndex: 0,
+      timestamp: block.timestamp,
+      chainId: _chainId
+    });
   }
 }
