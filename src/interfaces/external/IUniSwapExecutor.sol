@@ -120,10 +120,11 @@ interface IUniSwapExecutor is IExecutor {
   //////////////////////////////////////////////////////////////*/
 
   /**
-   * @notice Execute the swap and send the token to the destination chain
-   * @param _token The token to execute the swap for
-   * @param _recipient The recipient that will receive the token on the destination chain
-   * @param _amount The amount of token to execute the swap for
+   * @notice Executes a Uniswap V4 swap and then either transfers the token to the recipient or sends it to the
+   *         destination chain through the RefTokenBridge
+   * @param _token The token to swap
+   * @param _recipient The recipient of the token
+   * @param _amount The amount of token to swap
    * @param _destinationChainId The destination chain ID
    * @param _data The data to execute
    */
@@ -136,7 +137,7 @@ interface IUniSwapExecutor is IExecutor {
   ) external;
 
   /**
-   * @notice Bridge and send the token to the destination chain through the RefTokenBridge
+   * @notice Swaps and bridges the token to the relay chain through the RefTokenBridge
    * @param _tokenIn The input token to be swapped
    * @param _amountIn The amount of token to be swapped
    * @param _originSwapData The data to be executed on the origin chain swap before bridging the assets

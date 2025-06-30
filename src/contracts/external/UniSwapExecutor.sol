@@ -80,7 +80,8 @@ contract UniSwapExecutor is IUniSwapExecutor {
   }
 
   /**
-   * @notice Executes a V4 swap
+   * @notice Executes a Uniswap V4 swap and then either transfers the token to the recipient or sends it to the
+   *         destination chain through the RefTokenBridge
    * @param _token The token to swap
    * @param _recipient The recipient of the token
    * @param _amount The amount of token to swap
@@ -114,7 +115,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
   }
 
   /**
-   * @notice Bridge and send the token to the destination chain through the RefTokenBridge
+   * @notice Swaps and bridges the token to the relay chain through the RefTokenBridge
    * @param _tokenIn The input token to be swapped
    * @param _amountIn The amount of token to be swapped
    * @param _originSwapData The data to be executed on the origin chain swap before bridging the assets
