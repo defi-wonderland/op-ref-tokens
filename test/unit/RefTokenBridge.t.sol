@@ -23,7 +23,6 @@ contract RefTokenBridgeForTest is RefTokenBridge {
 
 contract RefTokenBridgeUnit is Helpers {
   address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
   /// Contracts
   IL2ToL2CrossDomainMessenger public l2ToL2CrossDomainMessenger;

@@ -21,6 +21,9 @@ contract Helpers is Test {
   uint8 public nativeAssetDecimals = 18;
   address public nativeAsset = makeAddr('NativeAsset');
 
+  /// Constants
+  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
+
   /**
    * @notice Ensures that a fuzzed address can be used for deployment and calls
    *
