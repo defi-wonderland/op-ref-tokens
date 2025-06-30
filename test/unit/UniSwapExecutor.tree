@@ -27,18 +27,18 @@ UniSwapExecutorUnit::execute
 
 UniSwapExecutorUnit::bridgeAndSend
 ├── When bridging a native token without execution data
-│   ├── It should lock the native asset and send it to the destination chain
+│   ├── It should bridge the native asset to the destination chain
 │   ├── It should emit SwapExecuted
 │   └── It should emit SentToDestinationChain
 ├── When bridging a native token with execution data
-│   ├── It should lock the native asset and send it to the destination chain
+│   ├── It should bridge the native asset to the destination chain
 │   ├── It should emit SwapExecuted
 │   └── It should emit SentToDestinationChain
 ├── When bridging a RefToken without execution data
-│   ├── It should burn the RefToken and send it to the destination chain
+│   ├── It should bridge the RefToken to the destination chain
 │   ├── It should emit SwapExecuted
 │   └── It should emit SentToDestinationChain
 └── When bridging a RefToken with execution data
-    ├── It should burn the RefToken and send it to the destination chain
+    ├── It should bridge the RefToken to the destination chain
     ├── It should emit SwapExecuted
     └── It should emit SentToDestinationChain

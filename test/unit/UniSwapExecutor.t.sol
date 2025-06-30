@@ -371,7 +371,7 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(false)
     );
 
-    // It should lock the native asset and send it to the destination chain
+    // It should bridge the native asset to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
@@ -444,7 +444,7 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(false)
     );
 
-    // It should lock the native asset and send it to the destination chain
+    // It should bridge the native asset to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
@@ -522,7 +522,7 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(_nativeAssetChainId)
     );
 
-    // It should burn the RefToken and send it to the destination chain
+    // It should bridge the RefToken to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
@@ -605,7 +605,7 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(_nativeAssetChainId)
     );
 
-    // It should burn the RefToken and send it to the destination chain
+    // It should bridge the RefToken to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
