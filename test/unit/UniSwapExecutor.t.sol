@@ -75,7 +75,6 @@ contract UniSwapExecutorUnit is Helpers {
   ) external {
     _assumeFuzzable(_token);
     _assumeFuzzable(_params.tokenOut);
-    vm.assume(_params.tokenOut > _token);
 
     _amount = uint128(bound(_amount, 1, type(uint64).max));
     _params.amountOutMin = uint128(bound(_params.amountOutMin, _amount + 1, type(uint128).max));
@@ -117,13 +116,14 @@ contract UniSwapExecutorUnit is Helpers {
     address _recipient,
     uint256 _amount,
     uint256 _destinationChainId,
+    uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params
   ) external {
     _assumeFuzzable(_token);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
-    vm.assume(_params.tokenOut > _token);
 
+    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
@@ -151,8 +151,8 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     bytes[] memory _mocks = new bytes[](2);
-    _mocks[0] = abi.encode(0);
-    _mocks[1] = abi.encode(_params.amountOutMin);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
@@ -177,13 +177,14 @@ contract UniSwapExecutorUnit is Helpers {
     address _recipient,
     uint256 _amount,
     uint256 _destinationChainId,
+    uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params
   ) external {
     _assumeFuzzable(_token);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
-    vm.assume(_params.tokenOut > _token);
 
+    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
@@ -212,8 +213,8 @@ contract UniSwapExecutorUnit is Helpers {
     vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
 
     bytes[] memory _mocks = new bytes[](2);
-    _mocks[0] = abi.encode(0);
-    _mocks[1] = abi.encode(_params.amountOutMin);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
@@ -249,14 +250,15 @@ contract UniSwapExecutorUnit is Helpers {
     address _recipient,
     uint256 _amount,
     uint256 _destinationChainId,
+    uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params
   ) external {
     _assumeFuzzable(_token);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
-    vm.assume(_params.tokenOut > _token);
 
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
+    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint160).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
     _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
@@ -284,8 +286,8 @@ contract UniSwapExecutorUnit is Helpers {
     vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
 
     bytes[] memory _mocks = new bytes[](2);
-    _mocks[0] = abi.encode(0);
-    _mocks[1] = abi.encode(_params.amountOutMin);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
