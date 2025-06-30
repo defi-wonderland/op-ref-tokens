@@ -325,6 +325,7 @@ contract UniSwapExecutorUnit is Helpers {
   }
 
   function test_BridgeAndSendWhenBridgingANativeTokenWithoutExecutionData(
+    address _user,
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
@@ -335,6 +336,7 @@ contract UniSwapExecutorUnit is Helpers {
     // It should lock the native asset and send it to the destination chain
     // It should emit SwapExecuted
     // It should emit SentToDestinationChain
+    _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
@@ -351,7 +353,7 @@ contract UniSwapExecutorUnit is Helpers {
     // Mocks for _executeSwap
     _mockAndExpect(
       _tokenIn,
-      abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(uniSwapExecutor), _amountIn),
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
     );
 
@@ -396,10 +398,12 @@ contract UniSwapExecutorUnit is Helpers {
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
+    vm.prank(_user);
     uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingANativeTokenWithExecutionData(
+    address _user,
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
@@ -411,6 +415,7 @@ contract UniSwapExecutorUnit is Helpers {
     // It should lock the native asset and send it to the destination chain
     // It should emit SwapExecuted
     // It should emit SentToDestinationChain
+    _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
@@ -432,7 +437,7 @@ contract UniSwapExecutorUnit is Helpers {
     // Mocks for _executeSwap
     _mockAndExpect(
       _tokenIn,
-      abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(uniSwapExecutor), _amountIn),
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
     );
 
@@ -478,10 +483,12 @@ contract UniSwapExecutorUnit is Helpers {
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
+    vm.prank(_user);
     uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingARefTokenWithoutExecutionData(
+    address _user,
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
@@ -493,6 +500,7 @@ contract UniSwapExecutorUnit is Helpers {
     // It should burn the RefToken and send it to the destination chain
     // It should emit SwapExecuted
     // It should emit SentToDestinationChain
+    _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
@@ -511,7 +519,7 @@ contract UniSwapExecutorUnit is Helpers {
     // Mocks for _executeSwap
     _mockAndExpect(
       _tokenIn,
-      abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(uniSwapExecutor), _amountIn),
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
     );
 
@@ -561,10 +569,12 @@ contract UniSwapExecutorUnit is Helpers {
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
+    vm.prank(_user);
     uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingARefTokenWithExecutionData(
+    address _user,
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
@@ -577,6 +587,7 @@ contract UniSwapExecutorUnit is Helpers {
     // It should burn the RefToken and send it to the destination chain
     // It should emit SwapExecuted
     // It should emit SentToDestinationChain
+    _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
@@ -600,7 +611,7 @@ contract UniSwapExecutorUnit is Helpers {
     // Mocks for _executeSwap
     _mockAndExpect(
       _tokenIn,
-      abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(uniSwapExecutor), _amountIn),
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
     );
 
@@ -651,6 +662,7 @@ contract UniSwapExecutorUnit is Helpers {
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
+    vm.prank(_user);
     uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
   }
 }
