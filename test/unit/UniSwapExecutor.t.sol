@@ -329,13 +329,10 @@ contract UniSwapExecutorUnit is Helpers {
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params
   ) external {
-    // It should lock the native asset and send it to the destination chain
-    // It should emit SwapExecuted
-    // It should emit SentToDestinationChain
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
@@ -345,7 +342,7 @@ contract UniSwapExecutorUnit is Helpers {
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
 
     bytes memory _originSwapData = abi.encode(_params);
     IRefTokenBridge.ExecutionData memory _executionData;
@@ -380,26 +377,22 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(false)
     );
 
+    // It should lock the native asset and send it to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
-        IRefTokenBridge.send.selector,
-        block.chainid,
-        _destinationChainId,
-        _params.tokenOut,
-        _params.amountOutMin,
-        _recipient
+        IRefTokenBridge.send.selector, block.chainid, _relayChainId, _params.tokenOut, _params.amountOutMin, _recipient
       ),
       abi.encode(true)
     );
 
-    // Emits
+    // It should emit SwapExecuted
     vm.expectEmit(address(uniSwapExecutor));
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingANativeTokenWithExecutionData(
@@ -407,14 +400,11 @@ contract UniSwapExecutorUnit is Helpers {
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params,
     IRefTokenBridge.ExecutionData memory _executionData
   ) external {
-    // It should lock the native asset and send it to the destination chain
-    // It should emit SwapExecuted
-    // It should emit SentToDestinationChain
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
@@ -424,12 +414,11 @@ contract UniSwapExecutorUnit is Helpers {
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
 
     // Make sure execution data is valid
     _executionData.destinationExecutor = makeAddr('destinationExecutor');
-    _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
-    if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
+    _executionData.destinationChainId = _relayChainId;
     _executionData.refundAddress = makeAddr('refundAddress');
 
     bytes memory _originSwapData = abi.encode(_params);
@@ -464,12 +453,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(false)
     );
 
+    // It should lock the native asset and send it to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
         IRefTokenBridge.sendAndExecute.selector,
         block.chainid,
-        _destinationChainId,
+        _relayChainId,
         _params.tokenOut,
         _params.amountOutMin,
         _recipient,
@@ -478,13 +468,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    // Emits
+    // It should emit SwapExecuted
     vm.expectEmit(address(uniSwapExecutor));
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingARefTokenWithoutExecutionData(
@@ -492,14 +482,11 @@ contract UniSwapExecutorUnit is Helpers {
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     uint256 _nativeAssetChainId,
     uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params
   ) external {
-    // It should burn the RefToken and send it to the destination chain
-    // It should emit SwapExecuted
-    // It should emit SentToDestinationChain
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
@@ -509,7 +496,7 @@ contract UniSwapExecutorUnit is Helpers {
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
     _nativeAssetChainId = bound(_nativeAssetChainId, 1, type(uint256).max);
     if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
 
@@ -551,12 +538,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(_nativeAssetChainId)
     );
 
+    // It should burn the RefToken and send it to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
         IRefTokenBridge.send.selector,
         _nativeAssetChainId,
-        _destinationChainId,
+        _relayChainId,
         _params.tokenOut,
         _params.amountOutMin,
         _recipient
@@ -564,13 +552,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    // Emits
+    // It should emit SwapExecuted
     vm.expectEmit(address(uniSwapExecutor));
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 
   function test_BridgeAndSendWhenBridgingARefTokenWithExecutionData(
@@ -578,15 +566,12 @@ contract UniSwapExecutorUnit is Helpers {
     address _tokenIn,
     address _recipient,
     uint128 _amountIn,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     uint256 _nativeAssetChainId,
     uint256 _initialBalance,
     IUniSwapExecutor.V4SwapExactInParams memory _params,
     IRefTokenBridge.ExecutionData memory _executionData
   ) external {
-    // It should burn the RefToken and send it to the destination chain
-    // It should emit SwapExecuted
-    // It should emit SentToDestinationChain
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
@@ -596,14 +581,13 @@ contract UniSwapExecutorUnit is Helpers {
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
     _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _destinationChainId = bound(_destinationChainId, block.chainid + 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
     _nativeAssetChainId = bound(_nativeAssetChainId, 1, type(uint256).max);
     if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
 
     // Make sure execution data is valid
     _executionData.destinationExecutor = makeAddr('destinationExecutor');
-    _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
-    if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
+    _executionData.destinationChainId = _relayChainId;
     _executionData.refundAddress = makeAddr('refundAddress');
 
     bytes memory _originSwapData = abi.encode(_params);
@@ -643,12 +627,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(_nativeAssetChainId)
     );
 
+    // It should burn the RefToken and send it to the destination chain
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
         IRefTokenBridge.sendAndExecute.selector,
         _nativeAssetChainId,
-        _destinationChainId,
+        _relayChainId,
         _params.tokenOut,
         _params.amountOutMin,
         _recipient,
@@ -657,12 +642,12 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    // Emits
+    // It should emit SwapExecuted
     vm.expectEmit(address(uniSwapExecutor));
     emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _destinationChainId, _recipient, _executionData);
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 }

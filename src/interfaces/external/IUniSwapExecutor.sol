@@ -140,7 +140,7 @@ interface IUniSwapExecutor is IExecutor {
    * @param _tokenIn The input token to be swapped
    * @param _amountIn The amount of token to be swapped
    * @param _originSwapData The data to be executed on the origin chain swap before bridging the assets
-   * @param _destinationChainId The destination chain ID
+   * @param _relayChainId The destination chain ID
    * @param _recipient The recipient that will receive the token on the destination chain
    * @param _executionData The data for execution on the destination chain
    */
@@ -148,7 +148,7 @@ interface IUniSwapExecutor is IExecutor {
     address _tokenIn,
     uint128 _amountIn,
     bytes calldata _originSwapData,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     address _recipient,
     IRefTokenBridge.ExecutionData calldata _executionData
   ) external;

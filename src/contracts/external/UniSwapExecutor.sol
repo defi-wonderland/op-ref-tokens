@@ -118,7 +118,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
    * @param _tokenIn The input token to be swapped
    * @param _amountIn The amount of token to be swapped
    * @param _originSwapData The data to be executed on the origin chain swap before bridging the assets
-   * @param _destinationChainId The destination chain ID
+   * @param _relayChainId The destination chain ID
    * @param _recipient The recipient that will receive the token on the destination chain
    * @param _executionData The data for execution on the destination chain
    */
@@ -126,7 +126,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
     address _tokenIn,
     uint128 _amountIn,
     bytes calldata _originSwapData,
-    uint256 _destinationChainId,
+    uint256 _relayChainId,
     address _recipient,
     IRefTokenBridge.ExecutionData calldata _executionData
   ) external {
@@ -137,14 +137,14 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint256 _nativeAssetChainId =
       REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
 
-    // If there is no execution data, send the token to the destination chain
-    if (_executionData.destinationExecutor == address(0)) {
-      REF_TOKEN_BRIDGE.send(_nativeAssetChainId, _destinationChainId, _tokenOut, _amountOut, _recipient);
-    } else {
-      // Otherwise, send the token and execute the data on the destination chain
+    // If there is execution data, send the token and execute the data on the destination chain
+    if (_executionData.destinationExecutor != address(0)) {
       REF_TOKEN_BRIDGE.sendAndExecute(
-        _nativeAssetChainId, _destinationChainId, _tokenOut, _amountOut, _recipient, _executionData
+        _nativeAssetChainId, _relayChainId, _tokenOut, _amountOut, _recipient, _executionData
       );
+    } else {
+      // Otherwise, just send the token to the destination chain
+      REF_TOKEN_BRIDGE.send(_nativeAssetChainId, _relayChainId, _tokenOut, _amountOut, _recipient);
     }
   }
 
