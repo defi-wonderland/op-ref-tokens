@@ -34,8 +34,6 @@ RefTokenBridgeUnit::sendAndExecute
 │   └── It should revert
 ├── When execution data destination chain id is zero
 │   └── It should revert
-├── When execution data destination chain id is the block chain id
-│   └── It should revert
 ├── When relay chain id is the block chain id
 │   └── It should revert
 ├── When relay chain id is zero

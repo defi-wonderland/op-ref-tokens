@@ -336,16 +336,11 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
-    _assumeFuzzable(_recipient);
 
-    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
-    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
-    _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
-    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
 
     bytes memory _originSwapData = abi.encode(_params);
-    IRefTokenBridge.ExecutionData memory _executionData;
 
     // Mocks for _executeSwap
     _mockAndExpect(
@@ -366,8 +361,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
-    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
-
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
     // Mocks for bridgeAndSend after swap
@@ -392,7 +386,8 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+    IRefTokenBridge.ExecutionData memory _emptyExecutionData;
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
   }
 
   function test_BridgeAndSendWhenBridgingANativeTokenWithExecutionData(
@@ -408,19 +403,15 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
-    _assumeFuzzable(_recipient);
 
-    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
-    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
-    _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
-    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
+
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_executionData.destinationChainId == 0) ++_executionData.destinationChainId;
 
     // Make sure execution data is valid
-    _executionData.destinationExecutor = makeAddr('destinationExecutor');
-    _executionData.destinationChainId = _relayChainId;
-    _executionData.refundAddress = makeAddr('refundAddress');
-
     bytes memory _originSwapData = abi.encode(_params);
 
     // Mocks for _executeSwap
@@ -442,7 +433,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
-    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
@@ -490,18 +481,11 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
-    _assumeFuzzable(_recipient);
 
-    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
-    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
-    _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
-    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
-    _nativeAssetChainId = bound(_nativeAssetChainId, 1, type(uint256).max);
+    _initialBalance = bound(_initialBalance, 1, type(uint128).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
     if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
-
     bytes memory _originSwapData = abi.encode(_params);
-    IRefTokenBridge.ExecutionData memory _executionData;
 
     // Mocks for _executeSwap
     _mockAndExpect(
@@ -522,7 +506,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
-    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
@@ -558,7 +542,8 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+    IRefTokenBridge.ExecutionData memory _emptyExecutionData;
+    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
   }
 
   function test_BridgeAndSendWhenBridgingARefTokenWithExecutionData(
@@ -575,20 +560,13 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_user);
     _assumeFuzzable(_tokenIn);
     _assumeFuzzable(_params.tokenOut);
-    _assumeFuzzable(_recipient);
 
-    _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
-    _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
-    _amountIn = uint128(bound(_amountIn, 1, type(uint128).max));
-    _params.deadline = uint48(bound(_params.deadline, 0, type(uint48).max));
-    _relayChainId = bound(_relayChainId, block.chainid + 1, type(uint256).max);
-    _nativeAssetChainId = bound(_nativeAssetChainId, 1, type(uint256).max);
-    if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
 
-    // Make sure execution data is valid
-    _executionData.destinationExecutor = makeAddr('destinationExecutor');
-    _executionData.destinationChainId = _relayChainId;
-    _executionData.refundAddress = makeAddr('refundAddress');
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_executionData.destinationChainId == 0) ++_executionData.destinationChainId;
 
     bytes memory _originSwapData = abi.encode(_params);
 
@@ -611,7 +589,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
-    _mocks[1] = abi.encode(_params.amountOutMin + _initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
