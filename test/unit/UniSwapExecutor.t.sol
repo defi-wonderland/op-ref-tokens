@@ -63,7 +63,9 @@ contract UniSwapExecutorUnit is Helpers {
   }
 
   function test_ExecuteRevertWhen_AmountIsTooLarge(uint256 _amount) external {
-    _amount = bound(_amount, type(uint160).max, type(uint256).max);
+    uint256 _initialBalance = type(uint128).max;
+    ++_initialBalance;
+    _amount = bound(_amount, _initialBalance, type(uint256).max);
 
     vm.expectRevert(abi.encodeWithSelector(IUniSwapExecutor.UniSwapExecutor_AmountTooLarge.selector));
     vm.prank(address(refTokenBridge));
