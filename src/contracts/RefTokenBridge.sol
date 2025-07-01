@@ -72,9 +72,7 @@ contract RefTokenBridge is IRefTokenBridge {
     ExecutionData calldata _executionData
   ) external {
     if (_executionData.destinationExecutor == address(0)) revert RefTokenBridge_InvalidDestinationExecutor();
-    if (_executionData.destinationChainId == 0 || _executionData.destinationChainId == block.chainid) {
-      revert RefTokenBridge_InvalidExecutionChainId();
-    }
+    if (_executionData.destinationChainId == 0) revert RefTokenBridge_InvalidExecutionChainId();
     if (_executionData.refundAddress == address(0)) revert RefTokenBridge_InvalidRefundAddress();
 
     _send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);

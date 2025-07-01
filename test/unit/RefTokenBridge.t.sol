@@ -23,7 +23,6 @@ contract RefTokenBridgeForTest is RefTokenBridge {
 
 contract RefTokenBridgeUnit is Helpers {
   address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
   /// Contracts
   IL2ToL2CrossDomainMessenger public l2ToL2CrossDomainMessenger;
@@ -390,22 +389,6 @@ contract RefTokenBridgeUnit is Helpers {
   ) external {
     vm.assume(_executionData.destinationExecutor != address(0));
     _executionData.destinationChainId = 0;
-
-    // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);
-    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
-  }
-
-  function test_SendAndExecuteRevertWhen_ExecutionDataDestinationChainIdIsTheBlockChainId(
-    uint256 _nativeAssetChainId,
-    address _token,
-    address _recipient,
-    uint256 _amount,
-    uint256 _relayChainId,
-    IRefTokenBridge.ExecutionData memory _executionData
-  ) external {
-    vm.assume(_executionData.destinationExecutor != address(0));
-    _executionData.destinationChainId = block.chainid;
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);

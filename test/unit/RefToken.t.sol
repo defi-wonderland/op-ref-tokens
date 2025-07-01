@@ -12,10 +12,8 @@ import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
 
-contract UnitRefTokenTest is Helpers {
+contract RefTokenUnit is Helpers {
   error Permit2AllowanceIsFixedAtInfinity();
-
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
