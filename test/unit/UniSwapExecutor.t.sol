@@ -4,12 +4,16 @@ pragma solidity 0.8.25;
 import {Helpers} from 'test/utils/Helpers.t.sol';
 
 import {
+  Currency,
   IERC20,
+  IHooks,
   IPoolManager,
   IRefToken,
   IRefTokenBridge,
   IUniSwapExecutor,
   IUniversalRouter,
+  IV4Router,
+  PoolKey,
   PredeployAddresses,
   UniSwapExecutor
 } from 'contracts/external/UniSwapExecutor.sol';
@@ -100,7 +104,15 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+    bytes[] memory _routerInput = _getRouterInputForTest(_data, _token, uint128(_amount));
+
+    _mockAndExpect(
+      address(universalRouter),
+      abi.encodeWithSelector(
+        IUniversalRouter.execute.selector, uniSwapExecutor.COMMANDS(), _routerInput, _params.deadline
+      ),
+      abi.encode(true)
+    );
 
     _mockAndExpect(
       _params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector, uniSwapExecutor), abi.encode(_amount)
@@ -156,7 +168,15 @@ contract UniSwapExecutorUnit is Helpers {
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
-    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+    bytes[] memory _routerInput = _getRouterInputForTest(_data, _token, uint128(_amount));
+
+    _mockAndExpect(
+      address(universalRouter),
+      abi.encodeWithSelector(
+        IUniversalRouter.execute.selector, uniSwapExecutor.COMMANDS(), _routerInput, _params.deadline
+      ),
+      abi.encode(true)
+    );
 
     _mockAndExpect(
       _params.tokenOut,
@@ -210,7 +230,15 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+    bytes[] memory _routerInput = _getRouterInputForTest(_data, _token, uint128(_amount));
+
+    _mockAndExpect(
+      address(universalRouter),
+      abi.encodeWithSelector(
+        IUniversalRouter.execute.selector, uniSwapExecutor.COMMANDS(), _routerInput, _params.deadline
+      ),
+      abi.encode(true)
+    );
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
@@ -283,7 +311,15 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encode(true)
     );
 
-    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+    bytes[] memory _routerInput = _getRouterInputForTest(_data, _token, uint128(_amount));
+
+    _mockAndExpect(
+      address(universalRouter),
+      abi.encodeWithSelector(
+        IUniversalRouter.execute.selector, uniSwapExecutor.COMMANDS(), _routerInput, _params.deadline
+      ),
+      abi.encode(true)
+    );
 
     bytes[] memory _mocks = new bytes[](2);
     _mocks[0] = abi.encode(_initialBalance);
@@ -627,5 +663,50 @@ contract UniSwapExecutorUnit is Helpers {
     // Call
     vm.prank(_user);
     uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+  }
+
+  /**
+   * @notice Helper function to get the router input for the test
+   * @param _data The data to decode
+   * @param _tokenIn The token in
+   * @param _amount The amount
+   * @return _routerInput The router input
+   */
+  function _getRouterInputForTest(
+    bytes memory _data,
+    address _tokenIn,
+    uint128 _amount
+  ) internal view returns (bytes[] memory _routerInput) {
+    _routerInput = new bytes[](1);
+
+    IUniSwapExecutor.V4SwapExactInParams memory _v4Params = abi.decode(_data, (IUniSwapExecutor.V4SwapExactInParams));
+    bool _zeroForOne = _tokenIn < _v4Params.tokenOut;
+    Currency _inputCurrency = Currency.wrap(_tokenIn);
+    Currency _outputCurrency = Currency.wrap(_v4Params.tokenOut);
+
+    PoolKey memory _poolKey = PoolKey({
+      currency0: _zeroForOne ? _inputCurrency : _outputCurrency,
+      currency1: _zeroForOne ? _outputCurrency : _inputCurrency,
+      fee: _v4Params.fee,
+      tickSpacing: _v4Params.tickSpacing,
+      hooks: IHooks(address(0))
+    });
+
+    bytes[] memory _params = new bytes[](3);
+
+    _params[0] = abi.encode(
+      IV4Router.ExactInputSingleParams({
+        poolKey: _poolKey,
+        zeroForOne: _zeroForOne,
+        amountIn: _amount,
+        amountOutMinimum: _v4Params.amountOutMin,
+        hookData: abi.encode('')
+      })
+    );
+
+    _params[1] = abi.encode(_inputCurrency, _amount);
+    _params[2] = abi.encode(_outputCurrency, _v4Params.amountOutMin);
+
+    _routerInput[0] = abi.encode(uniSwapExecutor.ACTIONS(), _params);
   }
 }
