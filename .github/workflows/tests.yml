@@ -9,6 +9,7 @@ concurrency:
 env:
   OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
   OP_SEPOLIA_RPC: ${{ secrets.OP_SEPOLIA_RPC }}
+  REF_TOKEN_BRIDGE_SALT: ${{ secrets.REF_TOKEN_BRIDGE_SALT }}
 
 jobs:
   unit-tests:
