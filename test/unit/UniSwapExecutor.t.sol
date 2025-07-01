@@ -360,6 +360,311 @@ contract UniSwapExecutorUnit is Helpers {
     uniSwapExecutor.execute(_token, _recipient, _amount, _destinationChainId, _data);
   }
 
+  function test_swapAndSendWhenBridgingANativeTokenWithoutExecutionData(
+    address _user,
+    address _tokenIn,
+    address _recipient,
+    uint128 _amountIn,
+    uint256 _relayChainId,
+    uint256 _initialBalance,
+    IUniSwapExecutor.V4SwapExactInParams memory _params
+  ) external {
+    _assumeFuzzable(_user);
+    _assumeFuzzable(_tokenIn);
+    _assumeFuzzable(_params.tokenOut);
+
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
+
+    bytes memory _originSwapData = abi.encode(_params);
+
+    // Mocks for _executeSwap
+    _mockAndExpect(
+      _tokenIn,
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(uniSwapExecutor.PERMIT2()),
+      abi.encodeWithSelector(
+        IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
+      ),
+      abi.encode(true)
+    );
+
+    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
+
+    // Mocks for swapAndSend after swap
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(false)
+    );
+
+    // It should bridge the native asset to the destination chain
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(
+        IRefTokenBridge.send.selector, block.chainid, _relayChainId, _params.tokenOut, _params.amountOutMin, _recipient
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit SwapExecuted
+    vm.expectEmit(address(uniSwapExecutor));
+    emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
+
+    // Call
+    vm.prank(_user);
+    IRefTokenBridge.ExecutionData memory _emptyExecutionData;
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
+  }
+
+  function test_swapAndSendWhenBridgingANativeTokenWithExecutionData(
+    address _user,
+    address _tokenIn,
+    address _recipient,
+    uint128 _amountIn,
+    uint256 _relayChainId,
+    uint256 _initialBalance,
+    IUniSwapExecutor.V4SwapExactInParams memory _params,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_user);
+    _assumeFuzzable(_tokenIn);
+    _assumeFuzzable(_params.tokenOut);
+
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
+
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_executionData.destinationChainId == 0) ++_executionData.destinationChainId;
+
+    // Make sure execution data is valid
+    bytes memory _originSwapData = abi.encode(_params);
+
+    // Mocks for _executeSwap
+    _mockAndExpect(
+      _tokenIn,
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(uniSwapExecutor.PERMIT2()),
+      abi.encodeWithSelector(
+        IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
+      ),
+      abi.encode(true)
+    );
+
+    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
+
+    // Mocks for swapAndSend after swap
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(false)
+    );
+
+    // It should bridge the native asset to the destination chain
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(
+        IRefTokenBridge.sendAndExecute.selector,
+        block.chainid,
+        _relayChainId,
+        _params.tokenOut,
+        _params.amountOutMin,
+        _recipient,
+        _executionData
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit SwapExecuted
+    vm.expectEmit(address(uniSwapExecutor));
+    emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
+
+    // Call
+    vm.prank(_user);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+  }
+
+  function test_swapAndSendWhenBridgingARefTokenWithoutExecutionData(
+    address _user,
+    address _tokenIn,
+    address _recipient,
+    uint128 _amountIn,
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    uint256 _initialBalance,
+    IUniSwapExecutor.V4SwapExactInParams memory _params
+  ) external {
+    _assumeFuzzable(_user);
+    _assumeFuzzable(_tokenIn);
+    _assumeFuzzable(_params.tokenOut);
+
+    _initialBalance = bound(_initialBalance, 1, type(uint128).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_nativeAssetChainId == block.chainid) ++_nativeAssetChainId;
+    bytes memory _originSwapData = abi.encode(_params);
+
+    // Mocks for _executeSwap
+    _mockAndExpect(
+      _tokenIn,
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(uniSwapExecutor.PERMIT2()),
+      abi.encodeWithSelector(
+        IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
+      ),
+      abi.encode(true)
+    );
+
+    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
+
+    // Mocks for swapAndSend after swap
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(true)
+    );
+    _mockAndExpect(
+      _params.tokenOut,
+      abi.encodeWithSelector(IRefToken.NATIVE_ASSET_CHAIN_ID.selector),
+      abi.encode(_nativeAssetChainId)
+    );
+
+    // It should bridge the RefToken to the destination chain
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(
+        IRefTokenBridge.send.selector,
+        _nativeAssetChainId,
+        _relayChainId,
+        _params.tokenOut,
+        _params.amountOutMin,
+        _recipient
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit SwapExecuted
+    vm.expectEmit(address(uniSwapExecutor));
+    emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
+
+    // Call
+    vm.prank(_user);
+    IRefTokenBridge.ExecutionData memory _emptyExecutionData;
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
+  }
+
+  function test_swapAndSendWhenBridgingARefTokenWithExecutionData(
+    address _user,
+    address _tokenIn,
+    address _recipient,
+    uint128 _amountIn,
+    uint256 _relayChainId,
+    uint256 _nativeAssetChainId,
+    uint256 _initialBalance,
+    IUniSwapExecutor.V4SwapExactInParams memory _params,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_user);
+    _assumeFuzzable(_tokenIn);
+    _assumeFuzzable(_params.tokenOut);
+
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
+
+    _initialBalance = uint256(bound(_initialBalance, 1, type(uint128).max));
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_executionData.destinationChainId == 0) ++_executionData.destinationChainId;
+
+    bytes memory _originSwapData = abi.encode(_params);
+
+    // Mocks for _executeSwap
+    _mockAndExpect(
+      _tokenIn,
+      abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(uniSwapExecutor.PERMIT2()),
+      abi.encodeWithSelector(
+        IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
+      ),
+      abi.encode(true)
+    );
+
+    vm.mockCall(address(universalRouter), abi.encodeWithSelector(IUniversalRouter.execute.selector), abi.encode(true));
+
+    bytes[] memory _mocks = new bytes[](2);
+    _mocks[0] = abi.encode(_initialBalance);
+    _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
+
+    vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
+
+    // Mocks for swapAndSend after swap
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(true)
+    );
+    _mockAndExpect(
+      _params.tokenOut,
+      abi.encodeWithSelector(IRefToken.NATIVE_ASSET_CHAIN_ID.selector),
+      abi.encode(_nativeAssetChainId)
+    );
+
+    // It should bridge the RefToken to the destination chain
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(
+        IRefTokenBridge.sendAndExecute.selector,
+        _nativeAssetChainId,
+        _relayChainId,
+        _params.tokenOut,
+        _params.amountOutMin,
+        _recipient,
+        _executionData
+      ),
+      abi.encode(true)
+    );
+
+    // It should emit SwapExecuted
+    vm.expectEmit(address(uniSwapExecutor));
+    emit IUniSwapExecutor.SwapExecuted(_tokenIn, _amountIn, _params.tokenOut, _params.amountOutMin);
+
+    // Call
+    vm.prank(_user);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+  }
+
   /**
    * @notice Helper function to get the router input for the test
    * @param _data The data to decode
