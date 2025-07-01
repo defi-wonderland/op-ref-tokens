@@ -114,4 +114,43 @@ interface IUniSwapExecutor is IExecutor {
    * @return _actions The actions to execute in the Universal Router
    */
   function ACTIONS() external view returns (bytes memory _actions);
+
+  /*///////////////////////////////////////////////////////////////
+                            FUNCTIONS
+  //////////////////////////////////////////////////////////////*/
+
+  /**
+   * @notice Executes a Uniswap V4 swap and then either transfers the token to the recipient or sends it to the
+   *         destination chain through the RefTokenBridge
+   * @param _token The token to swap
+   * @param _recipient The recipient of the token
+   * @param _amount The amount of token to swap
+   * @param _destinationChainId The destination chain ID
+   * @param _data The data to execute
+   */
+  function execute(
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    uint256 _destinationChainId,
+    bytes calldata _data
+  ) external;
+
+  /**
+   * @notice Swaps and bridges the token to the relay chain through the RefTokenBridge
+   * @param _tokenIn The input token to be swapped
+   * @param _amountIn The amount of token to be swapped
+   * @param _originSwapData The data to be executed on the origin chain swap before bridging the assets
+   * @param _relayChainId The destination chain ID
+   * @param _recipient The recipient that will receive the token on the destination chain
+   * @param _executionData The data for execution on the destination chain
+   */
+  function swapAndSend(
+    address _tokenIn,
+    uint128 _amountIn,
+    bytes calldata _originSwapData,
+    uint256 _relayChainId,
+    address _recipient,
+    IRefTokenBridge.ExecutionData calldata _executionData
+  ) external;
 }
