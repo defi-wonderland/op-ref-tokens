@@ -1,0 +1,44 @@
+UniSwapExecutorUnit::constructor
+└── When constructor is set
+    ├── It should initialize the RefTokenBridge
+    ├── It should initialize the Universal Router
+    ├── It should initialize the PoolManager
+    ├── It should set the correct L2ToL2CrossDomainMessenger constant
+    └── It should set the correct Permit2 constant
+
+UniSwapExecutorUnit::execute
+├── When caller is not the RefTokenBridge
+│   └── It should revert
+├── When amount is too large
+│   └── It should revert
+├── When amount out after the swap is less than the minimum amount out
+│   └── It should revert
+├── When destination chain is the same as the current chain
+│   ├── It should transfer the token to the recipient
+│   └── It should emit SwapExecuted
+├── When destination chain is not the same as the current chain and the token out is not a ref token
+│   ├── It should send the native asset to the destination chain
+│   ├── It should emit SwapExecuted
+│   └── It should emit SentToDestinationChain
+└── When destination chain is not the same as the current chain and the token out is a ref token
+    ├── It should send the RefToken to the destination chain
+    ├── It should emit SwapExecuted
+    └── It should emit SentToDestinationChain
+
+UniSwapExecutorUnit::swapAndSend
+├── When bridging a native token without execution data
+│   ├── It should bridge the native asset to the destination chain
+│   ├── It should emit SwapExecuted
+│   └── It should emit SentToDestinationChain
+├── When bridging a native token with execution data
+│   ├── It should bridge the native asset to the destination chain
+│   ├── It should emit SwapExecuted
+│   └── It should emit SentToDestinationChain
+├── When bridging a RefToken without execution data
+│   ├── It should bridge the RefToken to the destination chain
+│   ├── It should emit SwapExecuted
+│   └── It should emit SentToDestinationChain
+└── When bridging a RefToken with execution data
+    ├── It should bridge the RefToken to the destination chain
+    ├── It should emit SwapExecuted
+    └── It should emit SentToDestinationChain
