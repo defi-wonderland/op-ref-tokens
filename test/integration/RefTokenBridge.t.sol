@@ -170,7 +170,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can relay OP from OpChain to Unichain and deploy a RefToken for OP when the ref token is not deployed
    * @param _amountToBridge The amount of OP to relay
    */
-  function test_relayOpFromOpChainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
+  function test_relayOpFromOpChainToUnichainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
     vm.chainId(_unichainChainId);
     _amountToBridge = bound(_amountToBridge, 1, type(uint256).max);
 
@@ -209,7 +209,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @param _amountToBridge The amount of OP to relay
    * @param _firstAmountToBridge The amount of OP to relay first time
    */
-  function test_relayOpFromOpChainWithRefTokenDeployed(uint256 _amountToBridge, uint256 _firstAmountToBridge) public {
+  function test_relayOpFromOpChainToUnichainWithRefTokenDeployed(
+    uint256 _amountToBridge,
+    uint256 _firstAmountToBridge
+  ) public {
     vm.chainId(_unichainChainId);
     _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
     _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint256).max);
