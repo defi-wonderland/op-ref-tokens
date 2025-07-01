@@ -123,7 +123,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
    * @param _recipient The recipient that will receive the token on the destination chain
    * @param _executionData The data for execution on the destination chain
    */
-  function bridgeAndSend(
+  function swapAndSend(
     address _tokenIn,
     uint128 _amountIn,
     bytes calldata _originSwapData,

@@ -360,7 +360,7 @@ contract UniSwapExecutorUnit is Helpers {
     uniSwapExecutor.execute(_token, _recipient, _amount, _destinationChainId, _data);
   }
 
-  function test_BridgeAndSendWhenBridgingANativeTokenWithoutExecutionData(
+  function test_swapAndSendWhenBridgingANativeTokenWithoutExecutionData(
     address _user,
     address _tokenIn,
     address _recipient,
@@ -400,7 +400,7 @@ contract UniSwapExecutorUnit is Helpers {
     _mocks[1] = abi.encode(_initialBalance + _params.amountOutMin);
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
-    // Mocks for bridgeAndSend after swap
+    // Mocks for swapAndSend after swap
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
@@ -423,10 +423,10 @@ contract UniSwapExecutorUnit is Helpers {
     // Call
     vm.prank(_user);
     IRefTokenBridge.ExecutionData memory _emptyExecutionData;
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
   }
 
-  function test_BridgeAndSendWhenBridgingANativeTokenWithExecutionData(
+  function test_swapAndSendWhenBridgingANativeTokenWithExecutionData(
     address _user,
     address _tokenIn,
     address _recipient,
@@ -473,7 +473,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
-    // Mocks for bridgeAndSend after swap
+    // Mocks for swapAndSend after swap
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
@@ -501,10 +501,10 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 
-  function test_BridgeAndSendWhenBridgingARefTokenWithoutExecutionData(
+  function test_swapAndSendWhenBridgingARefTokenWithoutExecutionData(
     address _user,
     address _tokenIn,
     address _recipient,
@@ -546,7 +546,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
-    // Mocks for bridgeAndSend after swap
+    // Mocks for swapAndSend after swap
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
@@ -579,10 +579,10 @@ contract UniSwapExecutorUnit is Helpers {
     // Call
     vm.prank(_user);
     IRefTokenBridge.ExecutionData memory _emptyExecutionData;
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _emptyExecutionData);
   }
 
-  function test_BridgeAndSendWhenBridgingARefTokenWithExecutionData(
+  function test_swapAndSendWhenBridgingARefTokenWithExecutionData(
     address _user,
     address _tokenIn,
     address _recipient,
@@ -629,7 +629,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     vm.mockCalls(_params.tokenOut, abi.encodeWithSelector(IERC20.balanceOf.selector), _mocks);
 
-    // Mocks for bridgeAndSend after swap
+    // Mocks for swapAndSend after swap
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
@@ -662,7 +662,7 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Call
     vm.prank(_user);
-    uniSwapExecutor.bridgeAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
+    uniSwapExecutor.swapAndSend(_tokenIn, _amountIn, _originSwapData, _relayChainId, _recipient, _executionData);
   }
 
   /**

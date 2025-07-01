@@ -25,7 +25,7 @@ UniSwapExecutorUnit::execute
     ├── It should emit SwapExecuted
     └── It should emit SentToDestinationChain
 
-UniSwapExecutorUnit::bridgeAndSend
+UniSwapExecutorUnit::swapAndSend
 ├── When bridging a native token without execution data
 │   ├── It should bridge the native asset to the destination chain
 │   ├── It should emit SwapExecuted
