@@ -7,6 +7,8 @@ import {MockL2ToL2CrossDomainMessenger as L2ToL2CrossDomainMessenger} from
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'forge-std/interfaces/IERC20.sol';
+
+import {IRefToken} from 'interfaces/IRefToken.sol';
 import {Deploy} from 'script/Deploy.sol';
 import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
 
@@ -23,6 +25,8 @@ contract IntegrationBase is Deploy, Test, PrecomputeRefToken {
   uint256 internal _unichainChainId;
   uint256 internal _opChainId;
 
+  IRefToken.RefTokenMetadata internal _refTokenMetadata;
+
   function setUp() public virtual override {
     run();
 
@@ -38,5 +42,13 @@ contract IntegrationBase is Deploy, Test, PrecomputeRefToken {
     _opChainId = 10;
 
     vm.createSelectFork(vm.rpcUrl('optimism'), _OPTIMISM_FORK_BLOCK);
+
+    _refTokenMetadata = IRefToken.RefTokenMetadata({
+      nativeAsset: address(_op),
+      nativeAssetChainId: _opChainId,
+      nativeAssetName: _op.name(),
+      nativeAssetSymbol: _op.symbol(),
+      nativeAssetDecimals: _op.decimals()
+    });
   }
 }

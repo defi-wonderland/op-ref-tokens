@@ -114,12 +114,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(_op.balanceOf(address(_refTokenBridge)), _firstAmountToBridge);
 
     // Precompute the ref token metadata
-    IRefToken.RefTokenMetadata memory _precomputedRefTokenMetadata = _opPrecomputedRefTokenMetadata();
-
     // Compute the message that should have been relayed
-    bytes memory _message = abi.encodeWithSelector(
-      _refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _precomputedRefTokenMetadata
-    );
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _refTokenMetadata);
 
     // Check that the message hash is correct
     bytes32 _messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -136,7 +133,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Check that ref op was deployed and is the same as the precomputed ref token address
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _precomputedRefTokenMetadata));
+    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata));
 
     // Send OP to Unichain second time
     _refTokenBridge.send(_opChainId, _unichainChainId, address(_op), _secondAmountToBridge, _recipient);
@@ -146,15 +143,14 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Check that ref op was deployed
     _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _precomputedRefTokenMetadata));
+    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata));
 
     // Check that the total supply of the ref token is 0 in the native chain
     assertEq(IERC20(_refOp).totalSupply(), 0);
 
     // Compute the message that should have been relayed
-    _message = abi.encodeWithSelector(
-      _refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _precomputedRefTokenMetadata
-    );
+    _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _refTokenMetadata);
 
     // Check that the message hash is correct
     _messageHash = Hashing.hashL2toL2CrossDomainMessage({
@@ -183,8 +179,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(_refOp, address(0));
 
     // Relay OP from OpChain
-    IRefToken.RefTokenMetadata memory _refTokenMetadata = _opPrecomputedRefTokenMetadata();
-
     // Create the message to be relayed
     bytes memory _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
@@ -220,8 +214,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
     _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint256).max);
     uint256 _secondAmountToBridge = _amountToBridge - _firstAmountToBridge;
-
-    IRefToken.RefTokenMetadata memory _refTokenMetadata = _opPrecomputedRefTokenMetadata();
 
     // Create the message to be relayed
     bytes memory _message =
@@ -271,7 +263,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     vm.stopPrank();
 
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    IRefToken.RefTokenMetadata memory _refTokenMetadata = IRefToken(_refOp).metadata();
 
     // Check that the total supply of the ref token is 0 in the native chain
     assertEq(IERC20(_refOp).totalSupply(), 0);
@@ -307,20 +298,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Check that the OP is on the recipient and unlocked in the bridge
     assertEq(_op.balanceOf(_recipient), _amountToBridge);
     assertEq(_op.balanceOf(address(_refTokenBridge)), 0);
-  }
-
-  /**
-   * @notice Helper function to precompute the ref token metadata for OP
-   * @return _refTokenMetadata The ref token metadata for OP
-   */
-  function _opPrecomputedRefTokenMetadata() internal view returns (IRefToken.RefTokenMetadata memory _refTokenMetadata) {
-    _refTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_op),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _op.name(),
-      nativeAssetSymbol: _op.symbol(),
-      nativeAssetDecimals: _op.decimals()
-    });
   }
 
   /**
