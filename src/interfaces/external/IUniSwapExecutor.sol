@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
-
 import {IPermit2} from '@uniswap/permit2/src/interfaces/IPermit2.sol';
+import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
 import {IPoolManager} from '@uniswap/v4-core/src/interfaces/IPoolManager.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {IExecutor} from 'interfaces/external/IExecutor.sol';

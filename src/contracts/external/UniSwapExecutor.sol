@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-
+import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 import {Commands} from '@uniswap/universal-router/contracts/libraries/Commands.sol';
 import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
-
-import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
-
 import {StateLibrary} from '@uniswap/v4-core/src/libraries/StateLibrary.sol';
 import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IV4Router} from '@uniswap/v4-periphery/src/interfaces/IV4Router.sol';
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
+
 import {IRefToken} from 'interfaces/IRefToken.sol';
+
 import {
   IL2ToL2CrossDomainMessenger,
   IPermit2,
@@ -138,6 +137,9 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint256 _nativeAssetChainId =
       REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
 
+    // Approve the router to spend the token
+    IERC20(_tokenOut).approve(address(REF_TOKEN_BRIDGE), _amountOut);
+
     // If there is execution data, send the token and execute the data on the destination chain
     if (_executionData.destinationExecutor != address(0)) {
       REF_TOKEN_BRIDGE.sendAndExecute(
@@ -193,6 +195,8 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Transfer the token from the RefTokenBridge to the executor and approve the router
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+
+    IERC20(_token).approve(address(PERMIT2), _amount);
     PERMIT2.approve(_token, address(ROUTER), uint160(_amount), _v4Params.deadline);
 
     _tokenOut = _v4Params.tokenOut;
