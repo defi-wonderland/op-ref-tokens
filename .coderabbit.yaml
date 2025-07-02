@@ -63,9 +63,9 @@ reviews:
   # Auto-review configuration
   auto_review:
     # Enable automatic code review
-    enabled: true
+    enabled: false
     # Review on each push
-    auto_incremental_review: true
+    auto_incremental_review: false
     # Skip review for titles with these words
     ignore_title_keywords: []
     # Only review PRs with these labels
