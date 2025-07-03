@@ -38,6 +38,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
 
   UniSwapExecutor internal _uniSwapExecutor;
   IRefToken.RefTokenMetadata internal _refTokenMetadata;
+  IRefToken.RefTokenMetadata internal _refUsdcMetadata;
   IRefTokenBridge.ExecutionData internal _executionData;
   IUniSwapExecutor.V4SwapExactInParams internal _v4SwapParams;
   bytes internal _swapData;
@@ -72,6 +73,15 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
       tickSpacing: 60, // Stable pairs
       amountOutMin: _amountOutMin, // Min amount out
       deadline: type(uint48).max
+    });
+
+    // Create ref token metadata for the usdc
+    _refUsdcMetadata = IRefToken.RefTokenMetadata({
+      nativeAsset: address(_usdc),
+      nativeAssetChainId: _opChainId,
+      nativeAssetName: _usdc.name(),
+      nativeAssetSymbol: _usdc.symbol(),
+      nativeAssetDecimals: _usdc.decimals()
     });
   }
 }

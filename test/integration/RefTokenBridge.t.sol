@@ -188,15 +188,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, address(0));
 
-    // Create ref token metadata for the usdc
-    IRefToken.RefTokenMetadata memory _refUsdcMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_usdc),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _usdc.name(),
-      nativeAssetSymbol: _usdc.symbol(),
-      nativeAssetDecimals: _usdc.decimals()
-    });
-
     // Swap and send the USDC to Unichain
     _uniSwapExecutor.swapAndSend(
       address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
@@ -381,15 +372,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       tickSpacing: 60, // Stable pairs
       amountOutMin: 0,
       deadline: type(uint48).max
-    });
-
-    // Create ref token metadata for the usdc
-    IRefToken.RefTokenMetadata memory _refUsdcMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_usdc),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _usdc.name(),
-      nativeAssetSymbol: _usdc.symbol(),
-      nativeAssetDecimals: _usdc.decimals()
     });
 
     // Create the execution data
