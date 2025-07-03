@@ -188,19 +188,13 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, address(0));
 
-    // Create ref token metadata for the usdc
-    IRefToken.RefTokenMetadata memory _refUsdcMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_usdc),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _usdc.name(),
-      nativeAssetSymbol: _usdc.symbol(),
-      nativeAssetDecimals: _usdc.decimals()
-    });
-
     // Swap and send the USDC to Unichain
     _uniSwapExecutor.swapAndSend(
       address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
     );
+
+    // Check that the user's OP token balance has decreased
+    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
 
     // Check that the USDC is on the bridge
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
@@ -383,15 +377,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       deadline: type(uint48).max
     });
 
-    // Create ref token metadata for the usdc
-    IRefToken.RefTokenMetadata memory _refUsdcMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: address(_usdc),
-      nativeAssetChainId: _opChainId,
-      nativeAssetName: _usdc.name(),
-      nativeAssetSymbol: _usdc.symbol(),
-      nativeAssetDecimals: _usdc.decimals()
-    });
-
     // Create the execution data
     _executionData = IRefTokenBridge.ExecutionData({
       destinationExecutor: address(_uniSwapExecutor),
@@ -405,6 +390,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
     );
 
+    // Check that the user's OP token balance has decreased
+    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
+
+    // Check that the USDC is on the bridge
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge

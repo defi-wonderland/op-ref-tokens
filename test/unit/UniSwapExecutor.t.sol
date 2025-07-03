@@ -32,7 +32,7 @@ contract UniSwapExecutorUnit is Helpers {
     universalRouter = IUniversalRouter(makeAddr('UniversalRouter'));
     poolManager = IPoolManager(makeAddr('PoolManager'));
 
-    uniSwapExecutor = new UniSwapExecutor(universalRouter, poolManager, refTokenBridge);
+    uniSwapExecutor = new UniSwapExecutor(address(universalRouter), address(poolManager), address(refTokenBridge));
   }
 
   function test_ConstructorWhenConstructorIsSet(
@@ -40,7 +40,7 @@ contract UniSwapExecutorUnit is Helpers {
     IPoolManager _poolManager,
     IRefTokenBridge _refTokenBridge
   ) external {
-    uniSwapExecutor = new UniSwapExecutor(_router, _poolManager, _refTokenBridge);
+    uniSwapExecutor = new UniSwapExecutor(address(_router), address(_poolManager), address(_refTokenBridge));
 
     assertEq(address(uniSwapExecutor.ROUTER()), address(_router));
     assertEq(address(uniSwapExecutor.POOL_MANAGER()), address(_poolManager));
