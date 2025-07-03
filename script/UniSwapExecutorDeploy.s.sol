@@ -7,12 +7,16 @@ import {Script} from 'forge-std/Script.sol';
 import {UNISWAP_V4_POOL_MANAGER, UNISWAP_V4_ROUTER} from 'src/utils/OptimismConstants.sol';
 
 contract DeployUniSwapExecutor is Script {
+  error RefTokenBridgeNotSet();
+
   UniSwapExecutor internal _uniSwapExecutor;
 
   function run() public {
     vm.startBroadcast();
 
     address _refTokenBridge = vm.envAddress('REF_TOKEN_BRIDGE');
+    if (_refTokenBridge == address(0)) revert RefTokenBridgeNotSet();
+
     _uniSwapExecutor = deploy(_refTokenBridge);
 
     vm.stopBroadcast();
