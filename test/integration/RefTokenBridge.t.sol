@@ -206,7 +206,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge
-    assertNotEq(_usdcBalance, 0);
+    assertEq(_usdcBalance, _fixAmountOut);
 
     // Check that the ref op was deployed
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
@@ -279,21 +279,11 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
     assertEq(_refOp, address(0));
 
-    // Create the swap data
-    _swapData = abi.encodeWithSelector(
-      _uniSwapExecutor.execute.selector,
-      _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata),
-      _recipient,
-      _firstAmountToBridge,
-      _unichainChainId,
-      _v4SwapParams
-    );
-
     // Create the execution data
     _executionData = IRefTokenBridge.ExecutionData({
       destinationExecutor: address(_uniSwapExecutor),
       destinationChainId: _unichainChainId,
-      data: _swapData,
+      data: abi.encode(_v4SwapParams),
       refundAddress: _refund
     });
 
@@ -330,19 +320,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Check that the message hash is correct
     assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
 
-    _swapData = abi.encodeWithSelector(
-      _uniSwapExecutor.execute.selector,
-      _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata),
-      _recipient,
-      _secondAmountToBridge,
-      _unichainChainId,
-      _v4SwapParams
-    );
-
     _executionData = IRefTokenBridge.ExecutionData({
       destinationExecutor: address(_uniSwapExecutor),
       destinationChainId: _unichainChainId,
-      data: _swapData,
+      data: abi.encode(_v4SwapParams),
       refundAddress: _refund
     });
 
@@ -411,21 +392,11 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       nativeAssetDecimals: _usdc.decimals()
     });
 
-    // Create destination the swap data
-    bytes memory _swapDataDestination = abi.encodeWithSelector(
-      _uniSwapExecutor.execute.selector,
-      _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata),
-      _recipient,
-      _firstAmountToSwap,
-      _opChainId,
-      _v4SwapParamsDestination
-    );
-
     // Create the execution data
     _executionData = IRefTokenBridge.ExecutionData({
       destinationExecutor: address(_uniSwapExecutor),
       destinationChainId: _unichainChainId,
-      data: _swapDataDestination,
+      data: abi.encode(_v4SwapParamsDestination),
       refundAddress: _refund
     });
 
@@ -437,7 +408,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge
-    assertNotEq(_usdcBalance, 0);
+    assertEq(_usdcBalance, _fixAmountOut);
 
     // Check that the ref op was deployed
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
@@ -460,14 +431,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Check that the message hash is correct
     assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
-
-    // Create the second swap data
-    _swapDataDestination = abi.encodeWithSelector(
-      _uniSwapExecutor.execute.selector, _refUsdc, _recipient, _secondAmountToSwap, _opChainId, _v4SwapParamsDestination
-    );
-
-    // Update the execution data with the second swap data
-    _executionData.data = _swapDataDestination;
 
     // Swap and send the USDC to Unichain second time
     _uniSwapExecutor.swapAndSend(

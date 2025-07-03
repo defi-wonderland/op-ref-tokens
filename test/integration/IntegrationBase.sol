@@ -28,6 +28,7 @@ contract IntegrationBase is Deploy, Test, PrecomputeRefToken {
 
   uint256 internal _unichainChainId;
   uint256 internal _opChainId;
+  uint256 internal _fixAmountOut;
   bytes internal _swapData;
 
   IUniSwapExecutor.V4SwapExactInParams internal _v4SwapParams;
@@ -66,8 +67,10 @@ contract IntegrationBase is Deploy, Test, PrecomputeRefToken {
       tokenOut: address(_usdc),
       fee: 3000, // 0.3%
       tickSpacing: 60, // Stable pairs
-      amountOutMin: 0,
+      amountOutMin: 542_700, // Min amount out
       deadline: type(uint48).max
     });
+
+    _fixAmountOut = 542_800;
   }
 }

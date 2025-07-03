@@ -130,6 +130,9 @@ contract UniSwapExecutor is IUniSwapExecutor {
     address _recipient,
     IRefTokenBridge.ExecutionData calldata _executionData
   ) external {
+    // Check if the token is a RefToken, if not, approve the token to be spent by the router
+    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenIn)) IERC20(_tokenIn).approve(address(PERMIT2), _amountIn);
+
     // Execute the swap
     (address _tokenOut, uint256 _amountOut) = _executeSwap(_tokenIn, _amountIn, _originSwapData);
 
@@ -195,8 +198,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Transfer the token from the RefTokenBridge to the executor and approve the router
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-
-    IERC20(_token).approve(address(PERMIT2), _amount);
     PERMIT2.approve(_token, address(ROUTER), uint160(_amount), _v4Params.deadline);
 
     _tokenOut = _v4Params.tokenOut;
@@ -204,8 +205,8 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Execute the swap
     ROUTER.execute(COMMANDS, _inputs, _v4Params.deadline);
-
     _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
+
     if (_amountOut < _v4Params.amountOutMin) revert UniSwapExecutor_InsufficientOutputAmount();
 
     emit SwapExecuted(_token, _amount, _tokenOut, _amountOut);
