@@ -10,9 +10,7 @@ import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IV4Router} from '@uniswap/v4-periphery/src/interfaces/IV4Router.sol';
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
-
 import {IRefToken} from 'interfaces/IRefToken.sol';
-
 import {
   IL2ToL2CrossDomainMessenger,
   IPermit2,
@@ -95,7 +93,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
     bytes calldata _data
   ) external {
     if (msg.sender != address(REF_TOKEN_BRIDGE)) revert UniSwapExecutor_InvalidCaller();
-
     if (_amount > type(uint128).max) revert UniSwapExecutor_AmountTooLarge();
 
     // Execute the swap
@@ -140,7 +137,7 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint256 _nativeAssetChainId =
       REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
 
-    // Approve the router to spend the token
+    // Approve the RefTokenBridge to spend the token
     IERC20(_tokenOut).approve(address(REF_TOKEN_BRIDGE), _amountOut);
 
     // If there is execution data, send the token and execute the data on the destination chain
@@ -168,7 +165,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
     bytes calldata _data
   ) internal returns (address _tokenOut, uint256 _amountOut) {
     bytes[] memory _inputs = new bytes[](1);
-
     (
       V4SwapExactInParams memory _v4Params,
       PoolKey memory _poolKey,
@@ -179,7 +175,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Set the params for the router
     bytes[] memory _params = new bytes[](3);
-
     _params[0] = abi.encode(
       IV4Router.ExactInputSingleParams({
         poolKey: _poolKey,
@@ -189,14 +184,10 @@ contract UniSwapExecutor is IUniSwapExecutor {
         hookData: abi.encode('')
       })
     );
-
     _params[1] = abi.encode(_inputCurrency, _amount);
     _params[2] = abi.encode(_outputCurrency, _v4Params.amountOutMin);
 
-    // Set the actions for the router
-    _inputs[0] = abi.encode(ACTIONS, _params);
-
-    // Transfer the token from the RefTokenBridge to the executor and approve the router
+    // Transfer the token from the sender to the executor and approve the router
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
     PERMIT2.approve(_token, address(ROUTER), uint160(_amount), _v4Params.deadline);
 
@@ -204,9 +195,10 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint256 _balanceBefore = IERC20(_tokenOut).balanceOf(address(this));
 
     // Execute the swap
+    _inputs[0] = abi.encode(ACTIONS, _params);
     ROUTER.execute(COMMANDS, _inputs, _v4Params.deadline);
-    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
 
+    _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
     if (_amountOut < _v4Params.amountOutMin) revert UniSwapExecutor_InsufficientOutputAmount();
 
     emit SwapExecuted(_token, _amount, _tokenOut, _amountOut);
