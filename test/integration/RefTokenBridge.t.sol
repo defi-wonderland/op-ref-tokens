@@ -193,6 +193,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
     );
 
+    // Check that the user's OP token balance has decreased
+    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
+
     // Check that the USDC is on the bridge
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
 
@@ -387,6 +390,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
     );
 
+    // Check that the user's OP token balance has decreased
+    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
+
+    // Check that the USDC is on the bridge
     uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge
