@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-
+import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
+import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 import {Commands} from '@uniswap/universal-router/contracts/libraries/Commands.sol';
 import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
-
-import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
-
 import {StateLibrary} from '@uniswap/v4-core/src/libraries/StateLibrary.sol';
 import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IV4Router} from '@uniswap/v4-periphery/src/interfaces/IV4Router.sol';
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
+
 import {IRefToken} from 'interfaces/IRefToken.sol';
+
 import {
   IL2ToL2CrossDomainMessenger,
   IPermit2,
@@ -131,12 +130,18 @@ contract UniSwapExecutor is IUniSwapExecutor {
     address _recipient,
     IRefTokenBridge.ExecutionData calldata _executionData
   ) external {
+    // Check if the token is a RefToken, if not, approve the token to be spent by the router
+    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenIn)) IERC20(_tokenIn).approve(address(PERMIT2), _amountIn);
+
     // Execute the swap
     (address _tokenOut, uint256 _amountOut) = _executeSwap(_tokenIn, _amountIn, _originSwapData);
 
     // If the token is a RefToken, use the native asset chain ID, otherwise use the current chain ID
     uint256 _nativeAssetChainId =
       REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
+
+    // Approve the router to spend the token
+    IERC20(_tokenOut).approve(address(REF_TOKEN_BRIDGE), _amountOut);
 
     // If there is execution data, send the token and execute the data on the destination chain
     if (_executionData.destinationExecutor != address(0)) {
@@ -200,8 +205,8 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Execute the swap
     ROUTER.execute(COMMANDS, _inputs, _v4Params.deadline);
-
     _amountOut = IERC20(_tokenOut).balanceOf(address(this)) - _balanceBefore;
+
     if (_amountOut < _v4Params.amountOutMin) revert UniSwapExecutor_InsufficientOutputAmount();
 
     emit SwapExecuted(_token, _amount, _tokenOut, _amountOut);

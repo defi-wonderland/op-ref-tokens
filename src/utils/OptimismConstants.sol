@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.25;
+
+import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
+import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
+import {IPoolManager} from '@uniswap/v4-core/src/interfaces/IPoolManager.sol';
+
+IUniversalRouter constant UNISWAP_V4_ROUTER = IUniversalRouter(0x851116D9223fabED8E56C0E6b8Ad0c31d98B3507);
+IPoolManager constant UNISWAP_V4_POOL_MANAGER = IPoolManager(0x9a13F98Cb987694C9F086b1F5eB990EeA8264Ec3);
+IERC20 constant OP_TOKEN = IERC20(0x4200000000000000000000000000000000000042);
+IERC20 constant USDC_TOKEN = IERC20(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85);
+
+uint256 constant OP_CHAIN_ID = 10;
+uint256 constant UNI_CHAIN_ID = 130;

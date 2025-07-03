@@ -388,6 +388,16 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _tokenIn),
+      abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(_tokenIn), abi.encodeWithSelector(IERC20.approve.selector, address(PERMIT2), _amountIn), abi.encode(true)
+    );
+
+    _mockAndExpect(
       address(uniSwapExecutor.PERMIT2()),
       abi.encodeWithSelector(
         IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
@@ -407,6 +417,12 @@ contract UniSwapExecutorUnit is Helpers {
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
       abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(_params.tokenOut),
+      abi.encodeWithSelector(IERC20.approve.selector, address(refTokenBridge), _params.amountOutMin),
+      abi.encode(true)
     );
 
     // It should bridge the native asset to the destination chain
@@ -460,6 +476,16 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _tokenIn),
+      abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(_tokenIn), abi.encodeWithSelector(IERC20.approve.selector, address(PERMIT2), _amountIn), abi.encode(true)
+    );
+
+    _mockAndExpect(
       address(uniSwapExecutor.PERMIT2()),
       abi.encodeWithSelector(
         IAllowanceTransfer.approve.selector, _tokenIn, address(universalRouter), uint160(_amountIn), _params.deadline
@@ -480,6 +506,12 @@ contract UniSwapExecutorUnit is Helpers {
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
       abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(_params.tokenOut),
+      abi.encodeWithSelector(IERC20.approve.selector, address(refTokenBridge), _params.amountOutMin),
+      abi.encode(true)
     );
 
     // It should bridge the native asset to the destination chain
@@ -527,6 +559,12 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Mocks for _executeSwap
     _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _tokenIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
       _tokenIn,
       abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
@@ -554,6 +592,13 @@ contract UniSwapExecutorUnit is Helpers {
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
       abi.encode(true)
     );
+
+    _mockAndExpect(
+      address(_params.tokenOut),
+      abi.encodeWithSelector(IERC20.approve.selector, address(refTokenBridge), _params.amountOutMin),
+      abi.encode(true)
+    );
+
     _mockAndExpect(
       _params.tokenOut,
       abi.encodeWithSelector(IRefToken.NATIVE_ASSET_CHAIN_ID.selector),
@@ -610,6 +655,12 @@ contract UniSwapExecutorUnit is Helpers {
 
     // Mocks for _executeSwap
     _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _tokenIn),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
       _tokenIn,
       abi.encodeWithSelector(IERC20.transferFrom.selector, _user, address(uniSwapExecutor), _amountIn),
       abi.encode(true)
@@ -635,6 +686,12 @@ contract UniSwapExecutorUnit is Helpers {
     _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _params.tokenOut),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(_params.tokenOut),
+      abi.encodeWithSelector(IERC20.approve.selector, address(refTokenBridge), _params.amountOutMin),
       abi.encode(true)
     );
     _mockAndExpect(
