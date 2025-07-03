@@ -72,10 +72,10 @@ contract UniSwapExecutor is IUniSwapExecutor {
    * @param _poolManager The PoolManager address
    * @param _refTokenBridge The RefTokenBridge address
    */
-  constructor(IUniversalRouter _router, IPoolManager _poolManager, IRefTokenBridge _refTokenBridge) {
-    ROUTER = _router;
-    POOL_MANAGER = _poolManager;
-    REF_TOKEN_BRIDGE = _refTokenBridge;
+  constructor(address _router, address _poolManager, address _refTokenBridge) {
+    ROUTER = IUniversalRouter(_router);
+    POOL_MANAGER = IPoolManager(_poolManager);
+    REF_TOKEN_BRIDGE = IRefTokenBridge(_refTokenBridge);
   }
 
   /**
