@@ -984,6 +984,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     int24 _tickUpper = -281_160;
     uint128 _liquidity = 10 ether;
 
+    _amount0 = _zeroForOne ? _amount0 : _amount1;
+    _amount1 = _zeroForOne ? _amount1 : _amount0;
+
     // Create the mint params
     _mintParams[0] = abi.encode(_poolKey, _tickLower, _tickUpper, _liquidity, _amount0, _amount1, _recipient, '');
 
