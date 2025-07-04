@@ -7,20 +7,14 @@ import {UNISWAP_V4_POOL_MANAGER, UNISWAP_V4_ROUTER} from 'src/utils/OptimismCons
 
 import {Script} from 'forge-std/Script.sol';
 
-contract Deploy is Script {
+contract DeployRefTokenBridge is Script {
   RefTokenBridge internal _refTokenBridge;
-  UniSwapExecutor internal _uniSwapExecutor;
   bytes32 internal _salt = vm.envBytes32('REF_TOKEN_BRIDGE_SALT');
-
-  /// @notice Deployment parameters for each chain
-  function setUp() public virtual {}
 
   function run() public {
     vm.startBroadcast();
 
     _refTokenBridge = new RefTokenBridge{salt: _salt}();
-
-    _uniSwapExecutor = new UniSwapExecutor(UNISWAP_V4_ROUTER, UNISWAP_V4_POOL_MANAGER, _refTokenBridge);
 
     vm.stopBroadcast();
   }
