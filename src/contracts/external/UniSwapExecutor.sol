@@ -106,8 +106,12 @@ contract UniSwapExecutor is IUniSwapExecutor {
     } else {
       // If the destination chain is not the same as the current chain, send the token to the destination chain
       // If the token is a RefToken, use the native asset chain ID, otherwise use the current chain ID
-      uint256 _nativeAssetChainId =
-        REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut) ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
+
+      bool _isRefToken = REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenOut);
+      uint256 _nativeAssetChainId = _isRefToken ? IRefToken(_tokenOut).NATIVE_ASSET_CHAIN_ID() : block.chainid;
+
+      if (!_isRefToken) IERC20(_tokenOut).approve(address(REF_TOKEN_BRIDGE), _amountOut);
+
       REF_TOKEN_BRIDGE.send(_nativeAssetChainId, _destinationChainId, _tokenOut, _amountOut, _recipient);
     }
   }
@@ -129,9 +133,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
     address _recipient,
     IRefTokenBridge.ExecutionData calldata _executionData
   ) external {
-    // Check if the token is a RefToken, if not, approve the token to be spent by the router
-    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_tokenIn)) IERC20(_tokenIn).approve(address(PERMIT2), _amountIn);
-
     // Execute the swap
     (address _tokenOut, uint256 _amountOut) = _executeSwap(_tokenIn, _amountIn, _originSwapData);
 
@@ -166,6 +167,9 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint128 _amount,
     bytes calldata _data
   ) internal returns (address _tokenOut, uint256 _amountOut) {
+    // Check if the token is a RefToken, if not, approve the token to be spent by the router
+    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_token)) IERC20(_token).approve(address(PERMIT2), _amount);
+
     bytes[] memory _inputs = new bytes[](1);
     (
       V4SwapExactInParams memory _v4Params,

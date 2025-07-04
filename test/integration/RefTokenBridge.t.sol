@@ -30,7 +30,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @param _userBalance The balance of the user
    * @param _amountToBridge The amount of OP to bridge
    */
-  function test_sendOpToUnichainWithRefTokenNotDeployed(uint256 _userBalance, uint256 _amountToBridge) public {
+  function test_sendFromOpChainToUnichainWithRefTokenNotDeployed(uint256 _userBalance, uint256 _amountToBridge) public {
     _userBalance = bound(_userBalance, 1, type(uint256).max);
     _amountToBridge = bound(_amountToBridge, 1, _userBalance);
 
@@ -98,7 +98,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @param _userBalance The balance of the user
    * @param _firstAmountToBridge The amount of OP to bridge first time
    */
-  function test_sendOpToUnichainWithRefTokenDeployed(uint256 _userBalance, uint256 _firstAmountToBridge) public {
+  function test_sendFromOpChainToUnichainWithRefTokenDeployed(
+    uint256 _userBalance,
+    uint256 _firstAmountToBridge
+  ) public {
     _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
     _userBalance = bound(_userBalance, _firstAmountToBridge + 1, type(uint256).max);
     uint256 _secondAmountToBridge = _userBalance - _firstAmountToBridge;
@@ -147,77 +150,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Compute the message that should have been relayed
     _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _refTokenMetadata);
-
-    // Check that the message hash is correct
-    _messageHash = _computeMessageHash(_message, 1, _opChainId, _unichainChainId);
-
-    // Check that the message hash is correct
-    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
-  }
-
-  /**
-   * @notice Test that the bridge can send OP to Unichain through the executor
-   * @param _userBalance The balance of the user
-   */
-  function test_sendFromOpChainToUnichainThroughExecutor(uint256 _userBalance) public {
-    // Cant be fuzzed because the pool doesn't have enough liquidity
-    uint128 _firstAmountToSwap = 1 ether;
-    uint128 _secondAmountToSwap = 2 ether;
-    _userBalance = bound(_userBalance, _firstAmountToSwap + _secondAmountToSwap + 1, type(uint256).max);
-
-    // Set up user funds
-    deal(address(_op), _user, _userBalance);
-
-    // Approve the bridge to spend the OP
-    vm.startPrank(_user);
-    _op.approve(address(_uniSwapExecutor), _userBalance);
-
-    // Check that ref token is not deployed
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    assertEq(_refOp, address(0));
-
-    // Swap and send the USDC to Unichain
-    _uniSwapExecutor.swapAndSend(
-      address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
-    );
-
-    // Check that the user's OP token balance has decreased
-    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
-
-    // Check that the USDC is on the bridge
-    uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
-
-    // Check that the USDC is on the bridge
-    assertEq(_usdcBalance, _fixAmountOut);
-
-    // Check that the ref op was deployed
-    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
-    assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
-
-    // Compute the message that should have been relayed
-    bytes memory _message =
-      abi.encodeWithSelector(_refTokenBridge.relay.selector, _usdcBalance, _recipient, _refUsdcMetadata);
-
-    // Check that the message hash is correct
-    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
-
-    // Check that the message hash is correct
-    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
-
-    // Swap and send the USDC to Unichain second time
-    _uniSwapExecutor.swapAndSend(
-      address(_op), _secondAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
-    );
-
-    // Check that the ref op was deployed
-    _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
-    assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
-
-    uint256 _usdcBalanceSecondSwap = IERC20(_usdc).balanceOf(address(_refTokenBridge)) - _usdcBalance;
-
-    // Compute the message that should have been relayed
-    _message =
-      abi.encodeWithSelector(_refTokenBridge.relay.selector, _usdcBalanceSecondSwap, _recipient, _refUsdcMetadata);
 
     // Check that the message hash is correct
     _messageHash = _computeMessageHash(_message, 1, _opChainId, _unichainChainId);
@@ -308,10 +240,390 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   /**
-   * @notice Test that the bridge can send OP to Unichain and send execute data to swap through the executor
+   * @notice Test that the bridge can relay OP from OpChain to Unichain and deploy a RefToken for OP when the ref token is not deployed
+   * @param _amountToBridge The amount of OP to relay
+   */
+  function test_relayFromOpChainToUnichainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
+    vm.chainId(_unichainChainId);
+    _amountToBridge = bound(_amountToBridge, 1, type(uint256).max);
+
+    // Check that ref token is not deployed
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+    assertEq(_refOp, address(0));
+
+    // Relay OP from OpChain
+    // Create the message to be relayed
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
+
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
+
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that ref op was deployed
+    _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+    // Check that the ref token is deployed
+    assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
+
+    // Check ref token params
+    IRefToken.RefTokenMetadata memory _onchainRefTokenMetadata = IRefToken(_refOp).metadata();
+    assertEq(_onchainRefTokenMetadata.nativeAsset, address(_op));
+    assertEq(_onchainRefTokenMetadata.nativeAssetChainId, _opChainId);
+    assertEq(_onchainRefTokenMetadata.nativeAssetName, _op.name());
+    assertEq(_onchainRefTokenMetadata.nativeAssetSymbol, _op.symbol());
+    assertEq(_onchainRefTokenMetadata.nativeAssetDecimals, _op.decimals());
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToBridge);
+  }
+
+  /**
+   * @notice Test that the bridge can relay OP from OpChain to Unichain and deploy a RefToken and relay OP again when the ref token is already deployed
+   * @param _amountToBridge The amount of OP to relay
+   * @param _firstAmountToBridge The amount of OP to relay first time
+   */
+  function test_relayFromOpChainToUnichainWithRefTokenDeployed(
+    uint256 _amountToBridge,
+    uint256 _firstAmountToBridge
+  ) public {
+    vm.chainId(_unichainChainId);
+    _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
+    _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint256).max);
+    uint256 _secondAmountToBridge = _amountToBridge - _firstAmountToBridge;
+
+    // Create the message to be relayed
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _refTokenMetadata);
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
+
+    // Relay OP from OpChain first time and deploy ref token
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that the ref token is on the recipient
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _firstAmountToBridge);
+
+    // Check that ref op was deployed and is the same as the precomputed ref token address
+    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata));
+
+    _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _refTokenMetadata);
+    (_sentMessage, _identifier) = _messageAndIdentifier(_message, 1, _unichainChainId);
+
+    // Relay OP from OpChain second time
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _firstAmountToBridge + _secondAmountToBridge);
+
+    // Check that ref op was deployed
+    assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
+  }
+
+  /**
+   * @notice Test that the bridge can relay a message from unichain to op chain and execute a swap with ref tokens
+   */
+  function test_relayAndExecuteFromUnichainToOpChainAndSwapWithRefTokenAndGetRefToken() public {
+    uint256 _amountToRelay = 100_000 ether;
+    uint256 _amountToSwap = 1 ether;
+
+    // Create the ref token metadata
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
+
+    // Relay the op ref token
+    _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
+
+    // Relay the usdc ref token
+    _relayToGetRefToken(_amountToRelay, 1, _recipient, _opChainId, _usdcRefTokenMetadata);
+
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
+    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
+    assertEq(IERC20(_refUsdc).balanceOf(_recipient), _amountToRelay);
+
+    // Create the pool and mint the position
+    vm.startPrank(_recipient);
+    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
+    vm.stopPrank();
+
+    // Create the swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refUsdc));
+
+    // Create the execution data
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_uniSwapExecutor),
+      destinationChainId: _opChainId,
+      data: abi.encode(_v4SwapParams),
+      refundAddress: _refund
+    });
+
+    // Create the message to be relayed to execute a swap, now the recipient is the user
+    bytes memory _message = abi.encodeWithSelector(
+      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _opRefTokenMetadata, _executionData
+    );
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 2, _opChainId);
+
+    // Relay the message
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    uint256 _fixUsdcSwapped = 614_726;
+    // Check that the ref usdc is got to the user
+    assertEq(IERC20(_refUsdc).balanceOf(_user), _fixUsdcSwapped);
+
+    // Check that the ref op token is swapped
+    assertEq(IERC20(_refOp).balanceOf(_user), 0);
+  }
+
+  /**
+   * @notice Test that the bridge can relay a message from unichain to op chain and execute a swap with native tokens, also will send it to destination chain
+   */
+  function test_relayAndExecuteFromUnichainToOpChainAndSwapWithNativeTokenAndGetRefToken() public {
+    uint256 _amountToRelay = 100_000 ether;
+    uint256 _amountToSwap = 1 ether;
+
+    // Set up user funds
+    deal(address(_usdc), _recipient, _amountToRelay);
+    deal(address(_usdc), _user, _amountToSwap);
+
+    // Create the ref token metadata, setting the native assets chain to be unichain instead of OP
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+
+    // Create the ref token metadata, setting the native assets chain to be OP chain
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _opChainId);
+
+    // Relay the op ref token
+    _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
+
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
+    assertEq(IERC20(_usdc).balanceOf(_recipient), _amountToRelay);
+
+    // Create the pool and mint the position
+    vm.startPrank(_recipient);
+    _createPoolAndMintPosition(address(_refOp), address(_usdc), _amountToRelay, _amountToRelay);
+    vm.stopPrank();
+
+    // Create the swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refOp));
+
+    // Create the execution data
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_uniSwapExecutor),
+      destinationChainId: _baseChainId,
+      data: abi.encode(_v4SwapParams),
+      refundAddress: _refund
+    });
+
+    // Send the usdc to the unichain
+    vm.startPrank(_user);
+    IERC20(_usdc).approve(address(_refTokenBridge), _amountToSwap);
+    _refTokenBridge.send(_opChainId, _unichainChainId, address(_usdc), _amountToSwap, _user);
+    vm.stopPrank();
+
+    // Check that the recipient has no usdc because it was sent to the unichain
+    assertEq(IERC20(_usdc).balanceOf(_user), 0);
+
+    // Create the message to be relayed to final destination
+    bytes memory _message =
+      abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToSwap, _user, _usdcRefTokenMetadata);
+
+    // Check that the message hash is correct
+    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+
+    // Now, we will relay the usdc to the op chain and execute a swap with the native token
+
+    // Create the message to be relayed to execute a swap, now the recipient is the user
+    _message = abi.encodeWithSelector(
+      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _usdcRefTokenMetadata, _executionData
+    );
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 1, _opChainId);
+
+    // Relay the message
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    uint256 _fixOpSwapped = 614_726;
+
+    // Create the message to be relayed to final destination
+    _message = abi.encodeWithSelector(RefTokenBridge.relay.selector, _fixOpSwapped, _user, _opRefTokenMetadata);
+
+    // Check that the message hash is correct
+    _messageHash = _computeMessageHash(_message, 1, _opChainId, _baseChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+  }
+
+  /**
+   * @notice Test that the bridge can relay a message from unichain to op chain and execute a swap with native tokens, also will send it to destination chain
+   */
+  function test_relayAndExecuteFromUnichainToOpChainAndSwapWithNativeTokenAndNativeToken() public {
+    uint256 _amountToRelay = 100_000 ether;
+    uint256 _amountToSwap = 1 ether;
+
+    // Set up user funds
+    deal(address(_usdc), _recipient, _amountToRelay);
+    deal(address(_op), _recipient, _amountToRelay);
+    deal(address(_usdc), _user, _amountToSwap);
+
+    // Create the ref token metadata, setting the native assets chain to be OP chain
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _opChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _opChainId);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_op).balanceOf(_recipient), _amountToRelay);
+    assertEq(IERC20(_usdc).balanceOf(_recipient), _amountToRelay);
+
+    // Create the pool and mint the position
+    vm.startPrank(_recipient);
+    _createPoolAndMintPosition(address(_op), address(_usdc), _amountToRelay, _amountToRelay);
+    vm.stopPrank();
+
+    // Create the swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_op));
+
+    // Create the execution data
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_uniSwapExecutor),
+      destinationChainId: _baseChainId,
+      data: abi.encode(_v4SwapParams),
+      refundAddress: _refund
+    });
+
+    // Send the usdc to the unichain
+    vm.startPrank(_user);
+    IERC20(_usdc).approve(address(_refTokenBridge), _amountToSwap);
+    _refTokenBridge.send(_opChainId, _unichainChainId, address(_usdc), _amountToSwap, _user);
+    vm.stopPrank();
+
+    // Check that the recipient has no usdc because it was sent to the unichain
+    assertEq(IERC20(_usdc).balanceOf(_user), 0);
+
+    // Create the message to be relayed to final destination
+    bytes memory _message =
+      abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToSwap, _user, _usdcRefTokenMetadata);
+
+    // Check that the message hash is correct
+    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+
+    // Now, we will relay the usdc to the op chain and execute a swap with the native token
+
+    // Create the message to be relayed to execute a swap, now the recipient is the user
+    _message = abi.encodeWithSelector(
+      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _usdcRefTokenMetadata, _executionData
+    );
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 1, _opChainId);
+
+    // Relay the message
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    uint256 _fixOpSwapped = 94_515_378_199_777_320_200_212;
+
+    // Create the message to be relayed to final destination
+    _message = abi.encodeWithSelector(RefTokenBridge.relay.selector, _fixOpSwapped, _user, _opRefTokenMetadata);
+
+    // Check that the message hash is correct
+    _messageHash = _computeMessageHash(_message, 1, _opChainId, _baseChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+  }
+
+  /**
+   * @notice Test that swap
    * @param _userBalance The balance of the user
    */
-  function test_sendAndExecuteFromOpChainToUnichainThroughExecutor(uint256 _userBalance) public {
+  function test_swapAndSendAndRelayFromOpChainToUnichain(uint256 _userBalance) public {
+    // Cant be fuzzed because the pool doesn't have enough liquidity
+    uint128 _firstAmountToSwap = 1 ether;
+    uint128 _secondAmountToSwap = 2 ether;
+    _userBalance = bound(_userBalance, _firstAmountToSwap + _secondAmountToSwap + 1, type(uint256).max);
+
+    // Set up user funds
+    deal(address(_op), _user, _userBalance);
+
+    // Approve the bridge to spend the OP
+    vm.startPrank(_user);
+    _op.approve(address(_uniSwapExecutor), _userBalance);
+
+    // Check that ref token is not deployed
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+    assertEq(_refOp, address(0));
+
+    // Swap and send the USDC to Unichain
+    _uniSwapExecutor.swapAndSend(
+      address(_op), _firstAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
+    );
+
+    // Check that the user's OP token balance has decreased
+    assertEq(_op.balanceOf(_user), _userBalance - _firstAmountToSwap);
+
+    // Check that the USDC is on the bridge
+    uint256 _usdcBalance = IERC20(_usdc).balanceOf(address(_refTokenBridge));
+
+    // Check that the USDC is on the bridge
+    assertEq(_usdcBalance, _fixAmountOut);
+
+    // Check that the ref op was deployed
+    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
+    assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
+
+    // Compute the message that should have been relayed
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _usdcBalance, _recipient, _refUsdcMetadata);
+
+    // Check that the message hash is correct
+    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+
+    // Swap and send the USDC to Unichain second time
+    _uniSwapExecutor.swapAndSend(
+      address(_op), _secondAmountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
+    );
+
+    // Check that the ref op was deployed
+    _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
+    assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
+
+    uint256 _usdcBalanceSecondSwap = IERC20(_usdc).balanceOf(address(_refTokenBridge)) - _usdcBalance;
+
+    // Compute the message that should have been relayed
+    _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _usdcBalanceSecondSwap, _recipient, _refUsdcMetadata);
+
+    // Check that the message hash is correct
+    _messageHash = _computeMessageHash(_message, 1, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+  }
+
+  /**
+   * @notice Test that swap and send to Unichain, relay and execute back to the op chain
+   * @param _userBalance The balance of the user
+   */
+  function test_swapAndSendAndRelayAndExecuteFromOpChainToUnichain(uint256 _userBalance) public {
     // Cant be fuzzed because the pool doesn't have enough liquidity
     uint128 _firstAmountToSwap = 1 ether;
     uint128 _secondAmountToSwap = 2 ether;
@@ -392,9 +704,80 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   /**
-   * @notice Test that the bridge can send OP to Unichain and send execute data to swap through the executor
+   * @notice Test that the bridge can relay OP and USDC from Unichain to OpChain, swap and send to Unichain
    */
-  function test_sendFromOpChainToUnichainThroughExecutorWithRefToken() public {
+  function test_relayFromUnichainToOpChainAndSwapAndSend() public {
+    uint256 _amountToRelay = 100_000 ether;
+    // Amount to swap is the amount of usdc that will be swapped to op, is fixed because the pool doesn't have enough liquidity
+    uint128 _amountToSwap = 1 ether;
+
+    // Create the ref token metadata, setting the native assets chain to be unichain instead of OP
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
+
+    // Relay the op and usdc to Unichain and get the ref tokens
+    _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
+    _relayToGetRefToken(_amountToRelay, 1, _recipient, _opChainId, _usdcRefTokenMetadata);
+
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
+    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
+
+    // Check that the ref token is on the recipient
+    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
+    assertEq(IERC20(_refUsdc).balanceOf(_recipient), _amountToRelay);
+
+    // Create the pool and mint the position
+    vm.startPrank(_recipient);
+    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
+    vm.stopPrank();
+
+    // Create the message to be relayed to execute a swap, now the recipient is the user
+    bytes memory _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToSwap, _user, _opRefTokenMetadata);
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 2, _opChainId);
+
+    // Relay the message
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that the ref usdc is got to the user
+    assertEq(IERC20(_refOp).balanceOf(_user), _amountToSwap);
+
+    // Create the swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refUsdc));
+
+    // Only send the usdc to the op chain
+    _executionData.destinationExecutor = address(0);
+
+    // Swap and send the op to the op chain
+    vm.startPrank(_user);
+    IERC20(_refOp).approve(address(_uniSwapExecutor), _amountToSwap);
+    _uniSwapExecutor.swapAndSend(
+      address(_refOp), _amountToSwap, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
+    );
+    vm.stopPrank();
+
+    // Check that the usdc is sent to the op chain
+    assertEq(IERC20(_refOp).balanceOf(_user), 0);
+
+    uint256 _fixUsdcSwapped = 614_726;
+
+    // Create the message to be relayed
+    _message =
+      abi.encodeWithSelector(_refTokenBridge.relay.selector, _fixUsdcSwapped, _recipient, _usdcRefTokenMetadata);
+
+    // Check that the message hash is correct
+    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+  }
+
+  /**
+   * @notice Test that the bridge can relay OP and USDC from Unichain to OpChain, execute a swap, and swap and send to Unichain
+   */
+  function test_relayAndExecuteFromUnichainToOpChainAndSwapAndSend() public {
     uint256 _amountToRelay = 100_000 ether;
     uint256 _amountToSwap = 1 ether;
 
@@ -404,10 +787,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
 
     // Relay the op ref token
-    _relayToGetRefToken(_amountToRelay, 0, _opRefTokenMetadata);
+    _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
 
     // Relay the usdc ref token
-    _relayToGetRefToken(_amountToRelay, 1, _usdcRefTokenMetadata);
+    _relayToGetRefToken(_amountToRelay, 1, _recipient, _opChainId, _usdcRefTokenMetadata);
 
     address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
@@ -450,97 +833,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Create the swap params
     _v4SwapParams = _createV4SwapParams(address(_refOp));
 
-    // Only send the usdc to the op chain
-    _executionData.destinationExecutor = address(0);
-
-    // Swap and send the usdc to the op chain
-    vm.startPrank(_user);
-    IERC20(_refUsdc).approve(address(_uniSwapExecutor), _fixUsdcSwapped);
-    _uniSwapExecutor.swapAndSend(
-      address(_refUsdc), _fixUsdcSwapped, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
-    );
-    vm.stopPrank();
-
-    // Check that the usdc is sent to the op chain
-    assertEq(IERC20(_refUsdc).balanceOf(_user), 0);
-
-    uint256 _fixOpSwapped = 994_006_798_483_961_118;
-
-    // Create the message to be relayed
-    _message = abi.encodeWithSelector(_refTokenBridge.relay.selector, _fixOpSwapped, _recipient, _opRefTokenMetadata);
-
-    // Check that the message hash is correct
-    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
-
-    // Check that the message hash is correct
-    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
-  }
-
-  /**
-   * @notice Test that the bridge can send and execute a swap from OpChain to Unichain through the executor
-   */
-  function test_sendAndExecuteFromOpChainToUnichainThroughExecutorWithRefToken() public {
-    uint256 _amountToRelay = 100_000 ether;
-    uint256 _amountToSwap = 1 ether;
-
-    // Create the ref token metadata
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
-
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
-
-    // Relay the op ref token
-    _relayToGetRefToken(_amountToRelay, 0, _opRefTokenMetadata);
-
-    // Relay the usdc ref token
-    _relayToGetRefToken(_amountToRelay, 1, _usdcRefTokenMetadata);
-
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
-    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
-
-    // Check that the ref token is on the recipient
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
-    assertEq(IERC20(_refUsdc).balanceOf(_recipient), _amountToRelay);
-
-    // Create the pool and mint the position
-    vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
-    vm.stopPrank();
-
-    // Create the swap params
-    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refUsdc));
-
-    // Create the execution data
-    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
-      destinationExecutor: address(_uniSwapExecutor),
-      destinationChainId: _opChainId,
-      data: abi.encode(_v4SwapParams),
-      refundAddress: _refund
-    });
-
-    // Create the message to be relayed to execute a swap, now the recipient is the user
-    bytes memory _message = abi.encodeWithSelector(
-      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _opRefTokenMetadata, _executionData
-    );
-
-    // Create the message and identifier for the relay message and the identifier for the sent message
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 2, _opChainId);
-
-    // Relay the message
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    uint128 _fixUsdcSwapped = 614_726;
-    // Check that the ref usdc is got to the user
-    assertEq(IERC20(_refUsdc).balanceOf(_user), _fixUsdcSwapped);
-
-    // Create the swap params
-    _v4SwapParams = IUniSwapExecutor.V4SwapExactInParams({
-      tokenOut: address(_refOp),
-      fee: 3000, // 0.3%
-      tickSpacing: 60, // Stable pairs
-      amountOutMin: 0,
-      deadline: type(uint48).max
-    });
-
     // Create destination v4 swap params
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParamsDestination = _createV4SwapParams(address(_op));
 
@@ -578,213 +870,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   /**
-   * @notice Test that the bridge can relay OP from OpChain to Unichain and deploy a RefToken for OP when the ref token is not deployed
-   * @param _amountToBridge The amount of OP to relay
-   */
-  function test_relayOpFromOpChainToUnichainWithRefTokenNotDeployed(uint256 _amountToBridge) public {
-    vm.chainId(_unichainChainId);
-    _amountToBridge = bound(_amountToBridge, 1, type(uint256).max);
-
-    // Check that ref token is not deployed
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    assertEq(_refOp, address(0));
-
-    // Relay OP from OpChain
-    // Create the message to be relayed
-    bytes memory _message =
-      abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
-
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
-
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    // Check that ref op was deployed
-    _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    // Check that the ref token is deployed
-    assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
-
-    // Check ref token params
-    IRefToken.RefTokenMetadata memory _onchainRefTokenMetadata = IRefToken(_refOp).metadata();
-    assertEq(_onchainRefTokenMetadata.nativeAsset, address(_op));
-    assertEq(_onchainRefTokenMetadata.nativeAssetChainId, _opChainId);
-    assertEq(_onchainRefTokenMetadata.nativeAssetName, _op.name());
-    assertEq(_onchainRefTokenMetadata.nativeAssetSymbol, _op.symbol());
-    assertEq(_onchainRefTokenMetadata.nativeAssetDecimals, _op.decimals());
-
-    // Check that the ref token is on the recipient
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToBridge);
-  }
-
-  /**
-   * @notice Test that the bridge can relay OP from OpChain to Unichain and deploy a RefToken and relay OP again when the ref token is already deployed
-   * @param _amountToBridge The amount of OP to relay
-   * @param _firstAmountToBridge The amount of OP to relay first time
-   */
-  function test_relayOpFromOpChainToUnichainWithRefTokenDeployed(
-    uint256 _amountToBridge,
-    uint256 _firstAmountToBridge
-  ) public {
-    vm.chainId(_unichainChainId);
-    _firstAmountToBridge = bound(_firstAmountToBridge, 1, type(uint128).max);
-    _amountToBridge = bound(_amountToBridge, _firstAmountToBridge, type(uint256).max);
-    uint256 _secondAmountToBridge = _amountToBridge - _firstAmountToBridge;
-
-    // Create the message to be relayed
-    bytes memory _message =
-      abi.encodeWithSelector(_refTokenBridge.relay.selector, _firstAmountToBridge, _recipient, _refTokenMetadata);
-
-    // Create the message and identifier for the relay message and the identifier for the sent message
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _unichainChainId);
-
-    // Relay OP from OpChain first time and deploy ref token
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    // Check that the ref token is on the recipient
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _firstAmountToBridge);
-
-    // Check that ref op was deployed and is the same as the precomputed ref token address
-    assertEq(_refOp, _precalculateRefTokenAddress(address(_refTokenBridge), _refTokenMetadata));
-
-    _message =
-      abi.encodeWithSelector(_refTokenBridge.relay.selector, _secondAmountToBridge, _recipient, _refTokenMetadata);
-    (_sentMessage, _identifier) = _messageAndIdentifier(_message, 1, _unichainChainId);
-
-    // Relay OP from OpChain second time
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    // Check that the ref token is on the recipient
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _firstAmountToBridge + _secondAmountToBridge);
-
-    // Check that ref op was deployed
-    assertEq(_refTokenBridge.nativeToRefToken(address(_op), _opChainId), _refOp);
-  }
-
-  /**
-   * @notice Test that the bridge can relay a message from unichain to op chain and execute a swap
-   */
-  function test_relayAndExecuteToOpChainAndSwap() public {
-    uint256 _amountToRelay = 100_000 ether;
-    uint256 _amountToSwap = 1 ether;
-
-    // Create the ref token metadata
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
-
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
-
-    // Relay the op ref token
-    _relayToGetRefToken(_amountToRelay, 0, _opRefTokenMetadata);
-
-    // Relay the usdc ref token
-    _relayToGetRefToken(_amountToRelay, 1, _usdcRefTokenMetadata);
-
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
-    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
-
-    // Check that the ref token is on the recipient
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
-    assertEq(IERC20(_refUsdc).balanceOf(_recipient), _amountToRelay);
-
-    // Create the pool and mint the position
-    vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
-    vm.stopPrank();
-
-    // Create the swap params
-    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refUsdc));
-
-    // Create the execution data
-    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
-      destinationExecutor: address(_uniSwapExecutor),
-      destinationChainId: _opChainId,
-      data: abi.encode(_v4SwapParams),
-      refundAddress: _refund
-    });
-
-    // Create the message to be relayed to execute a swap, now the recipient is the user
-    bytes memory _message = abi.encodeWithSelector(
-      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _opRefTokenMetadata, _executionData
-    );
-
-    // Create the message and identifier for the relay message and the identifier for the sent message
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 2, _opChainId);
-
-    // Relay the message
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    uint256 _fixUsdcSwapped = 614_726;
-    // Check that the ref usdc is got to the user
-    assertEq(IERC20(_refUsdc).balanceOf(_user), _fixUsdcSwapped);
-
-    // Check that the ref op token is swapped
-    assertEq(IERC20(_refOp).balanceOf(_user), 0);
-  }
-
-  /**
-   * @notice Test that the bridge can relay a message from op chain to unichain and execute a swap and send the usdc to the destination chain in unichain
-   */
-  function test_relayAndExecuteToOpChainAndSwapAndSendToDestination() public {
-    uint256 _amountToRelay = 100_000 ether;
-    uint256 _amountToSwap = 1 ether;
-
-    // Create the ref token metadata
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
-
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
-
-    // Relay the op ref token
-    _relayToGetRefToken(_amountToRelay, 0, _opRefTokenMetadata);
-
-    // Relay the usdc ref token
-    _relayToGetRefToken(_amountToRelay, 1, _usdcRefTokenMetadata);
-
-    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _unichainChainId);
-    address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _unichainChainId);
-
-    // Check that the ref token is on the recipient
-    assertEq(IERC20(_refOp).balanceOf(_recipient), _amountToRelay);
-    assertEq(IERC20(_refUsdc).balanceOf(_recipient), _amountToRelay);
-
-    // Create the pool and mint the position
-    vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
-    vm.stopPrank();
-
-    // Create the swap params
-    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_refUsdc));
-
-    // Create the execution data
-    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
-      destinationExecutor: address(_uniSwapExecutor),
-      destinationChainId: _unichainChainId,
-      data: abi.encode(_v4SwapParams),
-      refundAddress: _refund
-    });
-
-    // Create the message to be relayed to execute a swap, now the recipient is the user
-    bytes memory _message = abi.encodeWithSelector(
-      _refTokenBridge.relayAndExecute.selector, _amountToSwap, _user, _opRefTokenMetadata, _executionData
-    );
-
-    // Create the message and identifier for the relay message and the identifier for the sent message
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 2, _opChainId);
-
-    // Relay the message
-    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-
-    uint256 _fixUsdcSwapped = 614_726;
-
-    // Create the message to be relayed to final destination
-    _message = abi.encodeWithSelector(RefTokenBridge.relay.selector, _fixUsdcSwapped, _user, _usdcRefTokenMetadata);
-
-    // Check that the message hash is correct
-    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
-
-    // Check that the message hash is correct
-    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
-  }
-
-  /**
    * @notice Test that the bridge can send OP to Unichain and relay back to the op chain simulating a user sending the ref token to the op chain from Unichain
    * @param _amountToBridge The amount of OP to send to Unichain
    */
@@ -808,6 +893,64 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Create the message to be relayed
     bytes memory _message =
       abi.encodeWithSelector(RefTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
+
+    // Check that the message hash is correct
+    bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
+
+    // Check that the message hash is correct
+    assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
+
+    // Now, we assume that the user sends the ref token to the op chain from Unichain
+
+    // Create the message and identifier for the relay message and the identifier for the sent message
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, 0, _opChainId);
+
+    // Check that ref token is deployed on the op chain before the relay
+    assertEq(_refTokenBridge.isRefTokenDeployed(address(_refOp)), true);
+
+    // Relay OP from Unichain
+    _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
+
+    // Check that the OP is on the recipient and unlocked in the bridge
+    assertEq(_op.balanceOf(_recipient), _amountToBridge);
+    assertEq(_op.balanceOf(address(_refTokenBridge)), 0);
+  }
+
+  /**
+   * @notice Test that the bridge can send OP to Unichain and relay and execute back to the op chain simulating a user sending the ref token to the op chain from Unichain
+   * @param _amountToBridge The amount of OP to send to Unichain
+   */
+  function test_sendOpToUnichainAndRelayAndExecuteBackToOpChain(uint256 _amountToBridge) public {
+    _amountToBridge = bound(_amountToBridge, 1, type(uint256).max);
+
+    // Set up user funds
+    deal(address(_op), _user, _amountToBridge);
+
+    vm.startPrank(_user);
+    _op.approve(address(_refTokenBridge), _amountToBridge);
+    // Send OP to Unichain
+    _refTokenBridge.send(_opChainId, _unichainChainId, address(_op), _amountToBridge, _recipient);
+    vm.stopPrank();
+
+    address _refOp = _refTokenBridge.nativeToRefToken(address(_op), _opChainId);
+
+    // Check that the total supply of the ref token is 0 in the native chain
+    assertEq(IERC20(_refOp).totalSupply(), 0);
+
+    // Create the swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdc));
+
+    // Create the execution data
+    _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_uniSwapExecutor),
+      destinationChainId: _unichainChainId,
+      data: abi.encode(_v4SwapParams),
+      refundAddress: _refund
+    });
+
+    // Create the message to be relayed
+    bytes memory _message =
+      abi.encodeWithSelector(RefTokenBridge.relayAndExecute.selector, _amountToBridge, _recipient, _refTokenMetadata);
 
     // Check that the message hash is correct
     bytes32 _messageHash = _computeMessageHash(_message, 0, _opChainId, _unichainChainId);
@@ -924,6 +1067,8 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   function _relayToGetRefToken(
     uint256 _amountToBridge,
     uint256 _nonce,
+    address _recipient,
+    uint256 _chainId,
     IRefToken.RefTokenMetadata memory _refTokenMetadata
   ) internal {
     // Create the message to be relayed
@@ -931,7 +1076,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _amountToBridge, _recipient, _refTokenMetadata);
 
     // Create the message and identifier for the relay message and the identifier for the sent message
-    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, _nonce, _opChainId);
+    (bytes memory _sentMessage, Identifier memory _identifier) = _messageAndIdentifier(_message, _nonce, _chainId);
 
     // Relay the message
     _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
