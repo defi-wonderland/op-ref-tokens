@@ -38,7 +38,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   uint256 internal _fixAmountOut = 542_800;
 
   UniSwapExecutor internal _uniSwapExecutor;
-  IRefToken.RefTokenMetadata internal _refTokenMetadata;
+  IRefToken.RefTokenMetadata internal _refoOpMetadata;
   IRefToken.RefTokenMetadata internal _refUsdcMetadata;
   IRefTokenBridge.ExecutionData internal _executionData;
   IUniSwapExecutor.V4SwapExactInParams internal _v4SwapParams;
@@ -59,7 +59,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
     vm.createSelectFork(vm.rpcUrl('optimism'), _OPTIMISM_FORK_BLOCK);
 
     // Create the ref token metadata
-    _refTokenMetadata = IRefToken.RefTokenMetadata({
+    _refoOpMetadata = IRefToken.RefTokenMetadata({
       nativeAsset: address(_op),
       nativeAssetChainId: _opChainId,
       nativeAssetName: _op.name(),
