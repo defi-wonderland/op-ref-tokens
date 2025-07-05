@@ -14,7 +14,7 @@ import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
 import {DeployRefTokenBridge} from 'script/RefTokenBridgeDeploy.s.sol';
 import {DeployUniSwapExecutor} from 'script/UniSwapExecutorDeploy.s.sol';
-import {OP_CHAIN_ID, OP_TOKEN, UNI_CHAIN_ID, USDC_TOKEN} from 'src/utils/OptimismConstants.sol';
+import {BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN, UNI_CHAIN_ID, USDC_TOKEN} from 'src/utils/OptimismConstants.sol';
 import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
 
 contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
@@ -30,6 +30,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   address internal _refund = makeAddr('refund');
   uint256 internal _unichainChainId = UNI_CHAIN_ID;
   uint256 internal _opChainId = OP_CHAIN_ID;
+  uint256 internal _baseChainId = BASE_CHAIN_ID;
 
   // The min amount out for the swap
   uint128 internal _amountOutMin = 542_700;
@@ -37,7 +38,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   uint256 internal _fixAmountOut = 542_800;
 
   UniSwapExecutor internal _uniSwapExecutor;
-  IRefToken.RefTokenMetadata internal _refTokenMetadata;
+  IRefToken.RefTokenMetadata internal _refoOpMetadata;
   IRefToken.RefTokenMetadata internal _refUsdcMetadata;
   IRefTokenBridge.ExecutionData internal _executionData;
   IUniSwapExecutor.V4SwapExactInParams internal _v4SwapParams;
@@ -58,7 +59,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
     vm.createSelectFork(vm.rpcUrl('optimism'), _OPTIMISM_FORK_BLOCK);
 
     // Create the ref token metadata
-    _refTokenMetadata = IRefToken.RefTokenMetadata({
+    _refoOpMetadata = IRefToken.RefTokenMetadata({
       nativeAsset: address(_op),
       nativeAssetChainId: _opChainId,
       nativeAssetName: _op.name(),
