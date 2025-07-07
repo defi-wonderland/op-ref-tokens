@@ -167,9 +167,6 @@ contract UniSwapExecutor is IUniSwapExecutor {
     uint128 _amount,
     bytes calldata _data
   ) internal returns (address _tokenOut, uint256 _amountOut) {
-    // Check if the token is a RefToken, if not, approve the token to be spent by the router
-    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_token)) IERC20(_token).approve(address(PERMIT2), _amount);
-
     bytes[] memory _inputs = new bytes[](1);
     (
       V4SwapExactInParams memory _v4Params,
@@ -195,6 +192,11 @@ contract UniSwapExecutor is IUniSwapExecutor {
 
     // Transfer the token from the sender to the executor and approve the router
     IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+
+    // Check if the token is a RefToken, if not, approve the token to be spent by the router
+    if (!REF_TOKEN_BRIDGE.isRefTokenDeployed(_token)) IERC20(_token).approve(address(PERMIT2), _amount);
+
+    // Approve the router to spend the token
     PERMIT2.approve(_token, address(ROUTER), uint160(_amount), _v4Params.deadline);
 
     _tokenOut = _v4Params.tokenOut;
