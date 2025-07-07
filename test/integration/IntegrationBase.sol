@@ -11,6 +11,8 @@ import {UniSwapExecutor} from 'contracts/external/UniSwapExecutor.sol';
 import {Test} from 'forge-std/Test.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
+
+import {IPositionManager} from '@uniswap/v4-periphery/src/interfaces/IPositionManager.sol';
 import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
 import {DeployRefTokenBridge} from 'script/RefTokenBridgeDeploy.s.sol';
 import {DeployUniSwapExecutor} from 'script/UniSwapExecutorDeploy.s.sol';
@@ -42,6 +44,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   IRefToken.RefTokenMetadata internal _refUsdcMetadata;
   IRefTokenBridge.ExecutionData internal _executionData;
   IUniSwapExecutor.V4SwapExactInParams internal _v4SwapParams;
+  IPositionManager internal _positionManager;
   bytes internal _swapData;
 
   function setUp() public virtual {
@@ -55,6 +58,8 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
     EIP1967Helper.setImplementation(
       PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER, address(new L2ToL2CrossDomainMessenger())
     );
+
+    _positionManager = IPositionManager(0x3C3Ea4B57a46241e54610e5f022E5c45859A1017);
 
     vm.createSelectFork(vm.rpcUrl('optimism'), _OPTIMISM_FORK_BLOCK);
 

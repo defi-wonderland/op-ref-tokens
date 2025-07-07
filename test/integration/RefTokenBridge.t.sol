@@ -11,7 +11,6 @@ import {IAllowanceTransfer} from '@uniswap/permit2/src/interfaces/IAllowanceTran
 import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IPoolInitializer_v4} from '@uniswap/v4-periphery/src/interfaces/IPoolInitializer_v4.sol';
-import {IPositionManager} from '@uniswap/v4-periphery/src/interfaces/IPositionManager.sol';
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
 import {IRefTokenBridge, RefTokenBridge} from 'contracts/RefTokenBridge.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
@@ -1165,8 +1164,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Helper function to create the pool and mint a position
    */
   function _createPoolAndMintPosition(address _token0, address _token1, uint256 _amount0, uint256 _amount1) internal {
-    IPositionManager _positionManager = IPositionManager(0x3C3Ea4B57a46241e54610e5f022E5c45859A1017);
-
     // approve permit2 as a spender
     IERC20(_token0).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
     IERC20(_token1).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
@@ -1193,7 +1190,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       hooks: IHooks(address(0))
     });
 
-    // Fixed value for the sqrt price usdc 1 op 0.5
+    // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
     uint160 _sqrtPriceX96 = 560_227_709_747_861_399_344_248;
     _params[0] = abi.encodeWithSelector(IPoolInitializer_v4.initializePool.selector, _poolKey, _sqrtPriceX96);
 
