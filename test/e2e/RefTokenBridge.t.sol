@@ -1,21 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {console} from 'forge-std/Console.sol';
-import {StdUtils} from 'forge-std/StdUtils.sol';
-import {Test} from 'forge-std/Test.sol';
-import {Vm, VmSafe} from 'forge-std/Vm.sol';
-
 import {Relayer} from '@interop-lib/src/test/Relayer.sol';
-
-import {Hashing} from '@interop-lib/src/libraries/Hashing.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
-
 import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
-
 import {IPositionManager} from '@uniswap/v4-periphery/src/interfaces/IPositionManager.sol';
 import {IRefTokenBridge, RefTokenBridge} from 'contracts/RefTokenBridge.sol';
 import {UniSwapExecutor} from 'contracts/external/UniSwapExecutor.sol';
+import {Test} from 'forge-std/Test.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
 import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
@@ -39,7 +31,7 @@ import {
   USDC_TOKEN_UNICHAIN
 } from 'src/utils/Constants.sol';
 
-contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
+contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
   bytes32 internal _salt = vm.envBytes32('REF_TOKEN_BRIDGE_SALT');
   RefTokenBridge internal _opRefTokenBridge;
   RefTokenBridge internal _unichainRefTokenBridge;
