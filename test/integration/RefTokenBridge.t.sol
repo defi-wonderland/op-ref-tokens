@@ -434,8 +434,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint128 _amountToSwap = 1 ether;
 
     // Create the ref token metadata, setting the native assets chain to be unichain instead of OP
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_op), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_usdc), _unichainChainId);
 
     // Relay the op and usdc to Unichain and get the ref tokens
     _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
@@ -450,7 +452,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_refOp),
+      address(_refUsdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the message to be relayed to execute a swap, now the recipient is the user
@@ -504,9 +518,11 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _amountToSwap = 1 ether;
 
     // Create the ref token metadata
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_op), _unichainChainId);
 
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_usdc), _unichainChainId);
 
     // Relay the op ref token
     _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
@@ -523,7 +539,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_refOp),
+      address(_refUsdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the swap params
@@ -568,10 +596,11 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     deal(address(_usdc), _user, _amountToSwap);
 
     // Create the ref token metadata, setting the native assets chain to be unichain instead of OP
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_op), _unichainChainId);
 
     // Create the ref token metadata, setting the native assets chain to be OP chain
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _opChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _precalculateRefTokenMetadata(address(_usdc), _opChainId);
 
     // Relay the op ref token
     _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
@@ -584,7 +613,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_usdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_refOp),
+      address(_usdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the swap params
@@ -660,7 +701,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_op), address(_usdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_op),
+      address(_usdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the swap params
@@ -736,7 +789,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_op), address(_usdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_op),
+      address(_usdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the execution data
@@ -810,9 +875,11 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _amountToSwap = 1 ether;
 
     // Create the ref token metadata
-    IRefToken.RefTokenMetadata memory _opRefTokenMetadata = _createRefTokenMetadata(address(_op), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_op), _unichainChainId);
 
-    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata = _createRefTokenMetadata(address(_usdc), _unichainChainId);
+    IRefToken.RefTokenMetadata memory _usdcRefTokenMetadata =
+      _precalculateRefTokenMetadata(address(_usdc), _unichainChainId);
 
     // Relay the op ref token
     _relayToGetRefToken(_amountToRelay, 0, _recipient, _opChainId, _opRefTokenMetadata);
@@ -829,7 +896,19 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Create the pool and mint the position
     vm.startPrank(_recipient);
-    _createPoolAndMintPosition(address(_refOp), address(_refUsdc), _amountToRelay, _amountToRelay);
+    _createPoolAndMintPosition(
+      _positionManager,
+      _uniSwapExecutor,
+      _recipient,
+      address(_refOp),
+      address(_refUsdc),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
+    );
     vm.stopPrank();
 
     // Create the swap params
@@ -1053,40 +1132,6 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   }
 
   /**
-   * @notice Helper function to create the ref token metadata
-   * @param _token The token to create the metadata for
-   * @param _chainId The chain id of the token
-   * @return _refTokenMetadata The ref token metadata
-   */
-  function _createRefTokenMetadata(
-    address _token,
-    uint256 _chainId
-  ) internal view returns (IRefToken.RefTokenMetadata memory _refTokenMetadata) {
-    _refTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: _token,
-      nativeAssetChainId: _chainId,
-      nativeAssetName: IERC20(_token).name(),
-      nativeAssetSymbol: IERC20(_token).symbol(),
-      nativeAssetDecimals: IERC20(_token).decimals()
-    });
-  }
-
-  /**
-   * @notice Helper function to create the v4 swap params
-   * @param _tokenOut The token to swap to
-   * @return _v4SwapParams The v4 swap params
-   */
-  function _createV4SwapParams(address _tokenOut) internal pure returns (IUniSwapExecutor.V4SwapExactInParams memory) {
-    return IUniSwapExecutor.V4SwapExactInParams({
-      tokenOut: _tokenOut,
-      fee: 3000, // 0.3%
-      tickSpacing: 60, // Stable pairs
-      amountOutMin: 0,
-      deadline: type(uint48).max
-    });
-  }
-
-  /**
    * @notice Helper function to compute the message hash
    * @param _message The message to be relayed
    * @param _nonce The nonce of the relay message
@@ -1158,68 +1203,5 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     // Relay the message
     _l2ToL2CrossDomainMessenger.relayMessage(_identifier, _sentMessage);
-  }
-
-  /**
-   * @notice Helper function to create the pool and mint a position
-   */
-  function _createPoolAndMintPosition(address _token0, address _token1, uint256 _amount0, uint256 _amount1) internal {
-    // approve permit2 as a spender
-    IERC20(_token0).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
-    IERC20(_token1).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
-
-    // approve `PositionManager` as a spender
-    IAllowanceTransfer(address(_uniSwapExecutor.PERMIT2())).approve(
-      _token0, address(_positionManager), type(uint160).max, type(uint48).max
-    );
-    IAllowanceTransfer(address(_uniSwapExecutor.PERMIT2())).approve(
-      _token1, address(_positionManager), type(uint160).max, type(uint48).max
-    );
-
-    // Create the params for the multicall
-    bytes[] memory _params = new bytes[](2);
-
-    bool _zeroForOne = _token0 < _token1;
-
-    // Create the pool key
-    PoolKey memory _poolKey = PoolKey({
-      currency0: _zeroForOne ? Currency.wrap(_token0) : Currency.wrap(_token1),
-      currency1: _zeroForOne ? Currency.wrap(_token1) : Currency.wrap(_token0),
-      fee: 3000,
-      tickSpacing: 60,
-      hooks: IHooks(address(0))
-    });
-
-    // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
-    uint160 _sqrtPriceX96 = 560_227_709_747_861_399_344_248;
-    _params[0] = abi.encodeWithSelector(IPoolInitializer_v4.initializePool.selector, _poolKey, _sqrtPriceX96);
-
-    // Create the actions
-    bytes memory _actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
-
-    // Create the mint params
-    bytes[] memory _mintParams = new bytes[](2);
-
-    // Fixed values for the pool
-    int24 _tickLower = -285_540;
-    int24 _tickUpper = -281_160;
-    uint128 _liquidity = 10 ether;
-
-    uint256 _amount0Liquidity = _zeroForOne ? _amount0 : _amount1;
-    uint256 _amount1Liquidity = _zeroForOne ? _amount1 : _amount0;
-
-    // Create the mint params
-    _mintParams[0] =
-      abi.encode(_poolKey, _tickLower, _tickUpper, _liquidity, _amount0Liquidity, _amount1Liquidity, _recipient, '');
-
-    // Create the mint params
-    _mintParams[1] = abi.encode(_poolKey.currency0, _poolKey.currency1);
-
-    // Create the deadline
-    uint256 _deadline = block.timestamp + 60;
-    _params[1] =
-      abi.encodeWithSelector(_positionManager.modifyLiquidities.selector, abi.encode(_actions, _mintParams), _deadline);
-
-    _positionManager.multicall(_params);
   }
 }

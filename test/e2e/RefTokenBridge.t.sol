@@ -1,88 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity 0.8.25;
 
-import {Relayer} from '@interop-lib/src/test/Relayer.sol';
+import {E2EBase, IRefToken, IRefTokenBridge, IUniSwapExecutor} from './E2EBase.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
-import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
-import {IPositionManager} from '@uniswap/v4-periphery/src/interfaces/IPositionManager.sol';
-import {IRefTokenBridge, RefTokenBridge} from 'contracts/RefTokenBridge.sol';
-import {UniSwapExecutor} from 'contracts/external/UniSwapExecutor.sol';
-import {Test} from 'forge-std/Test.sol';
-import {IRefToken} from 'interfaces/IRefToken.sol';
-import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
-import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
-
-import {IAllowanceTransfer} from '@uniswap/permit2/src/interfaces/IAllowanceTransfer.sol';
-import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
-import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
-import {IPoolInitializer_v4} from '@uniswap/v4-periphery/src/interfaces/IPoolInitializer_v4.sol';
-import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
-
 import {
-  BASE_CHAIN_ID,
-  OP_CHAIN_ID,
-  OP_TOKEN_OPTIMISM,
-  UNISWAP_V4_POOL_MANAGER_OPTIMISM,
-  UNISWAP_V4_POOL_MANAGER_UNICHAIN,
-  UNISWAP_V4_ROUTER_OPTIMISM,
-  UNISWAP_V4_ROUTER_UNICHAIN,
-  UNI_CHAIN_ID,
-  USDC_TOKEN_OPTIMISM,
-  USDC_TOKEN_UNICHAIN
+  BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN_OPTIMISM, UNI_CHAIN_ID, USDC_TOKEN_OPTIMISM
 } from 'src/utils/Constants.sol';
 
-contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
-  bytes32 internal _salt = vm.envBytes32('REF_TOKEN_BRIDGE_SALT');
-  RefTokenBridge internal _opRefTokenBridge;
-  RefTokenBridge internal _unichainRefTokenBridge;
-  RefTokenBridge internal _baseRefTokenBridge;
-
-  UniSwapExecutor internal _opUniSwapExecutor;
-  UniSwapExecutor internal _unichainUniSwapExecutor;
-
-  IPositionManager internal _unichainPositionManager = IPositionManager(0x4529A01c7A0410167c5740C487A8DE60232617bf);
-  IERC20 internal _opOptimism = IERC20(OP_TOKEN_OPTIMISM);
-  IERC20 internal _usdcOptimism = IERC20(USDC_TOKEN_OPTIMISM);
-  IERC20 internal _usdcUnichain = IERC20(USDC_TOKEN_UNICHAIN);
-
-  address internal _poolDeployer = makeAddr('poolDeployer');
-  address internal _user = makeAddr('user');
-  address internal _recipient = makeAddr('recipient');
-  address internal _refund = makeAddr('refund');
-  address internal _relayer = vm.addr(uint256(0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a));
-
-  uint256 internal _chainA;
-  uint256 internal _chainB;
-  uint256 internal _chainC;
-
-  // Run against supersim locally so forking is fast
-  string[] internal _rpcUrls = ['http://127.0.0.1:9545', 'http://127.0.0.1:9546', 'http://127.0.0.1:9547'];
-
-  constructor() Relayer(_rpcUrls) {
-    _chainA = forkIds[0];
-    _chainB = forkIds[1];
-    _chainC = forkIds[2];
-  }
-
-  function setUp() public virtual {
-    // Deploy RefTokenBridge and UniSwapExecutor contracts on the op chain
-    vm.selectFork(_chainA);
-    _opRefTokenBridge = new RefTokenBridge{salt: _salt}();
-    _opUniSwapExecutor =
-      new UniSwapExecutor(UNISWAP_V4_ROUTER_OPTIMISM, UNISWAP_V4_POOL_MANAGER_OPTIMISM, address(_opRefTokenBridge));
-
-    // Deploy RefTokenBridge contract on the unichain chain
-    vm.selectFork(_chainB);
-    _unichainRefTokenBridge = new RefTokenBridge{salt: _salt}();
-    _unichainUniSwapExecutor = new UniSwapExecutor(
-      UNISWAP_V4_ROUTER_UNICHAIN, UNISWAP_V4_POOL_MANAGER_UNICHAIN, address(_unichainRefTokenBridge)
-    );
-
-    // Deploy RefTokenBridge contract on the base chain
-    vm.selectFork(_chainC);
-    _baseRefTokenBridge = new RefTokenBridge{salt: _salt}();
-  }
-
+contract E2ERefTokenBridgeTest is E2EBase {
   /**
    * @notice Test send and execute in the op chain and relay and execute in the unichain chain
    * @dev This test will create a pool with the ref op token and usdc in the unichain chain, send the op to the op chain, relay and execute in the unichain chain
@@ -170,7 +95,8 @@ contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
     vm.selectFork(_chainB);
 
     // Precalculate the ref USDC address on the base chain
-    IRefToken.RefTokenMetadata memory _refUSDCMetadata = _createRefTokenMetadata(address(_usdcUnichain), UNI_CHAIN_ID);
+    IRefToken.RefTokenMetadata memory _refUSDCMetadata =
+      _precalculateRefTokenMetadata(address(_usdcUnichain), UNI_CHAIN_ID);
     address _refUSDCBase = _precalculateRefTokenAddress(address(_baseRefTokenBridge), _refUSDCMetadata);
 
     // Relay the op to the unichain chain
@@ -191,40 +117,6 @@ contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
   }
 
   /**
-   * @notice Helper function to create the ref token metadata
-   * @param _token The token to create the metadata for
-   * @param _chainId The chain id of the token
-   * @return _refTokenMetadata The ref token metadata
-   */
-  function _createRefTokenMetadata(
-    address _token,
-    uint256 _chainId
-  ) internal view returns (IRefToken.RefTokenMetadata memory _refTokenMetadata) {
-    _refTokenMetadata = IRefToken.RefTokenMetadata({
-      nativeAsset: _token,
-      nativeAssetChainId: _chainId,
-      nativeAssetName: IERC20(_token).name(),
-      nativeAssetSymbol: IERC20(_token).symbol(),
-      nativeAssetDecimals: IERC20(_token).decimals()
-    });
-  }
-
-  /**
-   * @notice Helper function to create the v4 swap params
-   * @param _tokenOut The token to swap to
-   * @return _v4SwapParams The v4 swap params
-   */
-  function _createV4SwapParams(address _tokenOut) internal pure returns (IUniSwapExecutor.V4SwapExactInParams memory) {
-    return IUniSwapExecutor.V4SwapExactInParams({
-      tokenOut: _tokenOut,
-      fee: 3000, // 0.3%
-      tickSpacing: 60, // Stable pairs
-      amountOutMin: 0,
-      deadline: type(uint48).max
-    });
-  }
-
-  /**
    * @notice Helper function to create the pool with the ref op token and usdc in the unichain chain
    */
   function _createPoolOpRefTokenAndUSDCInUnichain() internal {
@@ -236,7 +128,8 @@ contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
     // Set up user funds
     deal(address(_opOptimism), _user, _amountToRelay);
 
-    IRefToken.RefTokenMetadata memory _refOpTokenMetadata = _createRefTokenMetadata(address(_opOptimism), OP_CHAIN_ID);
+    IRefToken.RefTokenMetadata memory _refOpTokenMetadata =
+      _precalculateRefTokenMetadata(address(_opOptimism), OP_CHAIN_ID);
 
     // Send the op to the op chain
     vm.startPrank(_user);
@@ -261,84 +154,24 @@ contract E2ERefTokenBridgeTest is Test, Relayer, PrecomputeRefToken {
     assertEq(_usdcUnichain.balanceOf(_poolDeployer), _amountToRelay);
 
     vm.startPrank(_poolDeployer);
-    _createPoolAndMintPosition(
-      _unichainUniSwapExecutor, address(_refOpUnichain), address(_usdcUnichain), _amountToRelay, _amountToRelay
-    );
-    vm.stopPrank();
-  }
-
-  /**
-   * @notice Helper function to create the pool and mint a position
-   * @param _uniSwapExecutor The uni swap executor
-   * @param _token0 The token0
-   * @param _token1 The token1
-   * @param _amount0 The amount0
-   * @param _amount1 The amount1
-   */
-  function _createPoolAndMintPosition(
-    IUniSwapExecutor _uniSwapExecutor,
-    address _token0,
-    address _token1,
-    uint256 _amount0,
-    uint256 _amount1
-  ) internal {
-    // approve permit2 as a spender
-    IERC20(_token0).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
-    IERC20(_token1).approve(address(_uniSwapExecutor.PERMIT2()), type(uint256).max);
-
-    // approve `PositionManager` as a spender
-    IAllowanceTransfer(address(_uniSwapExecutor.PERMIT2())).approve(
-      _token0, address(_unichainPositionManager), type(uint160).max, type(uint48).max
-    );
-    IAllowanceTransfer(address(_uniSwapExecutor.PERMIT2())).approve(
-      _token1, address(_unichainPositionManager), type(uint160).max, type(uint48).max
-    );
-
-    // Create the params for the multicall
-    bytes[] memory _params = new bytes[](2);
-
-    bool _zeroForOne = _token0 < _token1;
-
-    // Create the pool key
-    PoolKey memory _poolKey = PoolKey({
-      currency0: _zeroForOne ? Currency.wrap(_token0) : Currency.wrap(_token1),
-      currency1: _zeroForOne ? Currency.wrap(_token1) : Currency.wrap(_token0),
-      fee: 3000,
-      tickSpacing: 60,
-      hooks: IHooks(address(0))
-    });
-
-    // Fixed value for the sqrt price: 1 OP ~= 0.5 USDC (currency0=USDC, currency1=OP)
     uint160 _sqrtPriceX96 = 112_045_541_949_572_279_869_449_664;
-    _params[0] = abi.encodeWithSelector(IPoolInitializer_v4.initializePool.selector, _poolKey, _sqrtPriceX96);
-
-    // Create the actions
-    bytes memory _actions = abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR));
-
-    // Create the mint params
-    bytes[] memory _mintParams = new bytes[](2);
-
-    // Fixed values for the pool - wider range around current tick (-131231), divisible by tickSpacing (60)
     int24 _tickLower = -139_980; // 60 * -2333, below current price
     int24 _tickUpper = -120_000; // 60 * -2000, above current price
     uint128 _liquidity = 10 ether;
 
-    // Use maximum amounts - let the pool calculate the exact amounts needed
-    uint256 _amount0Max = _zeroForOne ? _amount0 : _amount1;
-    uint256 _amount1Max = _zeroForOne ? _amount1 : _amount0;
-
-    // Create the mint params
-    _mintParams[0] = abi.encode(_poolKey, _tickLower, _tickUpper, _liquidity, _amount0Max, _amount1Max, _recipient, '');
-
-    // Create the mint params
-    _mintParams[1] = abi.encode(_poolKey.currency0, _poolKey.currency1);
-
-    // Create the deadline
-    uint256 _deadline = block.timestamp + 60;
-    _params[1] = abi.encodeWithSelector(
-      _unichainPositionManager.modifyLiquidities.selector, abi.encode(_actions, _mintParams), _deadline
+    _createPoolAndMintPosition(
+      _unichainPositionManager,
+      _unichainUniSwapExecutor,
+      _recipient,
+      address(_refOpUnichain),
+      address(_usdcUnichain),
+      _amountToRelay,
+      _amountToRelay,
+      _sqrtPriceX96,
+      _tickLower,
+      _tickUpper,
+      _liquidity
     );
-
-    _unichainPositionManager.multicall(_params);
+    vm.stopPrank();
   }
 }

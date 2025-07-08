@@ -90,12 +90,28 @@ jobs:
 
       - name: Install supersim and run tests
         if: runner.os == 'Linux'
+        shell: bash
         run: |
+          # Install Homebrew and supersim
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew tap ethereum-optimism/tap
           brew install supersim
+
+          # Start supersim in the background
+          (supersim fork --chains=op,unichain,base --l1.fork.height 0 --interop.enabled > supersim.log 2>&1) &
+          SUPERSIM_PID=$!
+
+          # Wait for supersim to be ready (simple wait; can be replaced with log polling)
+          echo "⏳ Waiting for supersim to start..."
+          sleep 10
+
+          # Run the E2E tests
           yarn test:e2e
+
+          # Shut down supersim
+          echo "🛑 Stopping supersim (PID: $SUPERSIM_PID)"
+          kill $SUPERSIM_PID || true
 
   medusa-tests:
     name: Medusa Test

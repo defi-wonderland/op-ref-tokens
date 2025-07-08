@@ -20,8 +20,9 @@ import {
   BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN_OPTIMISM, UNI_CHAIN_ID, USDC_TOKEN_OPTIMISM
 } from 'src/utils/Constants.sol';
 import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
+import {UniswapV4Pool} from 'test/utils/UniswapV4Pool.t.sol';
 
-contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
+contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken, UniswapV4Pool {
   uint256 internal constant _OPTIMISM_FORK_BLOCK = 137_639_140;
 
   L2ToL2CrossDomainMessenger internal _l2ToL2CrossDomainMessenger =
@@ -40,6 +41,13 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   uint128 internal _amountOutMin = 542_700;
   // The total amount out of USDC that will be swapped on this specific fixed block
   uint256 internal _fixAmountOut = 542_800;
+
+  // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
+  uint160 internal _sqrtPriceX96 = 560_227_709_747_861_399_344_248;
+  // Fixed value for the tick lower and upper
+  int24 internal _tickLower = -285_540; // 60 * -4759, below current price
+  int24 internal _tickUpper = -281_160; // 60 * -4686, above current price
+  uint128 internal _liquidity = 10 ether;
 
   UniSwapExecutor internal _uniSwapExecutor;
   IRefToken.RefTokenMetadata internal _refoOpMetadata;
