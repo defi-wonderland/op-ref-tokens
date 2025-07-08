@@ -27,6 +27,7 @@ import {IPoolInitializer_v4} from '@uniswap/v4-periphery/src/interfaces/IPoolIni
 import {Actions} from '@uniswap/v4-periphery/src/libraries/Actions.sol';
 
 import {
+  BASE_CHAIN_ID,
   OP_CHAIN_ID,
   OP_TOKEN_OPTIMISM,
   UNISWAP_V4_POOL_MANAGER_OPTIMISM,
@@ -42,6 +43,8 @@ contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
   bytes32 internal _salt = vm.envBytes32('REF_TOKEN_BRIDGE_SALT');
   RefTokenBridge internal _opRefTokenBridge;
   RefTokenBridge internal _unichainRefTokenBridge;
+  RefTokenBridge internal _baseRefTokenBridge;
+
   UniSwapExecutor internal _opUniSwapExecutor;
   UniSwapExecutor internal _unichainUniSwapExecutor;
 
@@ -58,13 +61,15 @@ contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
 
   uint256 internal _chainA;
   uint256 internal _chainB;
+  uint256 internal _chainC;
 
   // Run against supersim locally so forking is fast
-  string[] internal _rpcUrls = ['http://127.0.0.1:9545', 'http://127.0.0.1:9546'];
+  string[] internal _rpcUrls = ['http://127.0.0.1:9545', 'http://127.0.0.1:9546', 'http://127.0.0.1:9547'];
 
   constructor() Relayer(_rpcUrls) {
     _chainA = forkIds[0];
     _chainB = forkIds[1];
+    _chainC = forkIds[2];
   }
 
   function setUp() public virtual {
@@ -80,6 +85,10 @@ contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
     _unichainUniSwapExecutor = new UniSwapExecutor(
       UNISWAP_V4_ROUTER_UNICHAIN, UNISWAP_V4_POOL_MANAGER_UNICHAIN, address(_unichainRefTokenBridge)
     );
+
+    // Deploy RefTokenBridge contract on the base chain
+    vm.selectFork(_chainC);
+    _baseRefTokenBridge = new RefTokenBridge{salt: _salt}();
   }
 
   /**
@@ -87,7 +96,7 @@ contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
    * @dev This test will create a pool with the ref op token and usdc in the unichain chain, send the op to the op chain, relay and execute in the unichain chain
    * and check that the ref token is deployed and the pool is created
    */
-  function test_sendAndExecuteInOpChainAndRelayAndExecuteInUnichain() public {
+  function test_sendAndExecuteOpChainAndRelayAndExecuteUnichain() public {
     // Create the pool with the ref op token and usdc in the unichain chain
     _createPoolOpRefTokenAndUSDCInUnichain();
 
@@ -123,10 +132,70 @@ contract E2ERefTokenBridgeTest is StdUtils, Test, Relayer, PrecomputeRefToken {
     // Relay the op to the unichain chain
     vm.startPrank(_relayer);
     relayAllMessages();
+
     vm.stopPrank();
 
     // Check that the recipient received the usdc in unichain
     assertGt(IERC20(_usdcUnichain).balanceOf(_recipient), _v4SwapParams.amountOutMin);
+  }
+
+  /**
+   * @notice Test send and execute in the op chain and relay and execute in the unichain chain and send to base chain
+   * @dev This test will create a pool with the ref op token and usdc in the unichain chain, send the op to the op chain, relay and execute in the unichain chain
+   * and check that the ref token is deployed and the pool is created
+   */
+  function test_sendAndExecuteOpChainAndRelayAndExecuteUnichainAndSendBaseChain() public {
+    // Create the pool with the ref op token and usdc in the unichain chain
+    _createPoolOpRefTokenAndUSDCInUnichain();
+
+    // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
+    vm.selectFork(_chainA);
+
+    uint256 _amountToSwap = 1 ether;
+
+    // Set up user funds
+    deal(address(_opOptimism), _user, _amountToSwap);
+
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcUnichain));
+
+    // Create the execution data
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_unichainUniSwapExecutor),
+      destinationChainId: BASE_CHAIN_ID,
+      refundAddress: _refund,
+      data: abi.encode(_v4SwapParams)
+    });
+
+    // Send the op to the op chain
+    vm.startPrank(_user);
+    _opOptimism.approve(address(_opRefTokenBridge), _amountToSwap);
+    _opRefTokenBridge.sendAndExecute(
+      OP_CHAIN_ID, UNI_CHAIN_ID, address(_opOptimism), _amountToSwap, _recipient, _executionData
+    );
+    vm.stopPrank();
+
+    // After the op is sent, relay and execute in the unichain chain
+    vm.selectFork(_chainB);
+
+    // Precalculate the ref USDC address on the base chain
+    IRefToken.RefTokenMetadata memory _refUSDCMetadata = _createRefTokenMetadata(address(_usdcUnichain), UNI_CHAIN_ID);
+    address _refUSDCBase = _precalculateRefTokenAddress(address(_baseRefTokenBridge), _refUSDCMetadata);
+
+    // Relay the op to the unichain chain
+    vm.startPrank(_relayer);
+    relayAllMessages();
+    vm.stopPrank();
+
+    // Relay the usdc to the base chain, the ref USDC will be deployed on the base chain
+    vm.selectFork(_chainC);
+    vm.startPrank(_relayer);
+
+    relayAllMessages();
+
+    vm.stopPrank();
+
+    // Check that the ref USDC is deployed on the base chain
+    assertEq(IERC20(_refUSDCBase).balanceOf(_refund), _v4SwapParams.amountOutMin);
   }
 
   /**
