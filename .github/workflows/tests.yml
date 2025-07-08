@@ -88,12 +88,14 @@ jobs:
       - name: Precompile
         run: yarn build
 
-      - name: Install Supersim and run tests
+      - name: Install supersim and run tests
+        if: runner.os == 'Linux'
         run: |
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew install ethereum-optimism/tap/supersim
-        run: yarn test:e2e
+          brew tap ethereum-optimism/tap
+          brew install supersim
+          yarn test:e2e
 
   medusa-tests:
     name: Medusa Test
