@@ -76,20 +76,11 @@ jobs:
         with:
           version: stable
 
-      - name: Install Homebrew
+      - name: Install Homebrew and supersim
         if: runner.os == 'Linux'
         run: |
-          echo >> /home/runner/.bashrc
-          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> /home/runner/.bashrc
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-      - name: Add brew to PATH
-        run: |
-          echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.bashrc
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-
-      - name: Tap & install supersim
-        run: |
           brew tap ethereum-optimism/tap
           brew install supersim
 
