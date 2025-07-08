@@ -23,7 +23,7 @@
     "prepare": "husky",
     "supersim": "supersim fork --chains=op,unichain,base --l1.fork.height 0 --interop.enabled",
     "test": "forge test -vvv",
-    "test:e2e": "FOUNDRY_FUZZ_RUNS=50 forge test --match-contract E2E  -vvv",
+    "test:e2e": "yarn supersim && forge test --match-contract E2E  -vvv",
     "test:fuzz": "medusa fuzz",
     "test:integration": "FOUNDRY_FUZZ_RUNS=50 forge test --match-contract Integration -vvv",
     "test:symbolic": "halmos",
