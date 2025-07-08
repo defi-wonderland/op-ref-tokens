@@ -117,6 +117,57 @@ contract E2ERefTokenBridgeTest is E2EBase {
   }
 
   /**
+   * @notice Test send and execute in the op chain and relay and execute in the unichain chain and revert and relay back to the op chain
+   * @dev This test will create a pool with the ref op token and usdc in the unichain chain, send the op to the op chain, relay and execute in the unichain chain
+   * and check that the ref token is deployed and the pool is created, then revert the execution and relay back to the op chain
+   */
+  function test_sendAndExecuteOpChainAndRelayAndExecuteRevertAndRelayBackToOpChain() public {
+    // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
+    vm.selectFork(_chainA);
+
+    uint256 _amountToSwap = 1 ether;
+
+    // Set up user funds
+    deal(address(_opOptimism), _user, _amountToSwap);
+
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcUnichain));
+
+    // Create the execution data
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_unichainUniSwapExecutor),
+      destinationChainId: UNI_CHAIN_ID,
+      refundAddress: _refund,
+      data: abi.encode(_v4SwapParams)
+    });
+
+    // Send the op to the op chain
+    vm.startPrank(_user);
+    _opOptimism.approve(address(_opRefTokenBridge), _amountToSwap);
+    _opRefTokenBridge.sendAndExecute(
+      OP_CHAIN_ID, UNI_CHAIN_ID, address(_opOptimism), _amountToSwap, _recipient, _executionData
+    );
+    vm.stopPrank();
+
+    // Relay the op to the unichain chain to execute the swap
+    vm.startPrank(_relayer);
+    relayAllMessages();
+    vm.stopPrank();
+
+    // After the op is sent, relay and execute in the unichain chain
+    vm.selectFork(_chainB);
+
+    // As swap revert, the op will be returned to the op chain
+    vm.startPrank(_relayer);
+    relayMessages(vm.getRecordedLogs(), OP_CHAIN_ID);
+    vm.stopPrank();
+
+    vm.selectFork(_chainA);
+
+    // Check that the refund is sent to the refund address
+    assertEq(IERC20(_opOptimism).balanceOf(_refund), _amountToSwap);
+  }
+
+  /**
    * @notice Helper function to create the pool with the ref op token and usdc in the unichain chain
    */
   function _createPoolOpRefTokenAndUSDCInUnichain() internal {
