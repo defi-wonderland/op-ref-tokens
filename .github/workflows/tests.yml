@@ -104,7 +104,7 @@ jobs:
 
           # Wait for supersim to be ready (simple wait; can be replaced with log polling)
           echo "⏳ Waiting for supersim to start..."
-          sleep 10
+          sleep 30
 
           # Run the E2E tests
           yarn test:e2e
