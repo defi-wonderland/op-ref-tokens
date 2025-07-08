@@ -78,10 +78,11 @@ jobs:
 
       - name: Install supersim binary
         run: |
-          VERSION=0.1.0-alpha.47
-          curl -L "https://github.com/ethereum-optimism/supersim/releases/download/${VERSION}/supersim-linux-x86_64.gz" \
-            | gzip -d > /usr/local/bin/supersim
-          chmod +x /usr/local/bin/supersim
+          VERSION=v0.1.0-alpha.47
+          curl -L "https://github.com/ethereum-optimism/supersim/releases/download/${VERSION}/supersim_Linux_x86_64.tar.gz" -o supersim.tar.gz
+          tar -xzf supersim.tar.gz
+          chmod +x supersim
+          sudo mv supersim /usr/local/bin/
 
       - name: Use Node.js
         uses: actions/setup-node@v4
