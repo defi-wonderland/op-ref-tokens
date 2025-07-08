@@ -76,6 +76,17 @@ jobs:
         with:
           version: stable
 
+      - name: Install Homebrew
+        if: runner.os == 'Linux'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+      - name: Tap & install supersim
+        run: |
+          brew tap ethereum-optimism/tap
+          brew install supersim
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
