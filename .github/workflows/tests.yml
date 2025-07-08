@@ -76,13 +76,12 @@ jobs:
         with:
           version: stable
 
-      - name: Install Homebrew and supersim
-        if: runner.os == 'Linux'
+      - name: Install supersim binary
         run: |
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew tap ethereum-optimism/tap
-          brew install supersim
+          VERSION=0.1.0-alpha.47
+          curl -L "https://github.com/ethereum-optimism/supersim/releases/download/${VERSION}/supersim-linux-x86_64.gz" \
+            | gzip -d > /usr/local/bin/supersim
+          chmod +x /usr/local/bin/supersim
 
       - name: Use Node.js
         uses: actions/setup-node@v4
