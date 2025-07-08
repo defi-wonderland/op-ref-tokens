@@ -76,14 +76,6 @@ jobs:
         with:
           version: stable
 
-      - name: Install supersim binary
-        run: |
-          VERSION=v0.1.0-alpha.47
-          curl -L "https://github.com/ethereum-optimism/supersim/releases/download/${VERSION}/supersim_Linux_x86_64.tar.gz" -o supersim.tar.gz
-          tar -xzf supersim.tar.gz
-          chmod +x supersim
-          sudo mv supersim /usr/local/bin/
-
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
@@ -96,7 +88,11 @@ jobs:
       - name: Precompile
         run: yarn build
 
-      - name: Run tests
+      - name: Install Supersim and run tests
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew install ethereum-optimism/tap/supersim
         run: yarn test:e2e
 
   medusa-tests:
