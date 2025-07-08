@@ -16,7 +16,9 @@ import {IPositionManager} from '@uniswap/v4-periphery/src/interfaces/IPositionMa
 import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
 import {DeployRefTokenBridge} from 'script/RefTokenBridgeDeploy.s.sol';
 import {DeployUniSwapExecutor} from 'script/UniSwapExecutorDeploy.s.sol';
-import {BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN, UNI_CHAIN_ID, USDC_TOKEN} from 'src/utils/OptimismConstants.sol';
+import {
+  BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN_OPTIMISM, UNI_CHAIN_ID, USDC_TOKEN_OPTIMISM
+} from 'src/utils/Constants.sol';
 import {PrecomputeRefToken} from 'test/utils/PrecomputeRefToken.t.sol';
 
 contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
@@ -25,8 +27,8 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken {
   L2ToL2CrossDomainMessenger internal _l2ToL2CrossDomainMessenger =
     L2ToL2CrossDomainMessenger(PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER);
 
-  IERC20 internal _op = IERC20(OP_TOKEN);
-  IERC20 internal _usdc = IERC20(USDC_TOKEN);
+  IERC20 internal _op = IERC20(OP_TOKEN_OPTIMISM);
+  IERC20 internal _usdc = IERC20(USDC_TOKEN_OPTIMISM);
   address internal _user = makeAddr('user');
   address internal _recipient = makeAddr('recipient');
   address internal _refund = makeAddr('refund');
