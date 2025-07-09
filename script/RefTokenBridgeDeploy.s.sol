@@ -2,7 +2,6 @@
 pragma solidity 0.8.25;
 
 import {RefTokenBridge} from 'contracts/RefTokenBridge.sol';
-
 import {Script} from 'forge-std/Script.sol';
 
 contract DeployRefTokenBridge is Script {
