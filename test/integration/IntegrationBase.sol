@@ -37,11 +37,11 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken, Unis
   address internal _usdcWhale = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
 
   // Pool liquidity constraints require fixed swap amounts
-  uint128 internal constant _standardBridgeAmount = 1 ether;
-  uint128 internal constant _doubleBridgeAmount = 2 ether;
-  uint128 internal constant _standardSwapAmount = 1 ether;
-  uint128 internal constant _opAmountToRelay = 100_000 ether;
-  uint128 internal constant _usdcAmountToRelay = 50_000 * 10 ** 6;
+  uint128 internal constant _STANDARD_BRIDGE_AMOUNT = 1 ether;
+  uint128 internal constant _DOUBLE_BRIDGE_AMOUNT = 2 ether;
+  uint128 internal constant _STANDARD_SWAP_AMOUNT = 1 ether;
+  uint128 internal constant _OP_AMOUNT_TO_RELAY = 100_000 ether;
+  uint128 internal constant _USDC_AMOUNT_TO_RELAY = 50_000 * 10 ** 6;
 
   IERC20 internal _op = IERC20(OP_TOKEN);
   IERC20 internal _usdc = IERC20(USDC_TOKEN);
