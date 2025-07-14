@@ -89,6 +89,12 @@ contract UniSwapExecutorUnit is Helpers {
     bytes memory _data = abi.encode(_params);
 
     _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _token),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
       _token,
       abi.encodeWithSelector(IERC20.transferFrom.selector, address(refTokenBridge), uniSwapExecutor, _amount),
       abi.encode(true)
@@ -137,6 +143,8 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
 
+    vm.assume(_token != _params.tokenOut);
+
     _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint128).max));
@@ -145,6 +153,12 @@ contract UniSwapExecutorUnit is Helpers {
     _destinationChainId = block.chainid;
 
     bytes memory _data = abi.encode(_params);
+
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _token),
+      abi.encode(true)
+    );
 
     _mockAndExpect(
       _token,
@@ -206,6 +220,8 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
 
+    vm.assume(_token != _params.tokenOut);
+
     _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint128).max));
@@ -215,9 +231,21 @@ contract UniSwapExecutorUnit is Helpers {
     bytes memory _data = abi.encode(_params);
 
     _mockAndExpect(
-      _token,
+      address(_token),
+      abi.encodeWithSelector(IERC20.approve.selector, address(uniSwapExecutor.PERMIT2()), _amount),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(_token),
       abi.encodeWithSelector(IERC20.transferFrom.selector, address(refTokenBridge), uniSwapExecutor, _amount),
       abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _token),
+      abi.encode(false)
     );
 
     _mockAndExpect(
@@ -255,6 +283,12 @@ contract UniSwapExecutorUnit is Helpers {
     );
 
     _mockAndExpect(
+      address(_params.tokenOut),
+      abi.encodeWithSelector(IERC20.approve.selector, address(refTokenBridge), _params.amountOutMin),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
       address(refTokenBridge),
       abi.encodeWithSelector(
         IRefTokenBridge.send.selector,
@@ -287,6 +321,8 @@ contract UniSwapExecutorUnit is Helpers {
     _assumeFuzzable(_params.tokenOut);
     _assumeFuzzable(_recipient);
 
+    vm.assume(_token != _params.tokenOut);
+
     _params.amountOutMin = uint128(bound(_params.amountOutMin, 1, type(uint128).max));
     _initialBalance = uint128(bound(_initialBalance, 1, type(uint128).max));
     _amount = uint128(bound(_amount, 1, type(uint160).max));
@@ -296,8 +332,20 @@ contract UniSwapExecutorUnit is Helpers {
     bytes memory _data = abi.encode(_params);
 
     _mockAndExpect(
-      _token,
+      address(_token),
       abi.encodeWithSelector(IERC20.transferFrom.selector, address(refTokenBridge), uniSwapExecutor, _amount),
+      abi.encode(true)
+    );
+
+    _mockAndExpect(
+      address(refTokenBridge),
+      abi.encodeWithSelector(IRefTokenBridge.isRefTokenDeployed.selector, _token),
+      abi.encode(false)
+    );
+
+    _mockAndExpect(
+      address(_token),
+      abi.encodeWithSelector(IERC20.approve.selector, address(uniSwapExecutor.PERMIT2()), _amount),
       abi.encode(true)
     );
 
