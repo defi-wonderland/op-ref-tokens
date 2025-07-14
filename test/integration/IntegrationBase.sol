@@ -47,7 +47,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken, Unis
   // Fixed value for the tick lower and upper
   int24 internal _tickLower = -285_540; // 60 * -4759, below current price
   int24 internal _tickUpper = -281_160; // 60 * -4686, above current price
-  uint128 internal _liquidity = 10 ether;
+  uint128 internal _liquidity = 1 ether;
 
   UniSwapExecutor internal _uniSwapExecutor;
   IRefToken.RefTokenMetadata internal _refoOpMetadata;

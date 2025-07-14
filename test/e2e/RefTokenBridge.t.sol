@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {E2EBase, IRefToken, IRefTokenBridge, IUniSwapExecutor} from './E2EBase.sol';
+import {E2EBase} from './E2EBase.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
-import {
-  BASE_CHAIN_ID, OP_CHAIN_ID, OP_TOKEN_OPTIMISM, UNI_CHAIN_ID, USDC_TOKEN_OPTIMISM
-} from 'src/utils/Constants.sol';
+import {IRefTokenBridge} from 'contracts/RefTokenBridge.sol';
+import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IUniSwapExecutor} from 'interfaces/external/IUniSwapExecutor.sol';
+import {BASE_CHAIN_ID, OP_CHAIN_ID, UNI_CHAIN_ID} from 'src/utils/Constants.sol';
 
 contract E2ERefTokenBridgeTest is E2EBase {
   /**
@@ -20,10 +21,9 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
     vm.selectFork(_chainA);
 
-    uint256 _amountToSwap = 1 ether;
-
     // Set up user funds
-    deal(address(_opOptimism), _user, _amountToSwap);
+    vm.prank(_opWhaleInOpChain);
+    _opOptimism.transfer(address(_user), _amountToSwap);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcUnichain));
 
@@ -68,10 +68,9 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
     vm.selectFork(_chainA);
 
-    uint256 _amountToSwap = 1 ether;
-
     // Set up user funds
-    deal(address(_opOptimism), _user, _amountToSwap);
+    vm.prank(_opWhaleInOpChain);
+    _opOptimism.transfer(address(_user), _amountToSwap);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcUnichain));
 
@@ -125,10 +124,9 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
     vm.selectFork(_chainA);
 
-    uint256 _amountToSwap = 1 ether;
-
     // Set up user funds
-    deal(address(_opOptimism), _user, _amountToSwap);
+    vm.prank(_opWhaleInOpChain);
+    _opOptimism.transfer(address(_user), _amountToSwap);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcUnichain));
 
@@ -168,29 +166,74 @@ contract E2ERefTokenBridgeTest is E2EBase {
   }
 
   /**
+   * @notice Test swap op to usdc in the op chain and send to the unichain chain
+   */
+  function test_swapOpToUsdcInOpChainAndSendToUnichain() public {
+    // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
+    vm.selectFork(_chainA);
+
+    // Set up user funds
+    vm.prank(_opWhaleInOpChain);
+    _opOptimism.transfer(address(_user), _amountToSwap);
+
+    // Create the v4 swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_usdcOptimism));
+
+    // Empty execution data
+    IRefTokenBridge.ExecutionData memory _executionData;
+
+    // Send the op to the op chain
+    vm.startPrank(_user);
+    _opOptimism.approve(address(_opUniSwapExecutor), _amountToSwap);
+    _opUniSwapExecutor.swapAndSend(
+      address(_opOptimism), uint128(_amountToSwap), abi.encode(_v4SwapParams), UNI_CHAIN_ID, _recipient, _executionData
+    );
+    vm.stopPrank();
+
+    // Precalculate the ref USDC address on the unichain chain
+    IRefToken.RefTokenMetadata memory _refUsdcOptimismMetadata =
+      _precalculateRefTokenMetadata(address(_usdcOptimism), OP_CHAIN_ID);
+
+    // After the op is sent, relay and execute in the unichain chain
+    vm.selectFork(_chainB);
+
+    // As swap revert, the op will be returned to the op chain
+    vm.startPrank(_relayer);
+    relayMessages(vm.getRecordedLogs(), OP_CHAIN_ID);
+    vm.stopPrank();
+
+    address _refUsdcOptimismUnichain =
+      _precalculateRefTokenAddress(address(_unichainRefTokenBridge), _refUsdcOptimismMetadata);
+
+    // Check that the usdc is received in the unichain chain
+    assertGt(IERC20(_refUsdcOptimismUnichain).balanceOf(_recipient), _v4SwapParams.amountOutMin);
+  }
+
+  /**
    * @notice Helper function to create the pool with the ref op token and usdc in the unichain chain
    */
   function _createPoolOpRefTokenAndUSDCInUnichain() internal {
     // Send and execute in the op chain
     vm.selectFork(_chainA);
 
-    uint256 _amountToRelay = 10_000 ether;
-
     // Set up user funds
-    deal(address(_opOptimism), _user, _amountToRelay);
+    vm.prank(_opWhaleInOpChain);
+    _opOptimism.transfer(address(_user), _opAmountToRelay);
 
     IRefToken.RefTokenMetadata memory _refOpTokenMetadata =
       _precalculateRefTokenMetadata(address(_opOptimism), OP_CHAIN_ID);
 
     // Send the op to the op chain
     vm.startPrank(_user);
-    _opOptimism.approve(address(_opRefTokenBridge), _amountToRelay);
-    _opRefTokenBridge.send(OP_CHAIN_ID, UNI_CHAIN_ID, address(_opOptimism), _amountToRelay, _poolDeployer);
+    _opOptimism.approve(address(_opRefTokenBridge), _opAmountToRelay);
+    _opRefTokenBridge.send(OP_CHAIN_ID, UNI_CHAIN_ID, address(_opOptimism), _opAmountToRelay, _poolDeployer);
     vm.stopPrank();
 
     vm.selectFork(_chainB);
+
     // Set up user funds
-    deal(address(_usdcUnichain), _poolDeployer, _amountToRelay);
+    vm.prank(_usdcWhaleInUnichainChain);
+    _usdcUnichain.transfer(address(_poolDeployer), _usdcAmountToRelay);
 
     // Relay the op to the unichain chain
     vm.startPrank(_relayer);
@@ -201,13 +244,15 @@ contract E2ERefTokenBridgeTest is E2EBase {
     address _refOpUnichain = _precalculateRefTokenAddress(address(_unichainRefTokenBridge), _refOpTokenMetadata);
 
     // Check balances of the pool deployer
-    assertEq(IERC20(_refOpUnichain).balanceOf(_poolDeployer), _amountToRelay);
-    assertEq(_usdcUnichain.balanceOf(_poolDeployer), _amountToRelay);
+    assertEq(IERC20(_refOpUnichain).balanceOf(_poolDeployer), _opAmountToRelay);
+    assertEq(_usdcUnichain.balanceOf(_poolDeployer), _usdcAmountToRelay);
 
     vm.startPrank(_poolDeployer);
-    uint160 _sqrtPriceX96 = 112_045_541_949_572_279_869_449_664;
-    int24 _tickLower = -139_980; // 60 * -2333, below current price
-    int24 _tickUpper = -120_000; // 60 * -2000, above current price
+    // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
+    uint160 _sqrtPriceX96 = 1_120_455_419_495_722_798_688_496;
+    // Fixed value for the tick lower and upper
+    int24 _tickLower = 283_260; // 60 * 4721, below current price
+    int24 _tickUpper = 283_320; // 60 * 4722, above current price
     uint128 _liquidity = 10 ether;
 
     _createPoolAndMintPosition(
@@ -216,8 +261,8 @@ contract E2ERefTokenBridgeTest is E2EBase {
       _recipient,
       address(_refOpUnichain),
       address(_usdcUnichain),
-      _amountToRelay,
-      _amountToRelay,
+      _opAmountToRelay,
+      _usdcAmountToRelay,
       _sqrtPriceX96,
       _tickLower,
       _tickUpper,
