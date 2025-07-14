@@ -211,6 +211,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       _opChainId, _unichainChainId, address(_op), _DOUBLE_BRIDGE_AMOUNT, _recipient, _executionData
     );
 
+    // Check that the total supply of the ref token is 0 in the native chain
+    assertEq(IERC20(_refOp).totalSupply(), 0);
+
     // Check that the OP is on the bridge
     assertEq(_op.balanceOf(address(_refTokenBridge)), _STANDARD_BRIDGE_AMOUNT + _DOUBLE_BRIDGE_AMOUNT);
 
@@ -496,6 +499,12 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(IERC20(_refUsdc).balanceOf(_user), 0);
 
     uint256 _fixUsdcSwapped = 455_407;
+
+    // Verify that the ref OP token was burned (input to swap)
+    assertEq(IERC20(_refOp).balanceOf(address(_refTokenBridge)), 0);
+
+    // Verify that the ref USDC token was burned (output from swap that gets sent)
+    assertEq(IERC20(_refUsdc).balanceOf(address(_refTokenBridge)), 0);
 
     // Create the message to be relayed
     _message =
@@ -957,9 +966,23 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
 
     uint256 _fixOpSwapped = 994_006_906_200_230_120;
 
+    // Verify that the ref USDC token was burned (input to swap)
+    assertEq(IERC20(_refUsdc).balanceOf(address(_refTokenBridge)), 0);
+
+    // Verify that the ref OP token was burned (output from swap that gets sent)
+    assertEq(IERC20(_refOp).balanceOf(address(_refTokenBridge)), 0);
+
+    // Create the ref token metadata for the op chain to avoid stack too deep
+    IRefToken.RefTokenMetadata memory _opRefTokenMetadataAvoidStackTooDeep =
+      _createRefTokenMetadata(address(_op), _unichainChainId);
+
     // Compute the message that should have been relayed
     _message = abi.encodeWithSelector(
-      _refTokenBridge.relayAndExecute.selector, _fixOpSwapped, _recipient, _opRefTokenMetadata, _executionData
+      _refTokenBridge.relayAndExecute.selector,
+      _fixOpSwapped,
+      _recipient,
+      _opRefTokenMetadataAvoidStackTooDeep,
+      _executionData
     );
 
     // Check that the message hash is correct
@@ -1006,6 +1029,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
     assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
 
+    // Verify that the ref USDC token supply is 0 because it was burned when sent
+    assertEq(IERC20(_refUsdc).totalSupply(), 0);
+
     // Compute the message that should have been relayed
     bytes memory _message =
       abi.encodeWithSelector(_refTokenBridge.relay.selector, _usdcBalance, _recipient, _refUsdcMetadata);
@@ -1016,6 +1042,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     // Check that the message hash is correct
     assertEq(true, _l2ToL2CrossDomainMessenger.sentMessages(_messageHash));
 
+    // Store the USDC balance before second swap
+    uint256 _usdcBalanceBeforeSecondSwap = _usdcBalance;
+
     // Swap and send the USDC to Unichain second time
     _uniSwapExecutor.swapAndSend(
       address(_op), _STANDARD_BRIDGE_AMOUNT, abi.encode(_v4SwapParams), _unichainChainId, _recipient, _executionData
@@ -1025,7 +1054,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
     assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
 
-    uint256 _usdcBalanceSecondSwap = _usdc.balanceOf(address(_refTokenBridge)) - _usdcBalance;
+    uint256 _usdcBalanceSecondSwap = _usdc.balanceOf(address(_refTokenBridge)) - _usdcBalanceBeforeSecondSwap;
+
+    // Verify that the ref USDC token supply is still 0 because it was burned when sent
+    assertEq(IERC20(_refUsdc).totalSupply(), 0);
 
     // Compute the message that should have been relayed
     _message =
@@ -1086,6 +1118,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
     assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
 
+    // Verify that the ref USDC token supply is 0 because it was burned when sent
+    assertEq(IERC20(_refUsdc).totalSupply(), 0);
+
     // Compute the message that should have been relayed
     bytes memory _message = abi.encodeWithSelector(
       _refTokenBridge.relayAndExecute.selector, _usdcBalance, _recipient, _refUsdcMetadata, _executionData
@@ -1107,6 +1142,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     assertEq(_refUsdc, _precalculateRefTokenAddress(address(_refTokenBridge), _refUsdcMetadata));
 
     uint256 _usdcBalanceSecondSwap = _usdc.balanceOf(address(_refTokenBridge)) - _usdcBalance;
+
+    // Verify that the ref USDC token supply is still 0 because it was burned when sent
+    assertEq(IERC20(_refUsdc).totalSupply(), 0);
 
     // Compute the message that should have been relayed
     _message = abi.encodeWithSelector(
