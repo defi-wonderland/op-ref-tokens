@@ -22,7 +22,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     vm.selectFork(_optimismChainId);
 
     // Set up user funds
-    vm.prank(_OP_WHALE_IN_OP_CHAIN);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
     _OP_OPTIMISM.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
@@ -39,7 +39,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
       data: abi.encode(_v4SwapParams)
     });
 
-    // Send the op to the op chain
+    // Send the op from op to unichain
     vm.startPrank(_user);
     _OP_OPTIMISM.approve(address(_opRefTokenBridge), _STANDARD_SWAP_AMOUNT);
     _opRefTokenBridge.sendAndExecute(
@@ -93,7 +93,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     vm.selectFork(_optimismChainId);
 
     // Set up user funds
-    vm.prank(_OP_WHALE_IN_OP_CHAIN);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
     _OP_OPTIMISM.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
@@ -110,7 +110,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     IRefToken.RefTokenMetadata memory _refOpTokenMetadataOptimism =
       _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
 
-    // Send the op to the op chain
+    // Send the op from op to unichain
     vm.startPrank(_user);
     _OP_OPTIMISM.approve(address(_opRefTokenBridge), _STANDARD_SWAP_AMOUNT);
     _opRefTokenBridge.sendAndExecute(
@@ -166,11 +166,11 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     vm.stopPrank();
 
-    // Check that the ref op is deployed on the base chain
+    // Check that the ref usdc is deployed on the base chain
     address _refUSDCBase = _baseRefTokenBridge.nativeToRefToken(address(_USDC_UNICHAIN), UNI_CHAIN_ID);
     assertEq(_refUSDCBase, _precalculateRefTokenAddress(address(_baseRefTokenBridge), _refUSDCMetadataUnichain));
 
-    // Check that the ref USDC is deployed on the base chain
+    // Check that the recipient received the ref usdc
     assertEq(IERC20(_refUSDCBase).balanceOf(_recipient), IERC20(_refUSDCUnichain).totalSupply());
   }
 
@@ -183,7 +183,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     vm.selectFork(_optimismChainId);
 
     // Set up user funds
-    vm.prank(_OP_WHALE_IN_OP_CHAIN);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
     _OP_OPTIMISM.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
 
     IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
@@ -200,7 +200,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     IRefToken.RefTokenMetadata memory _refOpTokenMetadataOptimism =
       _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
 
-    // Send the op to the op chain
+    // Send the op from op to unichain
     vm.startPrank(_user);
     _OP_OPTIMISM.approve(address(_opRefTokenBridge), _STANDARD_SWAP_AMOUNT);
     _opRefTokenBridge.sendAndExecute(
@@ -217,7 +217,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     address _refOpOptimism = _opRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
     assertEq(_refOpOptimism, _precalculateRefTokenAddress(address(_opRefTokenBridge), _refOpTokenMetadataOptimism));
 
-    // Check that the ref op total supply is the amount of op sent
+    // Check that the ref op total supply is zero (not ref tokens should be minted on the native asset chain)
     assertEq(IERC20(_refOpOptimism).totalSupply(), 0);
 
     // Relay the op to the unichain chain to execute the swap
@@ -228,7 +228,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // After the op is sent, relay and execute in the unichain chain
     vm.selectFork(_unichainChainId);
 
-    // As swap revert, the op will be returned to the op chain
+    // As the swap reverts, the op will be returned to the op chain
     vm.startPrank(_RELAYER);
     relayMessages(vm.getRecordedLogs(), OP_CHAIN_ID);
     vm.stopPrank();
@@ -246,7 +246,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     // Check that the refund is sent to the refund address
     assertEq(IERC20(_OP_OPTIMISM).balanceOf(_refund), _STANDARD_SWAP_AMOUNT);
-    // Check that the op is on the bridge
+    // Check that the bridge is not holding any op amount
     assertEq(_OP_OPTIMISM.balanceOf(address(_opRefTokenBridge)), 0);
     // Check that the op is not on the user
     assertEq(_OP_OPTIMISM.balanceOf(_user), 0);
@@ -256,11 +256,11 @@ contract E2ERefTokenBridgeTest is E2EBase {
    * @notice Test swap op to usdc in the op chain and send to the unichain chain
    */
   function test_swapOpToUsdcInOpChainAndSendToUnichain() public {
-    // After the pool is created, send the op from the op chain and relay and execute in the unichain chain
+    // Swap OP from USDC, and then send the OP from the op chain and relay and execute in the unichain chain
     vm.selectFork(_optimismChainId);
 
     // Set up user funds
-    vm.prank(_OP_WHALE_IN_OP_CHAIN);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
     _OP_OPTIMISM.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
 
     // Create the v4 swap params
@@ -269,7 +269,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Empty execution data
     IRefTokenBridge.ExecutionData memory _executionData;
 
-    // Send the op to the op chain
+    // Swap op to usdc in the op chain and send to the unichain chain
     vm.startPrank(_user);
     _OP_OPTIMISM.approve(address(_opUniSwapExecutor), _STANDARD_SWAP_AMOUNT);
     _opUniSwapExecutor.swapAndSend(
@@ -293,12 +293,12 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Check that the ref USDC total supply is zero
     assertEq(IERC20(_refUsdcOptimism).totalSupply(), 0);
 
-    // After the op is sent, relay and execute in the unichain chain
+    // After the USDC is sent, relay and execute in the unichain
     vm.selectFork(_unichainChainId);
 
-    // As swap revert, the op will be returned to the op chain
+    // Relay all messages
     vm.startPrank(_RELAYER);
-    relayMessages(vm.getRecordedLogs(), OP_CHAIN_ID);
+    relayAllMessages();
     vm.stopPrank();
 
     // Check that the ref USDC is deployed
@@ -324,7 +324,8 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Set up user funds
     // The amount of usdc to swap is 1000 USDC
     uint256 _usdcAmount = 1000 * 10 ** 6;
-    deal(address(_USDC_OPTIMISM), address(_user), _usdcAmount);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
+    _USDC_OPTIMISM.transfer(address(_user), _usdcAmount);
 
     // Create the v4 swap params for the first swap
     IUniSwapExecutor.V4SwapExactInParams memory _v4FirstSwapParams = _createV4SwapParams(address(_OP_OPTIMISM));
@@ -340,7 +341,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
       data: abi.encode(_v4SecondSwapParams)
     });
 
-    // Send the op to the unichain chain
+    // Swap usdc to op in the op chain and send and execute to swap in the unichain chain
     vm.startPrank(_user);
     _USDC_OPTIMISM.approve(address(_opUniSwapExecutor), _usdcAmount);
     _opUniSwapExecutor.swapAndSend(
@@ -360,7 +361,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // After the op is sent, relay and execute in the unichain chain
     vm.selectFork(_unichainChainId);
 
-    // Relay the op to the unichain chain to execute the swap
+    // Relay all messages
     vm.startPrank(_RELAYER);
     relayAllMessages();
     vm.stopPrank();
@@ -371,7 +372,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
       _refOpUnichain, _precalculateRefTokenAddress(address(_unichainRefTokenBridge), _refOpTokenMetadataOptimism)
     );
 
-    // Check that the op birdge was swapped to usdc in the unichain chain
+    // Check that the op bridge was swapped to usdc in the unichain chain
     assertEq(IERC20(_refOpUnichain).balanceOf(_recipient), 0);
     // Check that the usdc is received in the unichain chain
     assertGt(IERC20(_USDC_UNICHAIN).balanceOf(_recipient), 0);
@@ -393,7 +394,8 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Set up user funds
     // The amount of usdc to swap is 1000 USDC
     uint256 _usdcAmount = 1000 * 10 ** 6;
-    deal(address(_USDC_OPTIMISM), address(_user), _usdcAmount);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
+    _USDC_OPTIMISM.transfer(address(_user), _usdcAmount);
 
     // Create the v4 swap params for the first swap
     IUniSwapExecutor.V4SwapExactInParams memory _v4FirstSwapParams = _createV4SwapParams(address(_OP_OPTIMISM));
@@ -404,7 +406,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Empty execution data
     IRefTokenBridge.ExecutionData memory _executionData;
 
-    // Send the op to the unichain chain
+    // Swap usdc to op in the op chain and send and execute to swap in the unichain chain
     vm.startPrank(_user);
     _USDC_OPTIMISM.approve(address(_opUniSwapExecutor), _usdcAmount);
     _opUniSwapExecutor.swapAndSend(
@@ -423,7 +425,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     vm.selectFork(_unichainChainId);
 
-    // Relay the op to the unichain chain to execute the swap
+    // Relay all messages
     vm.startPrank(_RELAYER);
     relayAllMessages();
     vm.stopPrank();
@@ -441,7 +443,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     address _baseRecipient = makeAddr('baseRecipient');
 
-    // Send the ref op to the base chain
+    // Swap ref op to usdc in the unichain chain and send to the base chain
     vm.startPrank(_recipient);
     IERC20(_refOpUnichain).approve(address(_unichainUniSwapExecutor), _refOpBalance);
     _unichainUniSwapExecutor.swapAndSend(
@@ -460,7 +462,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     vm.selectFork(_baseChainId);
 
-    // Relay the ref usdc to the base chain to execute the swap
+    // Relay all messages
     vm.startPrank(_RELAYER);
     relayAllMessages();
     vm.stopPrank();
@@ -481,13 +483,13 @@ contract E2ERefTokenBridgeTest is E2EBase {
     vm.selectFork(_optimismChainId);
 
     // Set up user funds
-    vm.prank(_OP_WHALE_IN_OP_CHAIN);
+    vm.prank(_WHALE_IN_OPTIMISM_CHAIN);
     _OP_OPTIMISM.transfer(address(_user), _OP_AMOUNT_TO_RELAY);
 
     IRefToken.RefTokenMetadata memory _refOpTokenMetadata =
       _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
 
-    // Send the op to the op chain
+    // Send the op from op to unichain
     vm.startPrank(_user);
     _OP_OPTIMISM.approve(address(_opRefTokenBridge), _OP_AMOUNT_TO_RELAY);
     _opRefTokenBridge.send(OP_CHAIN_ID, UNI_CHAIN_ID, address(_OP_OPTIMISM), _OP_AMOUNT_TO_RELAY, _poolDeployer);
@@ -496,7 +498,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     vm.selectFork(_unichainChainId);
 
     // Set up user funds
-    vm.prank(_USDC_WHALE_IN_UNICHAIN_CHAIN);
+    vm.prank(_WHALE_IN_UNICHAIN_CHAIN);
     _USDC_UNICHAIN.transfer(address(_poolDeployer), _USDC_AMOUNT_TO_RELAY);
 
     // Relay the op to the unichain chain
@@ -513,7 +515,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     vm.startPrank(_poolDeployer);
     // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
-    uint160 _sqrtPriceX96 = 1_120_455_419_495_722_798_688_496;
+    uint160 _sqrtPriceX96 = 56_022_770_974_786_135_785_472; // = sqrt(0.5 USDC/OP) * 2**96
     // Fixed value for the tick lower and upper
     int24 _tickLower = 283_260; // 60 * 4721, below current price
     int24 _tickUpper = 283_320; // 60 * 4722, above current price

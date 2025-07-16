@@ -37,8 +37,8 @@ contract E2EBase is Test, Relayer, PrecomputeRefToken, UniswapV4Pool {
   IERC20 internal constant _USDC_UNICHAIN = IERC20(USDC_TOKEN_UNICHAIN);
 
   // Whales
-  address internal constant _OP_WHALE_IN_OP_CHAIN = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
-  address internal constant _USDC_WHALE_IN_UNICHAIN_CHAIN = 0xB5A2a236581dbd6BCECD8A25EeBFF140595f138C;
+  address internal constant _WHALE_IN_OPTIMISM_CHAIN = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
+  address internal constant _WHALE_IN_UNICHAIN_CHAIN = 0xB5A2a236581dbd6BCECD8A25EeBFF140595f138C;
 
   // Immutable variables
   address internal immutable _RELAYER =

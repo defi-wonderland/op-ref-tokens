@@ -46,7 +46,7 @@ contract IntegrationBase is DeployRefTokenBridge, Test, PrecomputeRefToken, Unis
   // The total amount out of USDC that will be swapped on this specific fixed block
   uint256 internal constant _FIX_AMOUNT_OUT = 562_141;
   // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
-  uint160 internal constant _SQRT_PRICE_X96 = 560_227_709_747_861_399_344_248;
+  uint160 internal constant _SQRT_PRICE_X96 = 56_022_770_974_786_135_785_472;
   // Fixed value for the tick lower and upper
   int24 internal constant _TICK_LOWER = -285_540; // 60 * -4759, below current price
   int24 internal constant _TICK_UPPER = -284_160; // 60 * -4736, above current price
