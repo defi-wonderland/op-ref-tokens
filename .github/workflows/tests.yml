@@ -102,9 +102,9 @@ jobs:
           (supersim fork --chains=op,unichain,base --l1.fork.height 0 --interop.enabled > supersim.log 2>&1) &
           SUPERSIM_PID=$!
 
-          # Wait for supersim to be ready (simple wait; can be replaced with log polling)
+          # Wait for supersim to be ready with health check
           echo "⏳ Waiting for supersim to start..."
-          sleep 30
+          timeout 60 bash -c 'until curl -s http://127.0.0.1:9545 > /dev/null 2>&1; do sleep 2; done' || { echo "Supersim failed to start"; exit 1; }
 
           # Run the E2E tests
           yarn test:e2e
