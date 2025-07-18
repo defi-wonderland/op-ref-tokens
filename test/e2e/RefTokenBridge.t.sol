@@ -333,7 +333,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Create the v4 swap params for the second swap
     IUniSwapExecutor.V4SwapExactInParams memory _v4SecondSwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
 
-    // Empty execution data
+    // Execution data for the second swap in the unichain chain
     IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
       destinationExecutor: address(_unichainUniSwapExecutor),
       destinationChainId: UNI_CHAIN_ID,
@@ -357,6 +357,14 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Precalculate the ref op token metadata
     IRefToken.RefTokenMetadata memory _refOpTokenMetadataOptimism =
       _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
+
+    address _refOpOptimism = _opRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
+
+    // Check that the ref op is deployed
+    assertEq(_refOpOptimism, _precalculateRefTokenAddress(address(_opRefTokenBridge), _refOpTokenMetadataOptimism));
+
+    // Check that the ref op total supply is zero
+    assertEq(IERC20(_refOpOptimism).totalSupply(), 0);
 
     // After the op is sent, relay and execute in the unichain chain
     vm.selectFork(_unichainChainId);
@@ -403,7 +411,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Create the v4 swap params for the second swap
     IUniSwapExecutor.V4SwapExactInParams memory _v4SecondSwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
 
-    // Empty execution data
+    // Execution data for the second swap in the unichain chain
     IRefTokenBridge.ExecutionData memory _executionData;
 
     // Swap usdc to op in the op chain and send and execute to swap in the unichain chain
@@ -422,6 +430,12 @@ contract E2ERefTokenBridgeTest is E2EBase {
     // Precalculate the ref op token metadata
     IRefToken.RefTokenMetadata memory _refOpTokenMetadataOptimism =
       _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
+
+    address _refOpOptimism = _opRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
+    // Check that the ref op is deployed
+    assertEq(_refOpOptimism, _precalculateRefTokenAddress(address(_opRefTokenBridge), _refOpTokenMetadataOptimism));
+    // Check that the ref op total supply is zero
+    assertEq(IERC20(_refOpOptimism).totalSupply(), 0);
 
     vm.selectFork(_unichainChainId);
 
@@ -473,6 +487,105 @@ contract E2ERefTokenBridgeTest is E2EBase {
 
     // Check that the usdc is received in the base chain
     assertEq(IERC20(_refUsdcBase).balanceOf(_baseRecipient), IERC20(_refUsdcBase).totalSupply());
+  }
+
+  /**
+   * @notice Test different users send in the op chain and execute in the unichain chain
+   * @dev This test will create a pool with the ref op token and usdc in the unichain chain,
+   * send the op from the op chain and relay and execute in the unichain chain
+   * and check that the ref token is deployed and the pool is created
+   */
+  function test_differentUsersSendInOpAndExecuteInUnichain() public {
+    // Create the pool with the ref op token and usdc in the unichain chain
+    _createPoolOpRefTokenAndUSDCInUnichain();
+
+    vm.selectFork(_optimismChainId);
+
+    // Set up another user and recipient
+    address _anotherUser = makeAddr('anotherUser');
+    address _anotherRecipient = makeAddr('anotherRecipient');
+
+    // The amount of op to swap for the second user
+    uint256 _secondUserSwapAmount = _STANDARD_BRIDGE_AMOUNT * 2;
+
+    // Set up user funds
+    vm.startPrank(_WHALE_IN_OPTIMISM_CHAIN);
+    _OP_OPTIMISM.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
+    _OP_OPTIMISM.transfer(address(_anotherUser), _secondUserSwapAmount);
+    vm.stopPrank();
+
+    // Create the v4 swap params
+    IUniSwapExecutor.V4SwapExactInParams memory _v4SwapParams = _createV4SwapParams(address(_USDC_UNICHAIN));
+
+    // Execution data for the swap in the unichain chain
+    IRefTokenBridge.ExecutionData memory _executionData = IRefTokenBridge.ExecutionData({
+      destinationExecutor: address(_unichainUniSwapExecutor),
+      destinationChainId: UNI_CHAIN_ID,
+      refundAddress: _refund,
+      data: abi.encode(_v4SwapParams)
+    });
+
+    // Send the op from the op chain and relay and execute in the unichain chain
+    vm.startPrank(_user);
+    _OP_OPTIMISM.approve(address(_opRefTokenBridge), _STANDARD_BRIDGE_AMOUNT);
+    _opRefTokenBridge.sendAndExecute(
+      OP_CHAIN_ID, UNI_CHAIN_ID, address(_OP_OPTIMISM), _STANDARD_BRIDGE_AMOUNT, _recipient, _executionData
+    );
+    vm.stopPrank();
+
+    // Precalculate the ref op token metadata
+    IRefToken.RefTokenMetadata memory _refOpTokenMetadata =
+      _precalculateRefTokenMetadata(address(_OP_OPTIMISM), OP_CHAIN_ID);
+
+    // Check that the op is deployed
+    address _refOpOptimism = _opRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
+    assertEq(_refOpOptimism, _precalculateRefTokenAddress(address(_opRefTokenBridge), _refOpTokenMetadata));
+
+    // Check that the op total supply is zero
+    assertEq(IERC20(_refOpOptimism).totalSupply(), 0);
+
+    // Check that the op is on the user
+    assertEq(IERC20(_OP_OPTIMISM).balanceOf(_user), 0);
+    assertEq(IERC20(_OP_OPTIMISM).balanceOf(address(_opRefTokenBridge)), _STANDARD_BRIDGE_AMOUNT + _OP_AMOUNT_TO_RELAY);
+
+    // Send the op from the op chain and relay and execute in the unichain chain
+    vm.startPrank(_anotherUser);
+    _OP_OPTIMISM.approve(address(_opRefTokenBridge), _secondUserSwapAmount);
+    _opRefTokenBridge.sendAndExecute(
+      OP_CHAIN_ID, UNI_CHAIN_ID, address(_OP_OPTIMISM), _secondUserSwapAmount, _anotherRecipient, _executionData
+    );
+    vm.stopPrank();
+
+    // Check that the op total supply is zero
+    assertEq(IERC20(_refOpOptimism).totalSupply(), 0);
+
+    // Check that the op is on the user
+    assertEq(IERC20(_OP_OPTIMISM).balanceOf(_user), 0);
+    assertEq(IERC20(_OP_OPTIMISM).balanceOf(_anotherUser), 0);
+    assertEq(
+      IERC20(_OP_OPTIMISM).balanceOf(address(_opRefTokenBridge)),
+      _STANDARD_BRIDGE_AMOUNT + _secondUserSwapAmount + _OP_AMOUNT_TO_RELAY
+    );
+
+    vm.selectFork(_unichainChainId);
+
+    // Relay all messages
+    vm.startPrank(_RELAYER);
+    relayAllMessages();
+    vm.stopPrank();
+
+    // Check that the op is deployed
+    address _refOpUnichain = _unichainRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
+    assertEq(_refOpUnichain, _precalculateRefTokenAddress(address(_unichainRefTokenBridge), _refOpTokenMetadata));
+
+    // Check that the op total supply is zero
+    assertEq(
+      IERC20(_refOpUnichain).totalSupply(), _STANDARD_BRIDGE_AMOUNT + _secondUserSwapAmount + _OP_AMOUNT_TO_RELAY
+    );
+
+    // Check that the usdc is received in the unichain chain
+    assertGt(_USDC_UNICHAIN.balanceOf(_recipient), 0);
+    assertGt(_USDC_UNICHAIN.balanceOf(_anotherRecipient), 0);
   }
 
   /**
