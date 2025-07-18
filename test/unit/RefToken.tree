@@ -1,0 +1,58 @@
+UnitRefTokenTest::constructor
+└── When deployed
+    └── It constructs the RefToken contract
+
+UnitRefTokenTest::mint
+├── When caller is not authorized
+│   └── It reverts
+└── When caller is authorized
+    └── It mints the specified amount of RefToken to the recipient
+
+UnitRefTokenTest::burn
+├── When caller is not authorized
+│   └── It reverts
+└── When caller is authorized
+    └── It burns the specified amount of RefToken from the caller
+
+UnitRefTokenTest::name
+└── When called
+    └── It returns the name of the RefToken
+
+UnitRefTokenTest::symbol
+└── When called
+    └── It returns the symbol of the RefToken
+
+UnitRefTokenTest::decimals
+└── When called
+    └── It returns the decimals of the RefToken
+
+UnitRefTokenTest::_mint
+├── When caller is not the SuperchainTokenBridge
+│   └── It calls super._mint
+└── When chain id differs from the native asset chain id
+    └── It calls super._mint
+
+UnitRefTokenTest::crosschainMint
+└── When caller is authorized and chain id is the native asset one
+    └── It calls RefTokenBridge.unlock
+
+UnitRefTokenTest::allowance
+└── When the spender is the Permit2 contract
+    └── It returns the max uint256 value
+
+UnitRefTokenTest::approve
+└── When the spender is the Permit2 contract and value is not the max value
+    └── It reverts
+
+UnitRefTokenTest::permit
+└── When the spender is the Permit2 contract and value is not the max value
+    └── It reverts
+
+UnitRefTokenTest::transferFrom
+└── When the caller is the Permit2 contract and from has enough balance
+    └── It transfers the amount
+
+UnitRefTokenTest::refTokenMetadata
+└── When called
+    └── It returns the RefToken metadata
+
