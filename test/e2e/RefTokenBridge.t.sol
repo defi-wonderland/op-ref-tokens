@@ -578,7 +578,7 @@ contract E2ERefTokenBridgeTest is E2EBase {
     address _refOpUnichain = _unichainRefTokenBridge.nativeToRefToken(address(_OP_OPTIMISM), OP_CHAIN_ID);
     assertEq(_refOpUnichain, _precalculateRefTokenAddress(address(_unichainRefTokenBridge), _refOpTokenMetadata));
 
-    // Check that the op total supply is zero
+    // Check that the op total supply is the amount to relay + the amount sent by the user + the amount sent by the another user
     assertEq(
       IERC20(_refOpUnichain).totalSupply(), _STANDARD_BRIDGE_AMOUNT + _secondUserSwapAmount + _OP_AMOUNT_TO_RELAY
     );
