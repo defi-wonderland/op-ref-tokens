@@ -87,7 +87,7 @@ contract UniswapV4Pool {
 
     IPositionManager _avoidStackTooDeepPositionManager = _positionManager;
 
-    // Fixed value for the sqrt price usdc 1 OP ~= 0.5 USDC
+    // Initialize pool with the provided sqrt price
     _params[0] = abi.encodeWithSelector(IPoolInitializer_v4.initializePool.selector, _poolKey, _sqrtPriceX96);
 
     // Create the actions

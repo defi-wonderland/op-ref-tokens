@@ -4,8 +4,10 @@ pragma solidity 0.8.25;
 import {IntegrationBase} from './IntegrationBase.sol';
 import {Hashing} from '@interop-lib/src/libraries/Hashing.sol';
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
-import {IAllowanceTransfer} from '@uniswap/permit2/src/interfaces/IAllowanceTransfer.sol';
 import {IHooks} from '@uniswap/v4-core/src/interfaces/IHooks.sol';
+
+import {IAllowanceTransfer} from '@uniswap/permit2/src/interfaces/IAllowanceTransfer.sol';
+
 import {Currency} from '@uniswap/v4-core/src/types/Currency.sol';
 import {PoolKey} from '@uniswap/v4-core/src/types/PoolKey.sol';
 import {IPoolInitializer_v4} from '@uniswap/v4-periphery/src/interfaces/IPoolInitializer_v4.sol';
@@ -26,9 +28,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can send OP to Unichain and deploy a ref token when the ref token is not deployed
    */
   function test_sendFromOpChainToUnichainWithRefTokenNotDeployed() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -92,9 +94,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can send OP to Unichain and deploy a ref token and send OP again when the ref token is already deployed
    */
   function test_sendFromOpChainToUnichainWithRefTokenDeployed() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -151,9 +153,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can send OP to Unichain and send execute data to swap
    */
   function test_sendAndExecuteFromOpChainToUnichain() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -232,9 +234,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can send OP to Unichain and relay and execute back to the op chain simulating a user sending the ref token to the op chain from Unichain
    */
   function test_sendOpToUnichainAndRelayAndExecuteBackToOpChain() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -304,9 +306,9 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that the bridge can send OP to Unichain and relay back to the op chain simulating a user sending the ref token to the op chain from Unichain
    */
   function test_sendOpToUnichainAndRelayBackToOpChain() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -459,10 +461,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_refUsdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -549,10 +551,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_refUsdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -592,7 +594,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    */
   function test_relayAndExecuteFromUnichainToOpChainAndSwapWithNativeTokenAndGetRefToken() public {
     // Set up user funds
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_recipient), _OP_AMOUNT_TO_RELAY);
     _op.transfer(address(_user), _STANDARD_BRIDGE_AMOUNT);
     vm.stopPrank();
@@ -621,10 +623,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_refUsdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -689,12 +691,12 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
   function test_relayAndExecuteFromUnichainToOpChainAndSwapWithNativeTokenAndNativeToken() public {
     uint256 _usdcStandardSwapAmount = 1 * 10 ** 6;
     // Set up user funds
-    vm.startPrank(_usdcWhale);
+    vm.startPrank(_USDC_WHALE);
     _usdc.transfer(address(_recipient), _USDC_AMOUNT_TO_RELAY);
     _usdc.transfer(address(_user), _usdcStandardSwapAmount);
     vm.stopPrank();
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_recipient), _OP_AMOUNT_TO_RELAY);
     vm.stopPrank();
 
@@ -712,10 +714,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_usdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -781,12 +783,12 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _usdcStandardSwapAmount = 1 * 10 ** 6;
 
     // Set up user funds
-    vm.startPrank(_usdcWhale);
+    vm.startPrank(_USDC_WHALE);
     _usdc.transfer(address(_recipient), _USDC_AMOUNT_TO_RELAY);
     _usdc.transfer(address(_user), _usdcStandardSwapAmount);
     vm.stopPrank();
 
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_recipient), _OP_AMOUNT_TO_RELAY);
     vm.stopPrank();
 
@@ -804,10 +806,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_usdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -906,10 +908,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
       address(_refUsdc),
       _OP_AMOUNT_TO_RELAY,
       _USDC_AMOUNT_TO_RELAY,
-      _sqrtPriceX96,
-      _tickLower,
-      _tickUpper,
-      _liquidity
+      _SQRT_PRICE_X96,
+      _TICK_LOWER,
+      _TICK_UPPER,
+      _LIQUIDITY
     );
     vm.stopPrank();
 
@@ -996,10 +998,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that swap and send to Unichain, relay and execute back to the op chain
    */
   function test_swapAndSendAndRelayFromOpChainToUnichain() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
     // Set up user funds
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -1023,7 +1025,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _usdcBalance = _usdc.balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge
-    assertEq(_usdcBalance, _fixAmountOut);
+    assertEq(_usdcBalance, _FIX_AMOUNT_OUT);
 
     // Check that the ref op was deployed
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);
@@ -1074,10 +1076,10 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
    * @notice Test that swap and send to Unichain, relay and execute back to the op chain
    */
   function test_swapAndSendAndRelayAndExecuteFromOpChainToUnichain() public {
-    uint256 _userBalance = _op.balanceOf(_opWhale);
+    uint256 _userBalance = _op.balanceOf(_OP_WHALE);
 
     // Set up user funds
-    vm.startPrank(_opWhale);
+    vm.startPrank(_OP_WHALE);
     _op.transfer(address(_user), _userBalance);
     vm.stopPrank();
 
@@ -1112,7 +1114,7 @@ contract IntegrationRefTokenBridgeTest is IntegrationBase {
     uint256 _usdcBalance = _usdc.balanceOf(address(_refTokenBridge));
 
     // Check that the USDC is on the bridge
-    assertEq(_usdcBalance, _fixAmountOut);
+    assertEq(_usdcBalance, _FIX_AMOUNT_OUT);
 
     // Check that the ref op was deployed
     address _refUsdc = _refTokenBridge.nativeToRefToken(address(_usdc), _opChainId);

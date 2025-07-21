@@ -21,9 +21,12 @@
     "lint:natspec": "lintspec src -f variable --inheritdoc=false",
     "lint:sol": "solhint 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol'",
     "prepare": "husky",
+    "supersim": "supersim fork --chains=op,unichain,base --interop.enabled",
     "test": "forge test -vvv",
+    "test:e2e": "forge test --match-contract E2E -vvv",
     "test:fuzz": "medusa fuzz",
     "test:integration": "FOUNDRY_FUZZ_RUNS=50 forge test --match-contract Integration -vvv",
+    "test:supersim:e2e": "yarn supersim && yarn test:e2e",
     "test:symbolic": "halmos",
     "test:unit": "forge test --match-contract Unit -vvv",
     "test:unit:deep": "FOUNDRY_FUZZ_RUNS=5000 yarn test:unit"
