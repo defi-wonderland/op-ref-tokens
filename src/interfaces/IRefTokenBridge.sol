@@ -9,6 +9,9 @@ import {IL2ToL2CrossDomainMessenger} from '@interop-lib/src/interfaces/IL2ToL2Cr
  * @notice Interface for the RefTokenBridge
  */
 interface IRefTokenBridge {
+  /*///////////////////////////////////////////////////////////////
+                            STRUCTS
+  //////////////////////////////////////////////////////////////*/
   /**
    * @notice Data structure for the execution data
    * @param destinationExecutor The address of the destination executor
@@ -22,6 +25,10 @@ interface IRefTokenBridge {
     address refundAddress;
     bytes data;
   }
+
+  /*///////////////////////////////////////////////////////////////
+                            EVENTS
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Event emitted when tokens are locked
@@ -90,6 +97,10 @@ interface IRefTokenBridge {
    */
   event RefTokenDeployed(address indexed _refToken, address indexed _nativeAsset, uint256 _nativeAssetChainId);
 
+  /*///////////////////////////////////////////////////////////////
+                            ERRORS
+  //////////////////////////////////////////////////////////////*/
+
   /**
    * @notice Thrown when the amount is invalid
    */
@@ -129,6 +140,20 @@ interface IRefTokenBridge {
    * @notice Thrown when the native asset chain id is zero
    */
   error RefTokenBridge_InvalidNativeAssetChainId();
+
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+  /**
+   * @notice Thrown when the token is not the RefToken
+   */
+  error RefTokenBridge_NotRefToken();
+
+  /**
+   * @notice Thrown when the refund address is invalid
+   */
+  error RefTokenBridge_InvalidRefundAddress();
 
   /**
    * @notice Send token to the relay chain
@@ -195,6 +220,10 @@ interface IRefTokenBridge {
    * @param _amount The amount of token to be unlocked
    */
   function unlock(address _token, address _to, uint256 _amount) external;
+
+  /*///////////////////////////////////////////////////////////////
+                            VIEWS
+  //////////////////////////////////////////////////////////////*/
 
   /**
    * @notice Gets the RefToken

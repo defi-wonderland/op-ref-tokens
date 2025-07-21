@@ -185,7 +185,6 @@ yarn build
 ## Risks & Uncertainties
 
 1.  **Liquidity Fragmentation** – Different origins create distinct `RefToken` addresses for the same underlying asset (e.g., `USDT` from OP Mainnet and `USDT` from Base will be different `RefTokens` on a third chain).
-2.  **Execution Re-entrancy** – Executors must not call bridge methods in the same transaction to avoid re-entrancy bugs.
 
 ---
 

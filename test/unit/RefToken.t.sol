@@ -1,21 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {Helpers} from 'test/utils/Helpers.t.sol';
-
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {Unauthorized} from '@interop-lib/src/libraries/errors/CommonErrors.sol';
-
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
-
 import {IRefToken} from 'interfaces/IRefToken.sol';
 import {IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
 import {RefToken} from 'src/contracts/RefToken.sol';
+import {Helpers} from 'test/utils/Helpers.t.sol';
 
-contract UnitRefTokenTest is Helpers {
+contract RefTokenUnit is Helpers {
   error Permit2AllowanceIsFixedAtInfinity();
-
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
   RefToken public refToken;
   IRefTokenBridge public refTokenBridge;
@@ -92,10 +87,6 @@ contract UnitRefTokenTest is Helpers {
     vm.prank(address(refTokenBridge));
     refToken.burn(_user, _burnAmount);
     assertEq(refToken.balanceOf(_user), _initialBalance - _burnAmount);
-  }
-
-  function test_RefTokenMetadataWhenCalled() external view {
-    assertEq(abi.encode(refToken.metadata()), abi.encode(refTokenMetadata));
   }
 
   function test_NameWhenCalled() external view {
@@ -204,5 +195,9 @@ contract UnitRefTokenTest is Helpers {
       assertEq(refToken.balanceOf(_from), _fromBalanceBefore - _amount);
       assertEq(refToken.balanceOf(_to), _toBalanceBefore + _amount);
     }
+  }
+
+  function test_RefTokenMetadataWhenCalled() external view {
+    assertEq(abi.encode(refToken.metadata()), abi.encode(refTokenMetadata));
   }
 }

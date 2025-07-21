@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {IRefToken} from 'interfaces/IRefToken.sol';
-import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
-
-import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
-import {IExecutor} from 'interfaces/external/IExecutor.sol';
-
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
 import {RefToken} from 'contracts/RefToken.sol';
 import {IRefToken} from 'interfaces/IRefToken.sol';
+import {IL2ToL2CrossDomainMessenger, IRefTokenBridge} from 'interfaces/IRefTokenBridge.sol';
+import {IERC20Metadata} from 'interfaces/external/IERC20Metadata.sol';
+import {IExecutor} from 'interfaces/external/IExecutor.sol';
 
 /**
  * @title RefTokenBridge
@@ -72,10 +69,8 @@ contract RefTokenBridge is IRefTokenBridge {
     ExecutionData calldata _executionData
   ) external {
     if (_executionData.destinationExecutor == address(0)) revert RefTokenBridge_InvalidDestinationExecutor();
-    if (_executionData.destinationChainId == 0 || _executionData.destinationChainId == block.chainid) {
-      revert RefTokenBridge_InvalidExecutionChainId();
-    }
-    // TODO: Check refund address is not zero? Not sure
+    if (_executionData.destinationChainId == 0) revert RefTokenBridge_InvalidExecutionChainId();
+    if (_executionData.refundAddress == address(0)) revert RefTokenBridge_InvalidRefundAddress();
 
     _send(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
@@ -199,12 +194,10 @@ contract RefTokenBridge is IRefTokenBridge {
       _refTokenMetadata = IRefToken(_refToken).metadata();
     }
 
-    // If the chain is the native asset chain, but the `_token` is not the native asset, revert since there will not be
     // RefToken supply to burn on this chain
     bool _isNativeAssetChain = block.chainid == _nativeAssetChainId;
-    // TODO: Can be moved above for gas efficiency
-    // if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
-    // if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
+    if (_isNativeAssetChain && _token != _refTokenMetadata.nativeAsset) revert RefTokenBridge_NotNativeAsset();
+    if (!_isNativeAssetChain && _token != _refToken) revert RefTokenBridge_NotRefToken();
 
     // If the chain is the native asset chain, lock the native asset
     if (_isNativeAssetChain) _lock(_refTokenMetadata.nativeAsset, _amount);

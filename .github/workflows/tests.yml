@@ -7,8 +7,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  MAINNET_RPC: ${{ secrets.MAINNET_RPC }}
-  SEPOLIA_RPC: ${{ secrets.SEPOLIA_RPC }}
+  OPTIMISM_RPC: ${{ secrets.OPTIMISM_RPC }}
+  OP_SEPOLIA_RPC: ${{ secrets.OP_SEPOLIA_RPC }}
+  REF_TOKEN_BRIDGE_SALT: ${{ secrets.REF_TOKEN_BRIDGE_SALT }}
 
 jobs:
   unit-tests:
@@ -63,6 +64,54 @@ jobs:
 
       - name: Run tests
         run: yarn test:integration
+
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn --frozen-lockfile --network-concurrency 1
+
+      - name: Precompile
+        run: yarn build
+
+      - name: Install supersim and run tests
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Install Homebrew and supersim
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap ethereum-optimism/tap
+          brew install supersim
+
+          # Start supersim in the background
+          (supersim fork --chains=op,unichain,base --l1.fork.height 0 --interop.enabled > supersim.log 2>&1) &
+          SUPERSIM_PID=$!
+
+          # Wait for supersim to be ready with health check
+          echo "⏳ Waiting for supersim to start..."
+          timeout 60 bash -c 'until curl -s http://127.0.0.1:9545 > /dev/null 2>&1; do sleep 2; done' || { echo "Supersim failed to start"; exit 1; }
+
+          # Run the E2E tests
+          yarn test:e2e
+
+          # Shut down supersim
+          echo "🛑 Stopping supersim (PID: $SUPERSIM_PID)"
+          kill $SUPERSIM_PID || true
 
   medusa-tests:
     name: Medusa Test

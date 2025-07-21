@@ -6,6 +6,9 @@ pragma solidity 0.8.25;
  * @notice Interface for the Executor
  */
 interface IExecutor {
+  /*///////////////////////////////////////////////////////////////
+                            LOGIC
+  //////////////////////////////////////////////////////////////*/
   /**
    * @notice Executes the given data
    * @param _token The token to be executed, either the native asset or the RefToken

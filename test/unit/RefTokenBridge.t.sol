@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
-import {Helpers} from 'test/utils/Helpers.t.sol';
-
 import {IL2ToL2CrossDomainMessenger} from '@interop-lib/src/interfaces/IL2ToL2CrossDomainMessenger.sol';
-import {IRefToken, IRefTokenBridge, RefTokenBridge} from 'src/contracts/RefTokenBridge.sol';
-import {IExecutor} from 'src/interfaces/external/IExecutor.sol';
 
 import {PredeployAddresses} from '@interop-lib/src/libraries/PredeployAddresses.sol';
 import {IERC20Solady as IERC20} from '@interop-lib/vendor/solady-v0.0.245/interfaces/IERC20.sol';
+import {IRefToken, IRefTokenBridge, RefTokenBridge} from 'src/contracts/RefTokenBridge.sol';
 import {IERC20Metadata} from 'src/interfaces/external/IERC20Metadata.sol';
+import {IExecutor} from 'src/interfaces/external/IExecutor.sol';
+import {Helpers} from 'test/utils/Helpers.t.sol';
 
 contract RefTokenBridgeForTest is RefTokenBridge {
   function setRefTokenDeployed(address _nativeToken, bool _deployed) external {
@@ -23,7 +22,6 @@ contract RefTokenBridgeForTest is RefTokenBridge {
 
 contract RefTokenBridgeUnit is Helpers {
   address public constant L2_TO_L2_CROSS_DOMAIN_MESSENGER = PredeployAddresses.L2_TO_L2_CROSS_DOMAIN_MESSENGER;
-  address public constant PERMIT2 = 0x000000000022D473030F116dDEE9F6B43aC78BA3;
 
   /// Contracts
   IL2ToL2CrossDomainMessenger public l2ToL2CrossDomainMessenger;
@@ -141,6 +139,69 @@ contract RefTokenBridgeUnit is Helpers {
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
     vm.prank(_caller);
     refTokenBridge.send(_nativeAssetChainId, _relayChainId, _nativeAsset, _amount, _recipient);
+  }
+
+  function test_SendRevertWhen_NativeChainIdMatchesTheBlockChainIdAndTheTokenIsNotTheNativeToken(
+    address _caller,
+    uint256 _relayChainId,
+    address _nativeAsset,
+    address _refToken,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    // Setup
+    _assumeFuzzable(_nativeAsset);
+    _assumeFuzzable(_refToken);
+    vm.assume(_nativeAsset != _refToken);
+
+    _amount = bound(_amount, 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+
+    vm.assume(_recipient != address(0));
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+
+    refTokenMetadata.nativeAsset = _nativeAsset;
+    refTokenMetadata.nativeAssetChainId = block.chainid;
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(refTokenMetadata));
+
+    // Action and assertion
+    vm.prank(_caller);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_NotNativeAsset.selector);
+    refTokenBridge.send(block.chainid, _relayChainId, _refToken, _amount, _recipient);
+  }
+
+  function test_SendRevertWhen_NativeChainIdIsNotDoesNotMatchTheBlockChainIdAndTheTokenIsNotTheRefToken(
+    address _caller,
+    uint256 _relayChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _refToken,
+    address _recipient,
+    uint256 _amount
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_refToken);
+
+    _amount = bound(_amount, 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
+
+    vm.assume(_recipient != address(0));
+    vm.assume(_refTokenMetadata.nativeAsset != _refToken);
+
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(_refTokenMetadata));
+
+    vm.prank(_caller);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_NotRefToken.selector);
+    refTokenBridge.send(
+      _refTokenMetadata.nativeAssetChainId, _relayChainId, _refTokenMetadata.nativeAsset, _amount, _recipient
+    );
   }
 
   function test_SendWhenCalledWithANativeTokenFirstTime(
@@ -333,22 +394,6 @@ contract RefTokenBridgeUnit is Helpers {
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
-  function test_SendAndExecuteRevertWhen_ExecutionDataDestinationChainIdIsTheBlockChainId(
-    uint256 _nativeAssetChainId,
-    address _token,
-    address _recipient,
-    uint256 _amount,
-    uint256 _relayChainId,
-    IRefTokenBridge.ExecutionData memory _executionData
-  ) external {
-    vm.assume(_executionData.destinationExecutor != address(0));
-    _executionData.destinationChainId = block.chainid;
-
-    // It should revert
-    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidExecutionChainId.selector);
-    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
-  }
-
   function test_SendAndExecuteRevertWhen_AmountIsZero(
     uint256 _nativeAssetChainId,
     address _token,
@@ -359,6 +404,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
 
     uint256 _amount = 0;
 
@@ -377,12 +423,33 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
     _amount = bound(_amount, 1, type(uint256).max);
 
     address _recipient = address(0);
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRecipient.selector);
+    refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
+  }
+
+  function test_SendAndExecuteRevertWhen_RefundAddressIsZero(
+    uint256 _nativeAssetChainId,
+    address _token,
+    address _recipient,
+    uint256 _amount,
+    uint256 _relayChainId,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
+    if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
+    vm.assume(_recipient != address(0));
+    vm.assume(_executionData.destinationExecutor != address(0));
+
+    _executionData.refundAddress = address(0);
+
+    // It should revert
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidRefundAddress.selector);
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
   }
 
@@ -416,6 +483,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
 
     vm.assume(_recipient != address(0));
     _amount = bound(_amount, 1, type(uint256).max);
@@ -443,6 +511,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
 
     // It should revert
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
@@ -465,11 +534,93 @@ contract RefTokenBridgeUnit is Helpers {
     _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
     if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
     vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
 
     // It should revert
     _nativeAssetChainId = 0;
     vm.expectRevert(IRefTokenBridge.RefTokenBridge_InvalidNativeAssetChainId.selector);
     refTokenBridge.sendAndExecute(_nativeAssetChainId, _relayChainId, _token, _amount, _recipient, _executionData);
+  }
+
+  function test_SendAndExecuteRevertWhen_NativeChainIdMatchesTheBlockChainIdAndTheTokenIsNotTheNativeToken(
+    address _caller,
+    uint256 _relayChainId,
+    address _nativeAsset,
+    address _refToken,
+    address _recipient,
+    uint256 _amount,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    // Setup
+    _assumeFuzzable(_nativeAsset);
+    _assumeFuzzable(_refToken);
+    vm.assume(_nativeAsset != _refToken);
+
+    _amount = bound(_amount, 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    if (_relayChainId == block.chainid) ++_relayChainId;
+
+    _refTokenMetadata.nativeAsset = _nativeAsset;
+    _refTokenMetadata.nativeAssetChainId = block.chainid;
+
+    vm.assume(_recipient != address(0));
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.destinationChainId != block.chainid);
+    vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(_refTokenMetadata));
+
+    // Action and assertion
+    vm.prank(_caller);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_NotNativeAsset.selector);
+    refTokenBridge.sendAndExecute(block.chainid, _relayChainId, _refToken, _amount, _recipient, _executionData);
+  }
+
+  function test_SendAndExecuteRevertWhen_NativeChainIdIsNotDoesNotMatchTheBlockChainIdAndTheTokenIsNotTheRefToken(
+    address _caller,
+    uint256 _relayChainId,
+    IRefToken.RefTokenMetadata memory _refTokenMetadata,
+    address _refToken,
+    address _recipient,
+    uint256 _amount,
+    IRefTokenBridge.ExecutionData memory _executionData
+  ) external {
+    _assumeFuzzable(_refTokenMetadata.nativeAsset);
+    _assumeFuzzable(_refToken);
+
+    _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
+    _executionData.destinationChainId = bound(_executionData.destinationChainId, 1, type(uint256).max);
+    _relayChainId = bound(_relayChainId, 1, type(uint256).max);
+    _amount = bound(_amount, 1, type(uint256).max);
+
+    if (_executionData.destinationChainId == block.chainid) ++_executionData.destinationChainId;
+    if (_relayChainId == block.chainid) ++_relayChainId;
+    if (_refTokenMetadata.nativeAssetChainId == block.chainid) ++_refTokenMetadata.nativeAssetChainId;
+
+    vm.assume(_recipient != address(0));
+    vm.assume(_executionData.destinationExecutor != address(0));
+    vm.assume(_executionData.refundAddress != address(0));
+    vm.assume(_refTokenMetadata.nativeAsset != _refToken);
+    vm.assume(_executionData.refundAddress != address(0));
+
+    refTokenBridge.setRefTokenDeployed(_refToken, true);
+    refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
+    _mockAndExpect(_refToken, abi.encodeCall(IRefToken.metadata, ()), abi.encode(_refTokenMetadata));
+
+    vm.prank(_caller);
+    vm.expectRevert(IRefTokenBridge.RefTokenBridge_NotRefToken.selector);
+    refTokenBridge.sendAndExecute(
+      _refTokenMetadata.nativeAssetChainId,
+      _relayChainId,
+      _refTokenMetadata.nativeAsset,
+      _amount,
+      _recipient,
+      _executionData
+    );
   }
 
   function test_SendAndExecuteWhenCalledWithANativeTokenFirstTime(
@@ -488,6 +639,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
 
     // It should create the RefToken
     _refTokenMetadata.nativeAssetChainId = block.chainid;
@@ -573,6 +725,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
 
     refTokenBridge.setRefTokenDeployed(_refToken, true);
     refTokenBridge.setNativeToRefToken(_refTokenMetadata.nativeAsset, _refTokenMetadata.nativeAssetChainId, _refToken);
@@ -629,6 +782,7 @@ contract RefTokenBridgeUnit is Helpers {
     vm.assume(_executionData.destinationExecutor != address(0));
     vm.assume(_executionData.destinationChainId != block.chainid);
     vm.assume(_executionData.destinationChainId != 0);
+    vm.assume(_executionData.refundAddress != address(0));
     _refTokenMetadata.nativeAssetChainId = bound(_refTokenMetadata.nativeAssetChainId, 1, type(uint256).max);
     _relayChainId = bound(_relayChainId, 1, type(uint256).max);
     if (_relayChainId == block.chainid) ++_relayChainId;
